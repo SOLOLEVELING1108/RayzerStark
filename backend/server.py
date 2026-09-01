@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, UploadFile, File, Form, Query, HTTPException
+from fastapi import FastAPI, APIRouter, UploadFile, File, Form, Query, HTTPException, Depends
 from fastapi.responses import Response, FileResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -12,6 +12,7 @@ ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / ".env")
 
 import supa
+import auth
 
 app = FastAPI(title="Game Config Patcher API")
 api_router = APIRouter(prefix="/api")
@@ -45,6 +46,21 @@ def one(res):
 @api_router.get("/")
 def root():
     return {"message": "Game Config Patcher API (Supabase)", "schema_ready": supa.schema_ready()}
+
+
+# ============ AUTH (single admin) ============
+@api_router.post("/auth/login")
+def login(payload: dict):
+    email = payload.get("email", "")
+    password = payload.get("password", "")
+    if not auth.verify_credentials(email, password):
+        raise HTTPException(401, "E-mail ou senha inválidos")
+    return {"token": auth.create_token(auth.ADMIN_EMAIL), "email": auth.ADMIN_EMAIL, "role": "admin"}
+
+
+@api_router.get("/auth/me")
+def me(admin=Depends(auth.require_admin)):
+    return admin
 
 
 @api_router.get("/games")
@@ -84,6 +100,7 @@ async def create_game(
     price: float = Form(0),
     is_public: bool = Form(False),
     cover: UploadFile | None = File(None),
+    admin: dict = Depends(auth.require_admin),
 ):
     gid = str(uuid.uuid4())
     final_cover = cover_url
@@ -103,7 +120,7 @@ async def create_game(
 
 
 @api_router.put("/games/{game_id}")
-async def update_game(game_id: str, payload: dict):
+async def update_game(game_id: str, payload: dict, admin: dict = Depends(auth.require_admin)):
     allowed = {"app_id", "title", "category", "description", "cover_url", "in_store", "price", "is_public"}
     updates = {k: v for k, v in payload.items() if k in allowed and v is not None}
     if updates.get("cover_url", None) == "":
@@ -114,13 +131,13 @@ async def update_game(game_id: str, payload: dict):
 
 
 @api_router.delete("/games/{game_id}")
-def delete_game(game_id: str):
+def delete_game(game_id: str, admin: dict = Depends(auth.require_admin)):
     supa.t("games").update({"is_deleted": True}).eq("id", game_id).execute()
     return {"ok": True}
 
 
 @api_router.post("/games/{game_id}/lua")
-async def add_lua(game_id: str, file: UploadFile = File(...)):
+async def add_lua(game_id: str, file: UploadFile = File(...), admin: dict = Depends(auth.require_admin)):
     g = get_game(game_id)
     fid = str(uuid.uuid4())
     ext = ext_of(file.filename, "lua")
@@ -135,7 +152,7 @@ async def add_lua(game_id: str, file: UploadFile = File(...)):
 
 
 @api_router.delete("/games/{game_id}/lua/{file_id}")
-def remove_lua(game_id: str, file_id: str):
+def remove_lua(game_id: str, file_id: str, admin: dict = Depends(auth.require_admin)):
     g = get_game(game_id)
     lua = g.get("lua_files") or []
     keep = [f for f in lua if f["id"] != file_id]
@@ -147,7 +164,7 @@ def remove_lua(game_id: str, file_id: str):
 
 
 @api_router.post("/games/{game_id}/cover")
-async def update_cover(game_id: str, cover: UploadFile = File(...)):
+async def update_cover(game_id: str, cover: UploadFile = File(...), admin: dict = Depends(auth.require_admin)):
     get_game(game_id)
     ext = ext_of(cover.filename, "png")
     path = f"covers/{game_id}.{ext}"
@@ -164,7 +181,7 @@ def list_deps():
 
 
 @api_router.post("/dependencies")
-async def add_dep(file: UploadFile = File(...)):
+async def add_dep(file: UploadFile = File(...), admin: dict = Depends(auth.require_admin)):
     did = str(uuid.uuid4())
     ext = ext_of(file.filename, "dll")
     path = f"deps/{did}.{ext}"
@@ -177,7 +194,7 @@ async def add_dep(file: UploadFile = File(...)):
 
 
 @api_router.delete("/dependencies/{dep_id}")
-def delete_dep(dep_id: str):
+def delete_dep(dep_id: str, admin: dict = Depends(auth.require_admin)):
     d = one(supa.t("dependencies").select("*").eq("id", dep_id).execute())
     if d:
         supa.remove(d["path"])
@@ -193,7 +210,7 @@ def get_settings():
 
 
 @api_router.put("/settings")
-def update_settings(payload: dict):
+def update_settings(payload: dict, admin: dict = Depends(auth.require_admin)):
     updates = {k: v for k, v in payload.items() if k in {"pix_key", "pix_type", "pix_holder"}}
     supa.t("app_settings").update(updates).eq("id", 1).execute()
     return get_settings()
@@ -232,7 +249,7 @@ async def create_purchase(
 
 
 @api_router.get("/purchases")
-def list_purchases(status: str | None = None):
+def list_purchases(status: str | None = None, admin: dict = Depends(auth.require_admin)):
     q = supa.t("purchase_requests").select("*").order("created_at", desc=True)
     if status:
         q = q.eq("status", status)
@@ -248,13 +265,13 @@ def list_purchases(status: str | None = None):
 
 
 @api_router.get("/purchases/count")
-def purchases_count():
+def purchases_count(admin: dict = Depends(auth.require_admin)):
     data = rows(supa.t("purchase_requests").select("id").eq("status", "pending").execute())
     return {"pending": len(data)}
 
 
 @api_router.post("/purchases/{pid}/approve")
-def approve_purchase(pid: str):
+def approve_purchase(pid: str, admin: dict = Depends(auth.require_admin)):
     p = one(supa.t("purchase_requests").select("*").eq("id", pid).execute())
     if not p:
         raise HTTPException(404, "Purchase not found")
@@ -267,7 +284,7 @@ def approve_purchase(pid: str):
 
 
 @api_router.post("/purchases/{pid}/reject")
-def reject_purchase(pid: str):
+def reject_purchase(pid: str, admin: dict = Depends(auth.require_admin)):
     supa.t("purchase_requests").update({"status": "rejected", "resolved_at": now_iso()}).eq("id", pid).execute()
     return {"ok": True}
 

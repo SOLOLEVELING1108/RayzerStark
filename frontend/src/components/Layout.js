@@ -1,6 +1,6 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { LibraryBig, PlusCircle, Settings, Gamepad2, HardDriveDownload, Boxes, Inbox } from "lucide-react";
+import { LibraryBig, PlusCircle, Settings, Gamepad2, HardDriveDownload, Boxes, Inbox, LogOut } from "lucide-react";
 import { api } from "@/lib/api";
 
 const navItems = [
@@ -62,12 +62,19 @@ export default function Layout() {
         </nav>
 
         <div className="p-3">
-          <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-4">
+          <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-4 mb-2">
             <div className="text-cyan-300 text-xs font-mono uppercase tracking-widest mb-2">Client App</div>
             <p className="text-xs text-slate-400 leading-relaxed">
               Games you publish or release appear in the customer's desktop client.
             </p>
           </div>
+          <button
+            data-testid="logout-btn"
+            onClick={() => { localStorage.removeItem("admin_token"); navigate("/login"); }}
+            className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-red-300 hover:bg-red-500/10 border border-white/10 hover:border-red-500/30 transition-colors"
+          >
+            <LogOut className="w-4 h-4" /> Sair
+          </button>
         </div>
       </aside>
 

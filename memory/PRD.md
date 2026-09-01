@@ -53,3 +53,15 @@ and the app fetches that game's files from a server and drops them in the right 
 - P2: No auth — /api/settings (Pix), game mutations, dependencies, purchases/approve are publicly writable. Add admin auth before real use (money flow risk).
 - P2: Pydantic models for PUT /games and PUT /settings; duplicate app_id validation.
 - P3: GameManage loading skeleton; badge spacing when Public+Store.
+
+## Update (2026-09-01) — Admin auth + Windows builds
+- Windows .exe builds (Electron, portable, built on ARM/Linux with signAndEditExecutable:false):
+  - Client: /app/desktop/dist/SteamConfigPatcher-win-x64.zip  (served: GET /api/client-build/download)
+  - Admin:  /app/admin-desktop (loads hosted admin URL) -> ConfigPatcherAdmin-win-x64.zip (GET /api/admin-build/download)
+  - Download buttons added in Admin -> Settings.
+- Admin auth: JWT Bearer, single admin from env (ADMIN_EMAIL/ADMIN_PASSWORD, bcrypt hash at startup, no DB table). backend/auth.py.
+  - POST /api/auth/login, GET /api/auth/me. Protected (Depends require_admin): games create/update/delete, lua add/remove, cover, dependencies add/delete, settings PUT, purchases list/count/approve/reject.
+  - Public (client app + store): GET games/categories/store/library/entitlements/package, GET settings (pix), POST purchases, dependencies list, files download, build downloads.
+  - Frontend: /login page, ProtectedRoute, axios interceptor attaches Bearer + redirects to /login on 401, Sair (logout) in sidebar. Token in localStorage 'admin_token'.
+  - Admin desktop app shows the login too (loads hosted URL live — no rebuild needed).
+- Credentials in /app/memory/test_credentials.md.
