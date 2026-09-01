@@ -1,0 +1,125 @@
+{
+  "project_title": "Steam Dependency & LUA Injector - High-Tactical Game Launcher",
+  "app_archetype": "tactical_game_launcher",
+  "theme": "dark",
+  "archetype_style": "ARCHETYPE 2: THE PERFORMANCE PRO & TACTICAL CYBER LAUNCHER",
+  "context": "Hybrid Desktop Launcher Client (Steam DLL & LUA File Injector) + Cloud Sync Web Admin Panel",
+  "instructions_to_main_agent": [
+    "Build a dual-mode high-performance gaming application: an Electron-styled Steam Launcher Client interface AND a Web Admin Management Dashboard.",
+    "Implement Steam file injection flow simulation for games with App IDs: DLLs copied directly to C:\\Program Files (x86)\\Steam\\, and .lua files containing App ID copied to C:\\Program Files (x86)\\Steam\\config\\lua.",
+    "Ensure explicit interactive states, injection animated feedback progress bars, status badges (Active/Inactive/Injecting), modal file details, and custom path settings.",
+    "Use data-testid on every interactive button, input, badge, tab, and card (kebab-case).",
+    "DO NOT use transparent header without backdrop blur or solid backgrounds.",
+    "Ensure contrast is APCA compliant on all elements (minimum 4.5:1 for normal text)."
+  ],
+  "typography": {
+    "heading_font": "Outfit, sans-serif",
+    "body_font": "Inter, sans-serif",
+    "mono_font": "'JetBrains Mono', 'Source Code Pro', monospace",
+    "scale": {
+      "h1": "text-4xl sm:text-5xl font-black tracking-tight",
+      "h2": "text-2xl sm:text-3xl font-bold tracking-tight",
+      "h3": "text-xl sm:text-2xl font-semibold",
+      "h4": "text-lg font-semibold",
+      "body": "text-sm sm:text-base leading-relaxed text-slate-300",
+      "caption": "text-xs font-mono uppercase tracking-widest text-slate-400",
+      "app_id_tag": "font-mono text-xs px-2 py-0.5 rounded bg-cyan-950/80 text-cyan-400 border border-cyan-500/30"
+    }
+  },
+  "colors": {
+    "background_base": "#08090E",
+    "surface_card": "#10131E",
+    "surface_elevated": "#181C2B",
+    "surface_glass": "rgba(16, 19, 30, 0.85)",
+    "border_subtle": "rgba(255, 255, 255, 0.08)",
+    "border_glow": "rgba(6, 182, 212, 0.5)",
+    "primary_accent": "#06B6D4",
+    "primary_hover": "#22D3EE",
+    "active_success": "#10B981",
+    "warning_active": "#F59E0B",
+    "danger_alert": "#EF4444",
+    "text_primary": "#F8FAFC",
+    "text_secondary": "#94A3B8",
+    "text_muted": "#64748B",
+    "forbidden_colors": [
+      "#7351B7",
+      "#1B93A4",
+      "#000000"
+    ]
+  },
+  "layout_and_grids": {
+    "desktop_app_layout": "Fixed header with simulated Electron window controls + Sidebar Navigation + Main Dynamic Workbench",
+    "bento_grid_mode": "MODE B: High Density Launcher Grid with sticky filter bar & quick activation controls",
+    "grid_classes": "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5",
+    "container_padding": "p-4 sm:p-6 lg:p-8"
+  },
+  "visual_enhancers": {
+    "glassmorphism": "backdrop-blur-xl bg-[#10131E]/80 border border-white/10 shadow-2xl",
+    "tracing_beam": "relative overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-cyan-500/20 before:to-transparent before:translate-x-[-100%] hover:before:translate-x-[100%] before:transition-transform before:duration-1000",
+    "status_badge_glow": "shadow-[0_0_12px_rgba(16,185,129,0.3)] bg-emerald-500/15 text-emerald-400 border border-emerald-500/30",
+    "injection_progress_bar": "h-2 w-full bg-slate-800 rounded-full overflow-hidden border border-cyan-500/20"
+  },
+  "component_guidelines": {
+    "use_js_files": true,
+    "shadcn_customization": "Customize Shadcn primitives (.jsx files in /src/components/ui/) to strictly match dark tactical aesthetic",
+    "interactive_elements": [
+      "Game library card with hover zoom, steam app id tag, active state badge, and single-click 'Inject / Activate' button",
+      "Activation process drawer or toast with real-time dependency injection breakdown (.dll to C:\\Program Files (x86)\\Steam, .lua to C:\\Program Files (x86)\\Steam\\config\\lua)",
+      "Admin Panel tab for creating games, uploading DLLs and LUA files, specifying App ID and selecting poster images",
+      "Settings view with configurable Steam directory path (Default: C:\\Program Files (x86)\\Steam), directory status checker, and log viewer"
+    ]
+  },
+  "image_urls": {
+    "resident_evil_2": {
+      "url": "https://images.unsplash.com/photo-1582339980338-c4adc193bd12?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MDV8MHwxfHNlYXJjaHwyfHx2aWRlbyUyMGdhbWUlMjBwb3N0ZXIlMjBjb3ZlciUyMGN5YmVycHVuayUyMGZhbnRhc3klMjBnYW1pbmclMjBhcnR3b3JrfGVufDB8fHx8MTc4ODI5MDA5NHww&ixlib=rb-4.1.0&q=85",
+      "app_id": "223308",
+      "title": "Resident Evil 2 Remake",
+      "category": "Horror / Action",
+      "dll_files": ["dxgi.dll", "openvr_api.dll"],
+      "lua_files": ["223308.lua", "223308_config.lua"]
+    },
+    "cyberpunk_2077": {
+      "url": "https://images.unsplash.com/photo-1661715328971-83cd2179df82?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MDV8MHwxfHNlYXJjaHw0fHx2aWRlbyUyMGdhbWUlMjBwb3N0ZXIlMjBjb3ZlciUyMGN5YmVycHVuayUyMGZhbnRhc3klMjBnYW1pbmclMjBhcnR3b3JrfGVufDB8fHx8MTc4ODI5MDA5NHww&ixlib=rb-4.1.0&q=85",
+      "app_id": "1091500",
+      "title": "Cyberpunk 2077",
+      "category": "Sci-Fi RPG",
+      "dll_files": ["cyber_engine_tweaks.dll", "version.dll"],
+      "lua_files": ["1091500.lua"]
+    },
+    "neon_overdrive": {
+      "url": "https://images.unsplash.com/photo-1705510144116-cc4d88838b14?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MDV8MHwxfHNlYXJjaHwxfHx2aWRlbyUyMGdhbWUlMjBwb3N0ZXIlMjBjb3ZlciUyMGN5YmVycHVuayUyMGZhbnRhc3klMjBnYW1pbmclMjBhcnR3b3JrfGVufDB8fHx8MTc4ODI5MDA5NHww&ixlib=rb-4.1.0&q=85",
+      "app_id": "844910",
+      "title": "Neon Syndicate",
+      "category": "Action / Cyberpunk",
+      "dll_files": ["steam_api64.dll", "input_fix.dll"],
+      "lua_files": ["844910.lua"]
+    },
+    "mecha_warfare": {
+      "url": "https://images.unsplash.com/photo-1613014510867-a47a0e5bf564?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MDV8MHwxfHNlYXJjaHwzfHx2aWRlbyUyMGdhbWUlMjBwb3N0ZXIlMjBjb3ZlciUyMGN5YmVycHVuayUyMGZhbnRhc3klMjBnYW1pbmclMjBhcnR3b3JrfGVufDB8fHx8MTc4ODI5MDA5NHww&ixlib=rb-4.1.0&q=85",
+      "app_id": "509300",
+      "title": "Armored Mecha V",
+      "category": "Simulation / Mecha",
+      "dll_files": ["physx_hook.dll"],
+      "lua_files": ["509300.lua", "509300_mod.lua"]
+    },
+    "night_rider": {
+      "url": "https://images.unsplash.com/photo-1642345843526-6279c8880a49?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzV8MHwxfHNlYXJjaHwxfHxjeWJlcnB1bmslMjBnYW1pbmclMjBhcnR3b3JrfGVufDB8fHx8MTc4ODI5MDEwNXww&ixlib=rb-4.1.0&q=85",
+      "app_id": "1190000",
+      "title": "Shadow Motor Racing",
+      "category": "Racing",
+      "dll_files": ["d3d11.dll"],
+      "lua_files": ["1190000.lua"]
+    },
+    "gaming_gear_hero": {
+      "url": "https://images.unsplash.com/photo-1759692788195-b95da1f4a04c?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzV8MHwxfHNlYXJjaHw0fHxjeWJlcnB1bmslMjBnYW1pbmclMjBhcnR3b3JrfGVufDB8fHx8MTc4ODI5MDEwNXww&ixlib=rb-4.1.0&q=85",
+      "description": "Background hero accent graphic for Launcher Header"
+    }
+  },
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": {
+    "test_id_rule": "MUST add data-testid to every interactive or status element (e.g. data-testid='game-card-223308', data-testid='activate-button-223308', data-testid='steam-path-input').",
+    "no_transparent_header": "Headers and floating bars must have opaque or heavy backdrop-blur backgrounds.",
+    "hover_contrast": "Always set text color explicitly on hover states (e.g. hover:bg-cyan-500 hover:text-black).",
+    "spacing": "Maintain clean 16px to 32px padding in container cards to prevent text collision.",
+    "toast_notifications": "Use Sonner for injection status updates ('DLL injected into Steam root', '.lua script loaded to config/lua')."
+  }
+}

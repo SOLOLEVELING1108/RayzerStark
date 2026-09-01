@@ -1,0 +1,29 @@
+{
+  "name": "steam-config-patcher",
+  "productName": "Steam Config Patcher",
+  "version": "1.0.0",
+  "description": "Activate games to inject DLL dependencies and .lua scripts into your Steam folder.",
+  "main": "main.js",
+  "author": "You",
+  "scripts": {
+    "start": "electron .",
+    "build:win": "electron-builder --win --x64",
+    "build:portable": "electron-builder --win portable --x64"
+  },
+  "devDependencies": {
+    "electron": "^30.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.you.steamconfigpatcher",
+    "productName": "Steam Config Patcher",
+    "files": ["main.js", "preload.js", "config.json", "renderer/**/*"],
+    "win": {
+      "target": ["nsis", "portable"]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}

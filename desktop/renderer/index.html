@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Steam Config Patcher</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-badge">⚡</div>
+        <div>
+          <div class="brand-title">INJECTOR</div>
+          <div class="brand-sub">Steam Patcher</div>
+        </div>
+      </div>
+      <nav>
+        <button class="nav-item active" data-view="library">Library</button>
+        <button class="nav-item" data-view="settings">Settings</button>
+      </nav>
+      <div class="sidebar-foot">
+        <div id="steam-status" class="steam-status">Checking Steam…</div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <span class="topbar-title">Steam Config Patcher</span>
+        <span id="steam-path-label" class="topbar-path mono"></span>
+      </header>
+
+      <!-- LIBRARY VIEW -->
+      <section id="view-library" class="view">
+        <div class="page-head">
+          <div>
+            <h1>Game Library</h1>
+            <p class="muted">Click Activate to inject a game's DLLs and .lua scripts into Steam.</p>
+          </div>
+          <button id="refresh-btn" class="btn-ghost">↻ Refresh</button>
+        </div>
+
+        <div class="filterbar">
+          <input id="search" class="input" placeholder="Search by title or App ID…" />
+          <div id="cats" class="cats"></div>
+        </div>
+
+        <div id="grid" class="grid"></div>
+        <div id="empty" class="empty hidden">No games found.</div>
+      </section>
+
+      <!-- SETTINGS VIEW -->
+      <section id="view-settings" class="view hidden">
+        <div class="page-head"><div><h1>Settings</h1><p class="muted">Injection targets and server connection.</p></div></div>
+
+        <div class="card">
+          <label class="lbl">Steam Directory</label>
+          <div class="row">
+            <input id="steam-path-input" class="input mono" />
+            <button id="save-path-btn" class="btn">Save</button>
+          </div>
+          <div id="path-check" class="path-check"></div>
+          <div class="targets">
+            <div class="target amber"><b>DLLs →</b> <span class="mono" id="t-dll"></span></div>
+            <div class="target green"><b>.lua →</b> <span class="mono" id="t-lua"></span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <label class="lbl">Server URL (apiBase)</label>
+          <input id="api-base" class="input mono" readonly />
+          <p class="muted small">Edit <code>config.json</code> next to the app to change this, then restart.</p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast-wrap"></div>
+  <script src="renderer.js"></script>
+</body>
+</html>
