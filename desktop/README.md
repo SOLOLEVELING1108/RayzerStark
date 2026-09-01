@@ -1,48 +1,42 @@
-# Steam Config Patcher — Desktop Client (Windows)
+# Steam Config Patcher — App do Cliente (Windows / Electron)
 
-This is the Windows desktop app that actually copies your game files into the Steam folder.
-It connects to the same server as the web console, downloads each game's files when you click
-**Activate**, and places them in the correct locations:
+App desktop que o **cliente** usa. Ele conecta no mesmo servidor (Supabase via backend) e tem 3 abas:
 
-- **DLL dependencies** → `C:\Program Files (x86)\Steam\`
-- **`.lua` scripts** → `C:\Program Files (x86)\Steam\config\lua\`
+- **Biblioteca**: jogos liberados pra este dispositivo (comprados + os marcados como públicos/grátis). Clicar **Ativar** baixa os `.lua` do jogo e joga em `C:\Program Files (x86)\Steam\config\lua\`. **Remover** apaga esses arquivos.
+- **Loja**: jogos à venda. Clicar **Comprar** mostra seu **Pix** (chave/titular), o cliente anexa o **comprovante** e envia. Fica "aguardando liberação" até o admin aprovar.
+- **Configurações**:
+  - **Instalar dependências**: baixa e instala as DLLs na raiz `C:\Program Files (x86)\Steam\`.
+  - **Excluir todos os jogos**: remove permanentemente deste PC todos os arquivos injetados (DLLs + `.lua`).
+  - **Código do dispositivo**: um código único (ex: `PC-1A2B3C4D`) que o cliente envia junto do comprovante pra você liberar no Admin.
 
-Clicking **Remove** (deactivate) deletes the files that were injected for that game.
-
-## Requirements
+## Requisitos
 - Windows 10/11
-- [Node.js](https://nodejs.org) 18+ (only needed to build; the final `.exe` is standalone)
+- Node.js 18+ (só pra buildar; o `.exe` final é standalone)
 
-## Configure
-Edit `config.json`:
+## Configurar
+Edite `config.json`:
 ```json
 {
   "apiBase": "https://game-config-patcher.preview.emergentagent.com",
   "steamPath": "C:\\Program Files (x86)\\Steam"
 }
 ```
-- `apiBase` — the server URL (shown in the web app under **Settings**).
-- `steamPath` — default Steam location (can also be changed inside the app under Settings).
 
-## Run in development
+## Rodar em desenvolvimento
 ```bash
 cd desktop
 npm install
 npm start
 ```
 
-## Build the Windows installer / portable .exe
+## Gerar o .exe do Windows
 ```bash
-npm run build:win        # NSIS installer + portable, output in dist/
-# or
-npm run build:portable   # single portable .exe
+npm run build:win        # instalador + portátil em dist/
+# ou
+npm run build:portable   # .exe portátil único
 ```
-The built files appear in `desktop/dist/`.
 
-## How it works
-1. The app loads the game library from `GET {apiBase}/api/games`.
-2. On **Activate**, it calls `GET {apiBase}/api/games/{id}/package` to get the file manifest.
-3. Each file is downloaded from `GET {apiBase}/api/files/download?path=...` and written to its target folder.
-4. Activated games and the exact files written are recorded locally so **Remove** can undo them.
-
-> Add games and upload their `.dll` / `.lua` files from the web console (Add Game → upload files).
+## Fluxo de compra (loja simulada)
+1. Cliente clica **Comprar** → vê o Pix e envia o **comprovante** (com o **código do dispositivo**).
+2. No **Admin → Orders** chega o pedido pendente (com contador/badge). Você confere o comprovante e clica **Liberar**.
+3. O jogo passa a aparecer na **Biblioteca** do dispositivo do cliente, pronto pra Ativar.

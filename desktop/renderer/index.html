@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-br">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -12,69 +12,101 @@
     <aside class="sidebar">
       <div class="brand">
         <div class="brand-badge">⚡</div>
-        <div>
-          <div class="brand-title">INJECTOR</div>
-          <div class="brand-sub">Steam Patcher</div>
-        </div>
+        <div><div class="brand-title">MEU LAUNCHER</div><div class="brand-sub">Steam Patcher</div></div>
       </div>
       <nav>
-        <button class="nav-item active" data-view="library">Library</button>
-        <button class="nav-item" data-view="settings">Settings</button>
+        <button class="nav-item active" data-view="library">Biblioteca</button>
+        <button class="nav-item" data-view="store">Loja</button>
+        <button class="nav-item" data-view="settings">Configurações</button>
       </nav>
       <div class="sidebar-foot">
-        <div id="steam-status" class="steam-status">Checking Steam…</div>
+        <div id="steam-status" class="steam-status">Verificando Steam…</div>
+        <div class="device mono" id="device-foot"></div>
       </div>
     </aside>
 
     <main class="main">
       <header class="topbar">
-        <span class="topbar-title">Steam Config Patcher</span>
+        <span class="topbar-title" id="view-title">Biblioteca</span>
         <span id="steam-path-label" class="topbar-path mono"></span>
       </header>
 
-      <!-- LIBRARY VIEW -->
+      <!-- LIBRARY -->
       <section id="view-library" class="view">
         <div class="page-head">
-          <div>
-            <h1>Game Library</h1>
-            <p class="muted">Click Activate to inject a game's DLLs and .lua scripts into Steam.</p>
-          </div>
-          <button id="refresh-btn" class="btn-ghost">↻ Refresh</button>
+          <div><h1>Biblioteca</h1><p class="muted">Seus jogos liberados. Clique em Ativar pra injetar os arquivos .lua.</p></div>
+          <button id="refresh-lib" class="btn-ghost">↻ Atualizar</button>
         </div>
-
-        <div class="filterbar">
-          <input id="search" class="input" placeholder="Search by title or App ID…" />
-          <div id="cats" class="cats"></div>
-        </div>
-
-        <div id="grid" class="grid"></div>
-        <div id="empty" class="empty hidden">No games found.</div>
+        <input id="search" class="input" placeholder="Buscar por título ou App ID…" />
+        <div id="grid" class="grid" style="margin-top:18px"></div>
+        <div id="empty-lib" class="empty hidden">Nenhum jogo liberado ainda. Vá até a Loja para comprar.</div>
       </section>
 
-      <!-- SETTINGS VIEW -->
+      <!-- STORE -->
+      <section id="view-store" class="view hidden">
+        <div class="page-head">
+          <div><h1>Loja</h1><p class="muted">Compre um jogo via Pix e envie o comprovante. O acesso é liberado após aprovação.</p></div>
+          <button id="refresh-store" class="btn-ghost">↻ Atualizar</button>
+        </div>
+        <div id="store-grid" class="grid"></div>
+        <div id="empty-store" class="empty hidden">Nenhum jogo à venda no momento.</div>
+      </section>
+
+      <!-- SETTINGS -->
       <section id="view-settings" class="view hidden">
-        <div class="page-head"><div><h1>Settings</h1><p class="muted">Injection targets and server connection.</p></div></div>
+        <div class="page-head"><div><h1>Configurações</h1><p class="muted">Dependências e exclusões.</p></div></div>
 
         <div class="card">
-          <label class="lbl">Steam Directory</label>
-          <div class="row">
-            <input id="steam-path-input" class="input mono" />
-            <button id="save-path-btn" class="btn">Save</button>
-          </div>
-          <div id="path-check" class="path-check"></div>
-          <div class="targets">
-            <div class="target amber"><b>DLLs →</b> <span class="mono" id="t-dll"></span></div>
-            <div class="target green"><b>.lua →</b> <span class="mono" id="t-lua"></span></div>
-          </div>
+          <div class="card-title">▣ Instalar dependências</div>
+          <p class="muted">Baixa e instala as DLLs na raiz da Steam:<br><span class="mono dim" id="deps-target"></span></p>
+          <button id="install-deps-btn" class="btn" style="margin-top:12px">Instalar dependências</button>
+          <div id="deps-progress-label" class="progress-label"></div>
+          <div class="muted small" id="deps-status" style="margin-top:8px"></div>
+        </div>
+
+        <div class="card danger-card">
+          <div class="card-title" style="color:var(--red)">⨯ Exclusões</div>
+          <p class="muted">Remove permanentemente deste PC todos os arquivos injetados (DLLs e .lua) de todos os jogos ativados.</p>
+          <button id="delete-all-btn" class="btn danger" style="margin-top:12px">Excluir todos os jogos</button>
+          <div class="muted small" id="delete-status" style="margin-top:8px"></div>
         </div>
 
         <div class="card">
-          <label class="lbl">Server URL (apiBase)</label>
-          <input id="api-base" class="input mono" readonly />
-          <p class="muted small">Edit <code>config.json</code> next to the app to change this, then restart.</p>
+          <div class="card-title">Pasta da Steam</div>
+          <div class="row">
+            <input id="steam-path-input" class="input mono" />
+            <button id="save-path-btn" class="btn">Salvar</button>
+          </div>
+          <div id="path-check" class="path-check"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Este dispositivo</div>
+          <p class="muted">Envie este código junto do comprovante para o administrador liberar seu acesso:</p>
+          <div class="device-box mono" id="device-code"></div>
         </div>
       </section>
     </main>
+  </div>
+
+  <!-- PURCHASE MODAL -->
+  <div id="modal" class="modal-overlay hidden">
+    <div class="modal">
+      <button id="modal-close" class="modal-close">✕</button>
+      <h2 id="modal-title">Comprar</h2>
+      <p class="muted" id="modal-price"></p>
+      <div class="pix-box">
+        <div class="pix-row"><span class="lbl">Tipo</span><span id="pix-type" class="mono"></span></div>
+        <div class="pix-row"><span class="lbl">Chave Pix</span><span id="pix-key" class="mono copyable" title="clique para copiar"></span></div>
+        <div class="pix-row"><span class="lbl">Titular</span><span id="pix-holder"></span></div>
+      </div>
+      <label class="lbl" style="margin-top:14px">Comprovante (imagem)</label>
+      <input id="receipt-input" type="file" accept="image/*" class="input" />
+      <label class="lbl" style="margin-top:12px">Seu nome/apelido (opcional)</label>
+      <input id="buyer-name" type="text" class="input" placeholder="ex: João" />
+      <button id="submit-purchase" class="btn full" style="margin-top:16px">Enviar comprovante</button>
+      <p class="muted small" id="modal-device" style="margin-top:10px"></p>
+    </div>
   </div>
 
   <div id="toast-wrap"></div>

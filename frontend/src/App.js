@@ -4,6 +4,8 @@ import { Toaster } from "sonner";
 import Layout from "@/components/Layout";
 import Library from "@/pages/Library";
 import GameManage from "@/pages/GameManage";
+import Dependencies from "@/pages/Dependencies";
+import Orders from "@/pages/Orders";
 import Settings from "@/pages/Settings";
 
 function App() {
@@ -16,6 +18,8 @@ function App() {
             <Route path="/" element={<Library />} />
             <Route path="/games/new" element={<GameManage />} />
             <Route path="/games/:id" element={<GameManage />} />
+            <Route path="/dependencies" element={<Dependencies />} />
+            <Route path="/orders" element={<Orders />} />
             <Route path="/settings" element={<Settings />} />
           </Route>
         </Routes>

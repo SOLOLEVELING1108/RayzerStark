@@ -36,3 +36,20 @@ and the app fetches that game's files from a server and drops them in the right 
 - P1: Ship prebuilt Windows .exe (currently user builds via npm run build:win).
 - P2: app_id uniqueness validation; responsive sidebar collapse on tablet.
 - P2: Admin auth if the server becomes public.
+
+## Update (2026-09-01) — Supabase + Admin/Client split
+- Migrated storage+catalog to the user's SUPABASE (Postgres tables + Storage bucket `game-files`).
+  - Tables: games, dependencies, entitlements, purchase_requests, app_settings (schema in backend/supabase_schema.sql — run once in Supabase SQL Editor).
+  - backend/supa.py uses a THREAD-LOCAL Supabase client (fixes concurrency 500s with FastAPI threadpool `def` routes).
+- Two apps now:
+  - ADMIN (this web app): Library (with Public/Store badges + price), Add/Edit Game (toggles is_public/in_store + price, cover file upload works in edit via /games/{id}/cover, .lua uploads), Dependencies (global DLLs), Orders (pending purchases + Liberar/Rejeitar + nav badge), Settings (Pix editable).
+  - CLIENT (Electron /app/desktop): Biblioteca (por device_code), Loja (Pix + envio de comprovante), Configurações (Instalar dependências → DLLs na raiz Steam; Excluir todos os jogos → apaga arquivos injetados). Device code auto-gerado local.
+- Purchase flow (simulated): client uploads receipt with device_code -> admin approves -> entitlement -> game shows in that device's Library. Public games are free for all devices.
+- Pix seeded: CPF 08624582504, Wdson de Jesus Souza.
+- Tests: backend_test.py 26/26 (serial + xdist parallel), test_concurrency.py green 3x. Electron client not auto-tested (Windows-only).
+
+## Known / backlog
+- P1: Ship prebuilt Windows .exe.
+- P2: No auth — /api/settings (Pix), game mutations, dependencies, purchases/approve are publicly writable. Add admin auth before real use (money flow risk).
+- P2: Pydantic models for PUT /games and PUT /settings; duplicate app_id validation.
+- P3: GameManage loading skeleton; badge spacing when Public+Store.

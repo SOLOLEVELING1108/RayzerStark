@@ -4,8 +4,11 @@ contextBridge.exposeInMainWorld("api", {
   getConfig: () => ipcRenderer.invoke("get-config"),
   setSteamPath: (p) => ipcRenderer.invoke("set-steam-path", p),
   checkSteamPath: () => ipcRenderer.invoke("check-steam-path"),
-  getActivations: () => ipcRenderer.invoke("get-activations"),
+  getStatus: () => ipcRenderer.invoke("get-status"),
   activateGame: (game) => ipcRenderer.invoke("activate-game", game),
   deactivateGame: (gameId) => ipcRenderer.invoke("deactivate-game", gameId),
-  onProgress: (cb) => ipcRenderer.on("inject-progress", (_e, data) => cb(data)),
+  installDependencies: () => ipcRenderer.invoke("install-dependencies"),
+  deleteAll: () => ipcRenderer.invoke("delete-all"),
+  onProgress: (cb) => ipcRenderer.on("inject-progress", (_e, d) => cb(d)),
+  onDepProgress: (cb) => ipcRenderer.on("dep-progress", (_e, d) => cb(d)),
 });

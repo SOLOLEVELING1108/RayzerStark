@@ -1,189 +1,202 @@
-let CONFIG = { apiBase: "", steamPath: "" };
-let ACTIVATIONS = {};
-let GAMES = [];
-let activeCat = "All";
+let CONFIG = { apiBase: "", steamPath: "", deviceCode: "" };
+let SETTINGS = { pix_type: "", pix_key: "", pix_holder: "" };
+let LIB = [];
+let STORE = [];
 let searchTerm = "";
 const injecting = {};
+let buyGame = null;
 
 const $ = (s) => document.querySelector(s);
 const grid = $("#grid");
+const storeGrid = $("#store-grid");
 
 function toast(title, desc, type = "info") {
   const el = document.createElement("div");
   el.className = `toast ${type}`;
   el.innerHTML = `<div class="t-title">${title}</div>${desc ? `<div class="t-desc">${desc}</div>` : ""}`;
   $("#toast-wrap").appendChild(el);
-  setTimeout(() => { el.style.opacity = "0"; setTimeout(() => el.remove(), 300); }, 3500);
+  setTimeout(() => { el.style.opacity = "0"; setTimeout(() => el.remove(), 300); }, 3800);
 }
+async function apiGet(p) { const r = await fetch(`${CONFIG.apiBase}${p}`); if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }
+function coverUrl(u) { return !u ? "" : (u.startsWith("http") ? u : `${CONFIG.apiBase}${u}`); }
 
-async function apiGet(pathname) {
-  const res = await fetch(`${CONFIG.apiBase}${pathname}`);
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
-}
-
-function coverUrl(url) {
-  if (!url) return "";
-  return url.startsWith("http") ? url : `${CONFIG.apiBase}${url}`;
-}
-
-function renderCats() {
-  const cats = ["All", ...new Set(GAMES.map((g) => g.category).filter(Boolean))];
-  $("#cats").innerHTML = cats
-    .map((c) => `<button class="cat ${c === activeCat ? "active" : ""}" data-cat="${c}">${c}</button>`)
-    .join("");
-  document.querySelectorAll(".cat").forEach((b) =>
-    b.addEventListener("click", () => { activeCat = b.dataset.cat; renderCats(); renderGrid(); })
-  );
-}
-
-function filtered() {
-  return GAMES.filter((g) => {
-    const catOk = activeCat === "All" || g.category === activeCat;
-    const s = searchTerm.toLowerCase();
-    const searchOk = !s || g.title.toLowerCase().includes(s) || g.app_id.includes(s);
-    return catOk && searchOk;
-  });
-}
-
-function renderGrid() {
-  const list = filtered();
-  $("#empty").classList.toggle("hidden", list.length > 0);
-  grid.innerHTML = list.map(cardHtml).join("");
-  list.forEach((g) => {
-    const root = grid.querySelector(`[data-card="${g.id}"]`);
-    if (!root) return;
-    const btn = root.querySelector(".activate");
-    if (btn) btn.addEventListener("click", () => activate(g));
-    const dbtn = root.querySelector(".deactivate");
-    if (dbtn) dbtn.addEventListener("click", () => deactivate(g));
-  });
-}
-
-function cardHtml(g) {
-  const dll = g.files.filter((f) => f.type === "dll").length;
-  const lua = g.files.filter((f) => f.type === "lua").length;
-  const isActive = !!ACTIVATIONS[g.id];
+// ---------- LIBRARY ----------
+function libCardHtml(g) {
+  const lua = (g.lua_files || []).length;
+  const active = CONFIG.activations && CONFIG.activations[g.id];
   const busy = injecting[g.id];
   const cover = coverUrl(g.cover_url);
-  return `
-  <div class="gcard" data-card="${g.id}">
-    <div class="cover">
-      ${cover ? `<img src="${cover}" alt="${g.title}" />` : ""}
-      <span class="appid">APPID ${g.app_id}</span>
-      ${isActive ? `<span class="badge-active">● Active</span>` : ""}
-    </div>
+  const tag = g.source === "public" ? `<span class="badge-active" style="background:rgba(16,185,129,.15);color:#10B981;border-color:rgba(16,185,129,.3)">GRÁTIS</span>` : "";
+  return `<div class="gcard" data-card="${g.id}">
+    <div class="cover">${cover ? `<img src="${cover}"/>` : ""}<span class="appid">APPID ${g.app_id}</span>
+      ${active ? `<span class="badge-active">● Ativo</span>` : tag}</div>
     <div class="gbody">
       <div class="gtitle">${g.title}</div>
-      <div class="gcat">${g.category || "Uncategorized"}</div>
-      <div class="counts">
-        <span class="c-dll">▣ ${dll} DLL</span>
-        <span class="c-lua">‹/› ${lua} LUA</span>
-      </div>
+      <div class="gcat">${g.category || ""}</div>
+      <div class="counts"><span class="c-lua">‹/› ${lua} LUA</span></div>
       <div class="actions">
-        ${isActive
-          ? `<button class="btn success full deactivate" data-testid="deactivate-${g.app_id}">✓ Activated — Remove</button>`
-          : `<button class="btn full activate" data-testid="activate-${g.app_id}" ${busy ? "disabled" : ""}>${busy ? "Injecting…" : "⚡ Activate"}</button>`}
+        ${active ? `<button class="btn success full deactivate" data-testid="deactivate-${g.app_id}">✓ Ativado — Remover</button>`
+                 : `<button class="btn full activate" data-testid="activate-${g.app_id}" ${busy ? "disabled" : ""}>${busy ? "Injetando…" : "⚡ Ativar"}</button>`}
       </div>
       <div class="progress hidden" data-progress="${g.id}"><div></div></div>
       <div class="progress-label hidden" data-plabel="${g.id}"></div>
-    </div>
-  </div>`;
+    </div></div>`;
 }
-
+function renderLib() {
+  const list = LIB.filter((g) => { const s = searchTerm.toLowerCase(); return !s || g.title.toLowerCase().includes(s) || String(g.app_id).includes(s); });
+  $("#empty-lib").classList.toggle("hidden", list.length > 0);
+  grid.innerHTML = list.map(libCardHtml).join("");
+  list.forEach((g) => {
+    const root = grid.querySelector(`[data-card="${g.id}"]`);
+    root?.querySelector(".activate")?.addEventListener("click", () => activate(g));
+    root?.querySelector(".deactivate")?.addEventListener("click", () => deactivate(g));
+  });
+}
 async function activate(g) {
   if (injecting[g.id]) return;
-  injecting[g.id] = true;
-  renderGrid();
-  const bar = grid.querySelector(`[data-progress="${g.id}"]`);
-  const label = grid.querySelector(`[data-plabel="${g.id}"]`);
-  if (bar) bar.classList.remove("hidden");
-  if (label) label.classList.remove("hidden");
+  injecting[g.id] = true; renderLib();
+  grid.querySelector(`[data-progress="${g.id}"]`)?.classList.remove("hidden");
+  grid.querySelector(`[data-plabel="${g.id}"]`)?.classList.remove("hidden");
   try {
     const res = await window.api.activateGame(g);
-    toast("Activated: " + g.title, `${res.files.length} file(s) injected into Steam`, "ok");
-    ACTIVATIONS = await window.api.getActivations();
-  } catch (e) {
-    toast("Activation failed", e.message, "err");
-  } finally {
-    injecting[g.id] = false;
-    renderGrid();
-  }
+    toast("Ativado: " + g.title, `${res.count} arquivo(s) .lua injetado(s)`, "ok");
+    CONFIG = await window.api.getConfig();
+  } catch (e) { toast("Falha ao ativar", e.message, "err"); }
+  finally { injecting[g.id] = false; renderLib(); }
 }
-
 async function deactivate(g) {
   try {
     const res = await window.api.deactivateGame(g.id);
-    toast("Deactivated: " + g.title, `Removed ${res.removed.length} file(s)`, "info");
-    ACTIVATIONS = await window.api.getActivations();
-    renderGrid();
-  } catch (e) {
-    toast("Deactivate failed", e.message, "err");
-  }
+    toast("Removido: " + g.title, `${res.removed.length} arquivo(s) apagado(s)`, "info");
+    CONFIG = await window.api.getConfig(); renderLib();
+  } catch (e) { toast("Falha ao remover", e.message, "err"); }
 }
-
-window.api.onProgress((data) => {
-  const bar = grid.querySelector(`[data-progress="${data.gameId}"] > div`);
-  const label = grid.querySelector(`[data-plabel="${data.gameId}"]`);
-  if (bar) bar.style.width = `${Math.round((data.current / data.total) * 100)}%`;
-  if (label) label.textContent = `→ ${data.filename} (${data.current}/${data.total})`;
+window.api.onProgress((d) => {
+  const bar = grid.querySelector(`[data-progress="${d.gameId}"] > div`);
+  const label = grid.querySelector(`[data-plabel="${d.gameId}"]`);
+  if (bar) bar.style.width = `${Math.round((d.current / d.total) * 100)}%`;
+  if (label) label.textContent = `→ ${d.filename} (${d.current}/${d.total})`;
 });
 
-// ---------- Nav ----------
-document.querySelectorAll(".nav-item").forEach((b) =>
-  b.addEventListener("click", () => {
-    document.querySelectorAll(".nav-item").forEach((x) => x.classList.remove("active"));
-    b.classList.add("active");
-    const view = b.dataset.view;
-    $("#view-library").classList.toggle("hidden", view !== "library");
-    $("#view-settings").classList.toggle("hidden", view !== "settings");
-  })
-);
-
-$("#search").addEventListener("input", (e) => { searchTerm = e.target.value; renderGrid(); });
-$("#refresh-btn").addEventListener("click", loadGames);
-
-$("#save-path-btn").addEventListener("click", async () => {
-  const p = $("#steam-path-input").value.trim();
-  CONFIG.steamPath = await window.api.setSteamPath(p);
-  toast("Steam path saved", CONFIG.steamPath, "ok");
-  refreshSteamUI();
-});
-
-async function refreshSteamUI() {
-  $("#steam-path-label").textContent = CONFIG.steamPath;
-  $("#steam-path-input").value = CONFIG.steamPath;
-  $("#api-base").value = CONFIG.apiBase;
-  $("#t-dll").textContent = CONFIG.steamPath + "\\";
-  $("#t-lua").textContent = CONFIG.steamPath + "\\config\\lua\\";
-  const chk = await window.api.checkSteamPath();
-  const s = $("#steam-status");
-  const pc = $("#path-check");
-  if (chk.exists) {
-    s.className = "steam-status ok"; s.textContent = "● Steam folder found";
-    pc.className = "path-check ok"; pc.textContent = "✓ Directory exists";
-  } else {
-    s.className = "steam-status bad"; s.textContent = "▲ Steam folder not found";
-    pc.className = "path-check bad"; pc.textContent = "▲ Directory not found — set the correct path.";
-  }
+// ---------- STORE ----------
+function storeCardHtml(g) {
+  const cover = coverUrl(g.cover_url);
+  let action;
+  if (g.owned) action = `<button class="btn success full" disabled>✓ Você já tem</button>`;
+  else if (g.pending) action = `<button class="btn full" disabled style="background:#3a3320;color:#F59E0B">⏳ Aguardando liberação</button>`;
+  else action = `<button class="btn full buy" data-buy="${g.id}">Comprar — R$ ${Number(g.price).toFixed(2)}</button>`;
+  return `<div class="gcard" data-scard="${g.id}">
+    <div class="cover">${cover ? `<img src="${cover}"/>` : ""}<span class="appid">APPID ${g.app_id}</span></div>
+    <div class="gbody"><div class="gtitle">${g.title}</div><div class="gcat">${g.category || ""}</div>
+      <div class="counts"><span class="price-tag">R$ ${Number(g.price).toFixed(2)}</span></div>
+      <div class="actions">${action}</div></div></div>`;
 }
-
-async function loadGames() {
+function renderStore() {
+  $("#empty-store").classList.toggle("hidden", STORE.length > 0);
+  storeGrid.innerHTML = STORE.map(storeCardHtml).join("");
+  STORE.forEach((g) => storeGrid.querySelector(`[data-buy="${g.id}"]`)?.addEventListener("click", () => openBuy(g)));
+}
+function openBuy(g) {
+  buyGame = g;
+  $("#modal-title").textContent = "Comprar: " + g.title;
+  $("#modal-price").textContent = `Valor: R$ ${Number(g.price).toFixed(2)}`;
+  $("#pix-type").textContent = SETTINGS.pix_type || "-";
+  $("#pix-key").textContent = SETTINGS.pix_key || "-";
+  $("#pix-holder").textContent = SETTINGS.pix_holder || "-";
+  $("#modal-device").textContent = "Seu código: " + CONFIG.deviceCode;
+  $("#receipt-input").value = ""; $("#buyer-name").value = "";
+  $("#modal").classList.remove("hidden");
+}
+$("#modal-close").addEventListener("click", () => $("#modal").classList.add("hidden"));
+$("#pix-key").addEventListener("click", () => { navigator.clipboard.writeText(SETTINGS.pix_key || "").then(() => toast("Chave Pix copiada", "", "ok")).catch(() => {}); });
+$("#submit-purchase").addEventListener("click", async () => {
+  const file = $("#receipt-input").files?.[0];
+  if (!file) { toast("Anexe o comprovante", "", "err"); return; }
   try {
-    GAMES = await apiGet("/api/games");
-    ACTIVATIONS = await window.api.getActivations();
-    renderCats();
-    renderGrid();
-  } catch (e) {
-    toast("Could not reach server", `${CONFIG.apiBase} — ${e.message}`, "err");
-    $("#empty").classList.remove("hidden");
-    $("#empty").textContent = "Cannot reach server. Check apiBase in config.json.";
-  }
+    const fd = new FormData();
+    fd.append("device_code", CONFIG.deviceCode);
+    fd.append("device_name", $("#buyer-name").value || "");
+    fd.append("game_id", buyGame.id);
+    fd.append("receipt", file);
+    const r = await fetch(`${CONFIG.apiBase}/api/purchases`, { method: "POST", body: fd });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    toast("Comprovante enviado!", "Aguarde a liberação do administrador.", "ok");
+    $("#modal").classList.add("hidden");
+    await loadStore();
+  } catch (e) { toast("Falha ao enviar", e.message, "err"); }
+});
+
+// ---------- SETTINGS ----------
+$("#install-deps-btn").addEventListener("click", async () => {
+  const btn = $("#install-deps-btn"); btn.disabled = true; btn.textContent = "Instalando…";
+  try {
+    const res = await window.api.installDependencies();
+    toast("Dependências instaladas", `${res.count} DLL(s) na raiz da Steam`, "ok");
+    CONFIG = await window.api.getConfig(); updateSettingsUI();
+  } catch (e) { toast("Falha", e.message, "err"); }
+  finally { btn.disabled = false; btn.textContent = "Instalar dependências"; }
+});
+window.api.onDepProgress((d) => { $("#deps-progress-label").textContent = `→ ${d.filename} (${d.current}/${d.total})`; });
+$("#delete-all-btn").addEventListener("click", async () => {
+  if (!confirm("Excluir permanentemente todos os arquivos injetados (DLLs e .lua) deste PC?")) return;
+  try {
+    const res = await window.api.deleteAll();
+    toast("Exclusão concluída", `${res.removed} arquivo(s) removido(s)`, "info");
+    CONFIG = await window.api.getConfig(); updateSettingsUI(); renderLib();
+  } catch (e) { toast("Falha", e.message, "err"); }
+});
+$("#save-path-btn").addEventListener("click", async () => {
+  CONFIG.steamPath = await window.api.setSteamPath($("#steam-path-input").value.trim());
+  toast("Pasta salva", CONFIG.steamPath, "ok"); await updateSteamUI();
+});
+
+function updateSettingsUI() {
+  $("#deps-target").textContent = CONFIG.steamPath + "\\";
+  $("#deps-status").textContent = CONFIG.depsInstalled ? `${CONFIG.depsInstalled} dependência(s) instalada(s) neste PC.` : "Nenhuma dependência instalada ainda.";
+  $("#device-code").textContent = CONFIG.deviceCode;
+  $("#device-foot").textContent = CONFIG.deviceCode;
+  $("#steam-path-input").value = CONFIG.steamPath;
+}
+async function updateSteamUI() {
+  $("#steam-path-label").textContent = CONFIG.steamPath;
+  const chk = await window.api.checkSteamPath();
+  const s = $("#steam-status"), pc = $("#path-check");
+  if (chk.exists) { s.className = "steam-status ok"; s.textContent = "● Pasta da Steam encontrada"; if (pc) { pc.className = "path-check ok"; pc.textContent = "✓ Pasta existe"; } }
+  else { s.className = "steam-status bad"; s.textContent = "▲ Steam não encontrada"; if (pc) { pc.className = "path-check bad"; pc.textContent = "▲ Ajuste o caminho da Steam."; } }
+}
+
+// ---------- NAV ----------
+const titles = { library: "Biblioteca", store: "Loja", settings: "Configurações" };
+document.querySelectorAll(".nav-item").forEach((b) => b.addEventListener("click", () => {
+  document.querySelectorAll(".nav-item").forEach((x) => x.classList.remove("active"));
+  b.classList.add("active");
+  const v = b.dataset.view;
+  $("#view-title").textContent = titles[v];
+  $("#view-library").classList.toggle("hidden", v !== "library");
+  $("#view-store").classList.toggle("hidden", v !== "store");
+  $("#view-settings").classList.toggle("hidden", v !== "settings");
+  if (v === "store") loadStore();
+}));
+$("#search").addEventListener("input", (e) => { searchTerm = e.target.value; renderLib(); });
+$("#refresh-lib").addEventListener("click", loadLibrary);
+$("#refresh-store").addEventListener("click", loadStore);
+
+async function loadLibrary() {
+  try { LIB = await apiGet(`/api/library?device_code=${encodeURIComponent(CONFIG.deviceCode)}`); renderLib(); }
+  catch (e) { toast("Servidor indisponível", CONFIG.apiBase, "err"); $("#empty-lib").classList.remove("hidden"); }
+}
+async function loadStore() {
+  try {
+    SETTINGS = await apiGet(`/api/settings`);
+    STORE = await apiGet(`/api/store?device_code=${encodeURIComponent(CONFIG.deviceCode)}`);
+    renderStore();
+  } catch (e) { toast("Falha ao carregar loja", e.message, "err"); }
 }
 
 async function init() {
   CONFIG = await window.api.getConfig();
-  await refreshSteamUI();
-  await loadGames();
+  updateSettingsUI();
+  await updateSteamUI();
+  await loadLibrary();
 }
 init();

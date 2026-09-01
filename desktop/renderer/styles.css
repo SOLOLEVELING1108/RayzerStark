@@ -110,3 +110,28 @@ nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
 .toast .t-title { font-weight: 600; font-size: 13px; }
 .toast .t-desc { font-family: 'JetBrains Mono'; font-size: 11px; color: var(--muted); margin-top: 3px; word-break: break-all; }
 @keyframes slideIn { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: none; } }
+
+.device { margin-top: 8px; font-size: 10px; color: var(--dim); text-align: center; }
+.card-title { font-family: 'Outfit'; font-weight: 700; font-size: 16px; margin-bottom: 8px; }
+.danger-card { border-color: rgba(239,68,68,0.25); }
+.dim { color: var(--dim); }
+.device-box { margin-top: 10px; padding: 14px; border-radius: 10px; background: #0b0d14; border: 1px dashed rgba(6,182,212,0.4); color: var(--accent2); font-size: 18px; text-align: center; letter-spacing: 0.1em; }
+
+/* Store buy button */
+.price-tag { color: var(--accent2); font-family: 'JetBrains Mono'; font-weight: 600; }
+.owned-tag { color: var(--success); font-size: 12px; font-family: 'JetBrains Mono'; }
+.pending-tag { color: var(--amber); font-size: 12px; font-family: 'JetBrains Mono'; }
+
+/* Modal */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(6px); display: grid; place-items: center; z-index: 500; }
+.modal { position: relative; width: 440px; max-width: 92vw; background: var(--elevated); border: 1px solid rgba(255,255,255,0.12); border-radius: 18px; padding: 26px; box-shadow: 0 30px 80px -20px rgba(0,0,0,0.8); animation: fadeUp .3s ease; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+.modal h2 { font-family: 'Outfit'; font-weight: 800; font-size: 22px; }
+.modal-close { position: absolute; top: 14px; right: 16px; background: none; border: none; color: var(--muted); font-size: 18px; cursor: pointer; }
+.modal-close:hover { color: var(--text); }
+.pix-box { margin-top: 14px; background: #0b0d14; border: 1px solid rgba(6,182,212,0.2); border-radius: 12px; padding: 14px; }
+.pix-row { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+.pix-row:last-child { border-bottom: none; }
+.pix-row .lbl { color: var(--dim); font-family: 'JetBrains Mono'; font-size: 11px; text-transform: uppercase; }
+.copyable { cursor: pointer; color: var(--accent2); }
+.copyable:hover { text-decoration: underline; }

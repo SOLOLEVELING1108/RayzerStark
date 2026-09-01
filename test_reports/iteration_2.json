@@ -1,0 +1,97 @@
+{
+  "summary": "Full retest of the Supabase-backed ADMIN app. Replaced the stale MongoDB-era backend_test.py with 26 pytest cases covering games CRUD, categories, search/category filter, cover upload, lua upload/delete, dependencies, settings/Pix, store flags, full purchase->approve/reject flow, library sources, package entitlement (200/403) and file download. All 26 pass when executed serially (100%). Frontend: exercised Library grid/badges/search/filters, Add Game -> manage redirect, lua upload+remove, edit+save persistence, Dependencies upload/delete, Orders tabs + Liberar (approve) with nav badge update, Settings Pix save+reload persistence, and Delete game. All admin flows work, zero console errors, no broken images. ONE REAL BACKEND DEFECT FOUND: intermittent HTTP 500s under concurrent requests caused by the shared module-level Supabase sync client being used from FastAPI's threadpool (httpx.RemoteProtocolError: Server disconnected).",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "ALL /api/* (reproduced on /api/games, /api/categories, /api/dependencies/{id} DELETE, /api/games/{id}/lua/{fid} DELETE, /api/purchases/{id}/approve, PUT /api/games/{id})",
+        "issue": "Intermittent 500 Internal Server Error under concurrent requests. Backend log shows httpx.RemoteProtocolError / httpcore.RemoteProtocolError: 'Server disconnected'. Root cause: backend/supa.py creates ONE module-level sync Supabase client (sb = create_client(...)) whose internal httpx.Client + connection pool is shared, while every endpoint in server.py is a plain `def` and therefore runs in Starlette's threadpool -> multiple worker threads reuse the same keep-alive connection concurrently and corrupt it. Reproduced two ways: (a) running the suite with pytest-xdist (2 workers) -> 4/26 tests failed with 500; (b) tests/test_concurrency.py firing 30 GETs at concurrency 10 -> 2/30 returned 500 (failed 1 of 3 runs, ~7% request failure rate). Serial execution = 26/26 pass, so this is purely a concurrency/thread-safety bug, not a logic bug. User-visible risk is real: Library does Promise.all(/games,/categories) and Layout polls /api/purchases/count on an interval, so simultaneous requests happen on every page load.",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": [
+      {
+        "endpoint": "POST /api/purchases/{id}/approve",
+        "issue": "The entitlement insert is wrapped in a bare `except Exception: pass` (intended for the unique-constraint case). Any real DB/network failure is silently swallowed and the order is still marked 'approved' -> customer pays, order shows approved, but no entitlement exists. Narrow the except to the duplicate-key error (or use upsert) and let other errors surface as 500."
+      },
+      {
+        "endpoint": "PUT /api/games/{id}, PUT /api/settings",
+        "issue": "Both accept a raw `dict` body instead of a Pydantic model, so there is no type validation (e.g. price can be sent as an arbitrary string/bool and is written straight to Postgres). Also PUT /api/games/{id} returns 200 + the row even for a non-existent game id when the update matches 0 rows only because get_game then 404s - behaviour is fine but should be an explicit 404 check before update."
+      },
+      {
+        "endpoint": "POST /api/games",
+        "issue": "No duplicate app_id check and no validation that app_id is numeric; two games with the same app_id can be created, which makes the frontend data-testid `game-card-<appid>` ambiguous."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "GameManage (edit mode)",
+        "issue": "No loading state while GET /api/games/{id} resolves - the form renders with empty inputs for ~1s then pops in. My first automated read of title-input returned '' before the fetch landed (it is correctly prefilled after the wait). Add a skeleton/disabled state like Library has.",
+        "selector": "[data-testid=\"title-input\"]",
+        "priority": "LOW"
+      },
+      {
+        "component": "GameManage (edit mode)",
+        "issue": "The 'Upload image' cover file input is rendered only when !editing, so an existing game's cover can never be replaced with a file - only with a URL. Additionally, if the current cover is an uploaded (relative /api/files/download?path=covers/...) image, cover-url-input is intentionally blanked, so the field looks empty while the preview shows an image. Confusing.",
+        "selector": "[data-testid=\"cover-file-input\"]",
+        "priority": "MEDIUM"
+      },
+      {
+        "component": "Library GameCard",
+        "issue": "When a game is both Public and In-Store the two badges stack in the top-right and visually crowd/overlap the cover art (observed on the created TEST game with PUBLIC + R$ 33.50). Minor spacing polish.",
+        "selector": "[data-testid=\"game-card-777001\"]",
+        "priority": "LOW"
+      },
+      {
+        "component": "Library GameCard delete",
+        "issue": "Delete performs an immediate irreversible soft-delete with no confirmation dialog - a single mis-click removes a game from the catalog (and from all customers' libraries). Recommend an AlertDialog confirm.",
+        "selector": "[data-testid=\"delete-button-<appid>\"]",
+        "priority": "MEDIUM"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Top header (all pages)",
+        "issues": ["The 'Supabase' label at the far right is rendered in a very dark slate on the near-black header - contrast is far below WCAG AA and it is effectively invisible at normal viewing distance."]
+      },
+      {
+        "screen": "Orders",
+        "issues": ["The receipt thumbnail block reserves a 96x96 box and the 'view receipt' caption sits below it, pushing the card taller than the content needs; with a 1px test PNG the thumbnail is an empty grey square with no placeholder/fallback."]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/backend/tests/test_concurrency.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "HIGH: Fix the Supabase client thread-safety / concurrency bug. Options: (a) make the endpoints `async def` and use a single client with an async httpx transport, (b) create a per-request Supabase client (or a threading.local() client) in supa.py, or (c) run all supa calls through a single-threaded executor / add a lock. Verify with `pytest /app/backend/tests/test_concurrency.py` and with `pytest /app/backend/tests/backend_test.py` under xdist (2+ workers) - both must be green repeatedly.",
+    "Replace the bare `except Exception: pass` in approve_purchase with a duplicate-key-specific catch (or entitlements upsert) so silent entitlement-grant failures cannot mark an order approved.",
+    "Add Pydantic request models for PUT /api/games/{id} and PUT /api/settings.",
+    "Allow replacing the cover with a file upload in GameManage edit mode, and show the current cover path/name instead of a blank cover-url-input.",
+    "Add a confirmation dialog to the Library delete button.",
+    "Fix the low-contrast 'Supabase' header label.",
+    "Add a loading skeleton to GameManage while the game is being fetched."
+  ],
+  "critical_code_review_comments": [
+    "backend/supa.py: a single module-level sync `create_client` shared across threadpool threads is the direct cause of the intermittent 500s. The supabase-py sync client (and its underlying httpx.Client connection pool) is not safe for the concurrent reuse pattern produced by FastAPI's `def` endpoints here.",
+    "server.py approve_purchase: `except Exception: pass` around the entitlement insert hides real failures while still flipping the order to 'approved' - a data-integrity hazard in the paid flow.",
+    "server.py remove_lua uses the walrus operator inside a discarded expression `(drop := f) if ... else keep.append(f)` - it works but is opaque; rewrite as a normal if/else for readability.",
+    "PUT /api/games/{id} and PUT /api/settings take untyped `dict` payloads - no Pydantic validation on price/flags before writing to Postgres.",
+    "No authentication on any endpoint: /api/settings (Pix key), /api/games mutations, /api/dependencies and /api/purchases/{id}/approve are all publicly writable. Anyone who knows the URL can grant themselves entitlements or change the Pix key. Acknowledged as 'no app auth' in the spec, but flagging as a security risk for the money flow."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py",
+    "/app/backend/tests/test_concurrency.py"
+  ],
+  "success_rate": {"backend": "100% serial (26/26); ~85% under concurrency (22/26 with 2 parallel workers)", "frontend": "100% of tested admin flows"},
+  "seed_data_creation": "Created and cleaned up: TEST_* games (soft-deleted via fixture + UI delete of app_id 777001), TEST_dep.dll dependency (deleted), TEST_* purchase requests for throwaway device codes, and one pending purchase for device TEST-UI-001 / Cyberpunk 2077 that was approved through the UI (entitlement now exists for TEST-UI-001 - left in place as proof of the flow; delete it if you want a clean DB). Pix settings were temporarily changed during testing and RESTORED to CPF / 08624582504 / Wdson de Jesus Souza.",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "test_credentials": "/app/memory/test_credentials.md is a template with no credentials - correct, the app has no auth.",
+  "context_for_next_testing_agent": "backend_test.py is rewritten for the Supabase schema and passes 26/26 SERIALLY. IMPORTANT: pytest.ini enables xdist, so `pytest tests/backend_test.py` runs in parallel and will fail 3-5 tests with 500s until the supa client concurrency bug is fixed - use `-o addopts=\"\"` to run serially and isolate logic bugs, and use tests/test_concurrency.py (run it 3x, it is intermittent) to verify the concurrency fix. All admin UI flows (library, add/edit game, lua, deps, orders approve, settings) were verified working end-to-end and the UI-driven approve correctly produced an entitlement (GET /api/library?device_code=TEST-UI-001 -> Cyberpunk 2077 'owned', package 200 with device / 403 without). Electron client in /app/desktop was not tested (out of scope).",
+  "rca_of_the_issue": "backend/supa.py instantiates one sync Supabase client at import time (`sb = create_client(URL, KEY)`). Every route in server.py is declared with plain `def`, so Starlette dispatches them to an anyio threadpool (default 40 threads). Concurrent requests therefore call methods on the same client and the same underlying httpx.Client connection pool from different OS threads. When two threads pick up the same idle keep-alive connection, the HTTP/1.1 framing is corrupted and httpx raises RemoteProtocolError('Server disconnected'), which is unhandled and surfaces as a 500. Reproduction: run `pytest /app/backend/tests/test_concurrency.py` (30 GETs, 10 threads) two or three times - at least one run returns 500s; or run backend_test.py with xdist. Serial traffic never fails. Mitigation: per-request/thread-local client, or convert endpoints to async def with an async client, or serialize supa access behind a lock/single-thread executor."
+}
