@@ -19,7 +19,8 @@
     "productName": "Steam Config Patcher",
     "files": ["main.js", "preload.js", "config.json", "renderer/**/*"],
     "win": {
-      "target": ["nsis", "portable"]
+      "target": ["nsis", "portable"],
+      "signAndEditExecutable": false
     },
     "nsis": {
       "oneClick": false,

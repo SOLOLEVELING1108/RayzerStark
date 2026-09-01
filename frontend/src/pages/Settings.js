@@ -10,10 +10,14 @@ const PIX_TYPES = ["CPF", "CNPJ", "Celular", "E-mail", "Aleatória"];
 export default function Settings() {
   const [pix, setPix] = useState({ pix_type: "CPF", pix_key: "", pix_holder: "" });
   const [saving, setSaving] = useState(false);
+  const [build, setBuild] = useState({ available: false });
 
   useEffect(() => {
     api.get("/settings").then(({ data }) => setPix({ pix_type: data.pix_type || "CPF", pix_key: data.pix_key || "", pix_holder: data.pix_holder || "" }));
+    api.get("/client-build/info").then(({ data }) => setBuild(data)).catch(() => {});
   }, []);
+
+  const mb = build.size ? (build.size / 1048576).toFixed(0) : 0;
 
   const save = async () => {
     setSaving(true);
@@ -59,7 +63,25 @@ export default function Settings() {
       </div>
 
       <div className={card}>
-        <div className="flex items-center gap-2 mb-4"><Download className="w-5 h-5 text-cyan-400" /><h2 className="font-display text-lg font-bold">Customer Desktop Client</h2></div>
+        <div className="flex items-center gap-2 mb-4"><Download className="w-5 h-5 text-emerald-400" /><h2 className="font-display text-lg font-bold">Baixar o app do cliente (Windows)</h2></div>
+        <p className="text-sm text-slate-400 leading-relaxed mb-4">
+          Versão portátil já compilada (.exe dentro de um .zip). Baixe, extraia a pasta no Windows e rode <code className="font-mono">Steam Config Patcher.exe</code>. Não precisa instalar nada.
+        </p>
+        {build.available ? (
+          <a
+            data-testid="download-client-btn"
+            href={`${BACKEND_URL}/api/client-build/download`}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-emerald-500 text-black font-semibold text-sm hover:bg-emerald-400 transition-colors"
+          >
+            <Download className="w-4 h-4" /> Baixar .zip do cliente ({mb} MB)
+          </a>
+        ) : (
+          <p className="text-sm text-amber-300">Build ainda não disponível.</p>
+        )}
+      </div>
+
+      <div className={card}>
+        <div className="flex items-center gap-2 mb-4"><Terminal className="w-5 h-5 text-cyan-400" /><h2 className="font-display text-lg font-bold">Customer Desktop Client (build manual)</h2></div>
         <p className="text-sm text-slate-400 leading-relaxed mb-4">
           The customer's Electron app has <span className="text-cyan-300">Library</span>, <span className="text-cyan-300">Store</span> and <span className="text-cyan-300">Settings</span> (Install dependencies · Delete all games). It connects to this same server.
         </p>

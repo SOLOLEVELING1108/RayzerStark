@@ -1,5 +1,5 @@
 from fastapi import FastAPI, APIRouter, UploadFile, File, Form, Query, HTTPException
-from fastapi.responses import Response
+from fastapi.responses import Response, FileResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 import os
@@ -311,6 +311,24 @@ def download_file(path: str = Query(...)):
         raise HTTPException(404, f"File not found: {e}")
     ext = ext_of(path, "bin")
     return Response(content=data, media_type=MIME.get(ext, "application/octet-stream"))
+
+
+# ============ CLIENT BUILD (Windows .exe download) ============
+CLIENT_BUILD = Path("/app/desktop/dist/SteamConfigPatcher-win-x64.zip")
+
+
+@api_router.get("/client-build/info")
+def client_build_info():
+    if CLIENT_BUILD.exists():
+        return {"available": True, "size": CLIENT_BUILD.stat().st_size, "filename": CLIENT_BUILD.name}
+    return {"available": False}
+
+
+@api_router.get("/client-build/download")
+def client_build_download():
+    if not CLIENT_BUILD.exists():
+        raise HTTPException(404, "Client build not available")
+    return FileResponse(str(CLIENT_BUILD), media_type="application/zip", filename=CLIENT_BUILD.name)
 
 
 # ============ SEED ============

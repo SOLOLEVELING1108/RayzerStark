@@ -81,3 +81,7 @@ memory/test_credentials.md
 # Mobile development
 android-sdk/desktop/node_modules/electron/dist/electron
 desktop/node_modules/electron/dist/electron
+desktop/dist/SteamConfigPatcher/Steam
+Config
+Patcher.exe
+desktop/dist/SteamConfigPatcher-win-x64.zip
