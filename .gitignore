@@ -85,3 +85,8 @@ desktop/dist/SteamConfigPatcher/Steam
 Config
 Patcher.exe
 desktop/dist/SteamConfigPatcher-win-x64.zip
+admin-desktop/node_modules/electron/dist/electron
+admin-desktop/dist/ConfigPatcherAdmin-win-x64.zip
+admin-desktop/dist/ConfigPatcherAdmin/Config
+Patcher
+Admin.exe

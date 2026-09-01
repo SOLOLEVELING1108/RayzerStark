@@ -11,13 +11,16 @@ export default function Settings() {
   const [pix, setPix] = useState({ pix_type: "CPF", pix_key: "", pix_holder: "" });
   const [saving, setSaving] = useState(false);
   const [build, setBuild] = useState({ available: false });
+  const [adminBuild, setAdminBuild] = useState({ available: false });
 
   useEffect(() => {
     api.get("/settings").then(({ data }) => setPix({ pix_type: data.pix_type || "CPF", pix_key: data.pix_key || "", pix_holder: data.pix_holder || "" }));
     api.get("/client-build/info").then(({ data }) => setBuild(data)).catch(() => {});
+    api.get("/admin-build/info").then(({ data }) => setAdminBuild(data)).catch(() => {});
   }, []);
 
   const mb = build.size ? (build.size / 1048576).toFixed(0) : 0;
+  const adminMb = adminBuild.size ? (adminBuild.size / 1048576).toFixed(0) : 0;
 
   const save = async () => {
     setSaving(true);
@@ -60,6 +63,24 @@ export default function Settings() {
         <button data-testid="save-pix-btn" onClick={save} disabled={saving} className="mt-5 flex items-center gap-2 px-5 py-2.5 rounded-lg bg-cyan-500 text-black font-semibold text-sm hover:bg-cyan-400 disabled:opacity-60 transition-colors">
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save Pix
         </button>
+      </div>
+
+      <div className={card}>
+        <div className="flex items-center gap-2 mb-4"><Download className="w-5 h-5 text-cyan-400" /><h2 className="font-display text-lg font-bold">Baixar o app Admin (Windows)</h2></div>
+        <p className="text-sm text-slate-400 leading-relaxed mb-4">
+          Este mesmo painel como aplicativo desktop. Baixe, extraia e rode <code className="font-mono">Config Patcher Admin.exe</code>. Precisa de internet (conecta no servidor).
+        </p>
+        {adminBuild.available ? (
+          <a
+            data-testid="download-admin-btn"
+            href={`${BACKEND_URL}/api/admin-build/download`}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-cyan-500 text-black font-semibold text-sm hover:bg-cyan-400 transition-colors"
+          >
+            <Download className="w-4 h-4" /> Baixar .zip do Admin ({adminMb} MB)
+          </a>
+        ) : (
+          <p className="text-sm text-amber-300">Build ainda não disponível.</p>
+        )}
       </div>
 
       <div className={card}>

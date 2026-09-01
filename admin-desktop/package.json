@@ -1,0 +1,24 @@
+{
+  "name": "config-patcher-admin",
+  "productName": "Config Patcher Admin",
+  "version": "1.0.0",
+  "description": "Painel administrador do Steam Config Patcher.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:win": "electron-builder --win dir --x64"
+  },
+  "devDependencies": {
+    "electron": "^30.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.you.configpatcheradmin",
+    "productName": "Config Patcher Admin",
+    "files": ["main.js", "config.json"],
+    "win": {
+      "target": ["dir"],
+      "signAndEditExecutable": false
+    }
+  }
+}

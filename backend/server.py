@@ -315,6 +315,7 @@ def download_file(path: str = Query(...)):
 
 # ============ CLIENT BUILD (Windows .exe download) ============
 CLIENT_BUILD = Path("/app/desktop/dist/SteamConfigPatcher-win-x64.zip")
+ADMIN_BUILD = Path("/app/admin-desktop/dist/ConfigPatcherAdmin-win-x64.zip")
 
 
 @api_router.get("/client-build/info")
@@ -329,6 +330,20 @@ def client_build_download():
     if not CLIENT_BUILD.exists():
         raise HTTPException(404, "Client build not available")
     return FileResponse(str(CLIENT_BUILD), media_type="application/zip", filename=CLIENT_BUILD.name)
+
+
+@api_router.get("/admin-build/info")
+def admin_build_info():
+    if ADMIN_BUILD.exists():
+        return {"available": True, "size": ADMIN_BUILD.stat().st_size, "filename": ADMIN_BUILD.name}
+    return {"available": False}
+
+
+@api_router.get("/admin-build/download")
+def admin_build_download():
+    if not ADMIN_BUILD.exists():
+        raise HTTPException(404, "Admin build not available")
+    return FileResponse(str(ADMIN_BUILD), media_type="application/zip", filename=ADMIN_BUILD.name)
 
 
 # ============ SEED ============
