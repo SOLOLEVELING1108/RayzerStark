@@ -10,6 +10,9 @@ contextBridge.exposeInMainWorld("api", {
   installDependencies: () => ipcRenderer.invoke("install-dependencies"),
   deleteAll: () => ipcRenderer.invoke("delete-all"),
   downloadBypass: (bypass) => ipcRenderer.invoke("download-bypass", bypass),
+  getKey: () => ipcRenderer.invoke("get-key"),
+  setKey: (k) => ipcRenderer.invoke("set-key", k),
+  quitApp: () => ipcRenderer.invoke("quit-app"),
   onProgress: (cb) => ipcRenderer.on("inject-progress", (_e, d) => cb(d)),
   onDepProgress: (cb) => ipcRenderer.on("dep-progress", (_e, d) => cb(d)),
 });

@@ -13,6 +13,8 @@ load_dotenv(ROOT_DIR / ".env")
 
 import supa
 import auth
+import secrets
+import string
 
 app = FastAPI(title="Game Config Patcher API")
 api_router = APIRouter(prefix="/api")
@@ -331,6 +333,62 @@ def download_file(path: str = Query(...)):
     return Response(content=data, media_type=MIME.get(ext, "application/octet-stream"))
 
 
+# ============ ACCESS KEYS ============
+def _gen_key():
+    alpha = string.ascii_uppercase + string.digits
+    grp = lambda: "".join(secrets.choice(alpha) for _ in range(4))
+    return f"RZR-{grp()}-{grp()}-{grp()}"
+
+
+@api_router.post("/keys")
+def create_key(payload: dict = None, admin: dict = Depends(auth.require_admin)):
+    label = (payload or {}).get("label", "")
+    for _ in range(5):
+        key = _gen_key()
+        if not rows(supa.t("access_keys").select("id").eq("key", key).execute()):
+            break
+    row = {"id": str(uuid.uuid4()), "key": key, "hwid": None, "label": label,
+           "status": "active", "created_at": now_iso(), "activated_at": None}
+    supa.t("access_keys").insert(row).execute()
+    return row
+
+
+@api_router.get("/keys")
+def list_keys(admin: dict = Depends(auth.require_admin)):
+    return rows(supa.t("access_keys").select("*").order("created_at", desc=True).execute())
+
+
+@api_router.delete("/keys/{kid}")
+def delete_key(kid: str, admin: dict = Depends(auth.require_admin)):
+    supa.t("access_keys").delete().eq("id", kid).execute()
+    return {"ok": True}
+
+
+@api_router.post("/keys/{kid}/reset")
+def reset_key(kid: str, admin: dict = Depends(auth.require_admin)):
+    supa.t("access_keys").update({"hwid": None, "activated_at": None, "status": "active"}).eq("id", kid).execute()
+    return {"ok": True}
+
+
+@api_router.post("/keys/validate")
+def validate_key(payload: dict):
+    key = (payload.get("key") or "").strip().upper()
+    hwid = (payload.get("hwid") or "").strip()
+    if not key or not hwid:
+        return {"valid": False, "reason": "missing"}
+    k = one(supa.t("access_keys").select("*").eq("key", key).execute())
+    if not k:
+        return {"valid": False, "reason": "not_found"}
+    if k.get("status") != "active":
+        return {"valid": False, "reason": "revoked"}
+    if not k.get("hwid"):
+        supa.t("access_keys").update({"hwid": hwid, "activated_at": now_iso()}).eq("id", k["id"]).execute()
+        return {"valid": True, "reason": "activated"}
+    if k["hwid"] == hwid:
+        return {"valid": True, "reason": "ok"}
+    return {"valid": False, "reason": "other_device"}
+
+
 # ============ BYPASSES ============
 @api_router.get("/bypasses")
 def list_bypasses(search: str | None = None):
@@ -358,6 +416,7 @@ async def create_bypass(
     cover_url: str = Form(""),
     cover: UploadFile | None = File(None),
     file: UploadFile | None = File(None),
+    file_url: str = Form(""),
     admin: dict = Depends(auth.require_admin),
 ):
     bid = str(uuid.uuid4())
@@ -372,8 +431,14 @@ async def create_bypass(
         data = await file.read()
         ext = ext_of(file.filename, "zip")
         path = f"bypass/{bid}/{file.filename}"
-        supa.upload(path, data, MIME.get(ext, "application/octet-stream"))
+        try:
+            supa.upload(path, data, MIME.get(ext, "application/octet-stream"))
+        except Exception:
+            raise HTTPException(400, "Falha ao enviar o arquivo (talvez maior que o limite de ~50MB do Storage). Use um link externo (URL).")
         file_meta = {"filename": file.filename, "path": path, "size": len(data)}
+    elif file_url:
+        name = file_url.split("?")[0].rstrip("/").split("/")[-1] or "bypass.zip"
+        file_meta = {"filename": name, "url": file_url, "size": 0}
     row = {"id": bid, "app_id": app_id, "title": title, "category": category, "description": description,
            "cover_url": final_cover, "file": file_meta, "is_deleted": False,
            "created_at": now_iso(), "updated_at": now_iso()}
@@ -387,6 +452,10 @@ def update_bypass(bid: str, payload: dict, admin: dict = Depends(auth.require_ad
     updates = {k: v for k, v in payload.items() if k in allowed and v is not None}
     if updates.get("cover_url", None) == "":
         updates.pop("cover_url")
+    if payload.get("file_url"):
+        url = payload["file_url"]
+        name = url.split("?")[0].rstrip("/").split("/")[-1] or "bypass.zip"
+        updates["file"] = {"filename": name, "url": url, "size": 0}
     updates["updated_at"] = now_iso()
     supa.t("bypasses").update(updates).eq("id", bid).execute()
     return get_bypass(bid)
@@ -401,7 +470,10 @@ async def set_bypass_file(bid: str, file: UploadFile = File(...), admin: dict = 
     data = await file.read()
     ext = ext_of(file.filename, "zip")
     path = f"bypass/{bid}/{file.filename}"
-    supa.upload(path, data, MIME.get(ext, "application/octet-stream"))
+    try:
+        supa.upload(path, data, MIME.get(ext, "application/octet-stream"))
+    except Exception:
+        raise HTTPException(400, "Falha ao enviar o arquivo (talvez maior que o limite de ~50MB do Storage). Use um link externo (URL).")
     file_meta = {"filename": file.filename, "path": path, "size": len(data)}
     supa.t("bypasses").update({"file": file_meta, "updated_at": now_iso()}).eq("id", bid).execute()
     return get_bypass(bid)

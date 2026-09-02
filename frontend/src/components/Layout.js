@@ -1,6 +1,6 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { LibraryBig, PlusCircle, Settings, Gamepad2, Boxes, Inbox, LogOut, ShieldCheck } from "lucide-react";
+import { LibraryBig, PlusCircle, Settings, Gamepad2, Boxes, Inbox, LogOut, ShieldCheck, KeyRound } from "lucide-react";
 import { api } from "@/lib/api";
 import { useI18n } from "@/i18n";
 
@@ -22,6 +22,7 @@ export default function Layout() {
     { to: "/bypass", label: t("nav.bypass"), icon: ShieldCheck, testid: "nav-bypass" },
     { to: "/dependencies", label: t("nav.dependencies"), icon: Boxes, testid: "nav-dependencies" },
     { to: "/orders", label: t("nav.orders"), icon: Inbox, testid: "nav-orders", badge: true },
+    { to: "/keys", label: t("nav.keys"), icon: KeyRound, testid: "nav-keys" },
     { to: "/settings", label: t("nav.settings"), icon: Settings, testid: "nav-settings" },
   ];
 

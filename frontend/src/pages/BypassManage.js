@@ -17,6 +17,7 @@ export default function BypassManage() {
   const [item, setItem] = useState(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [fileUrl, setFileUrl] = useState("");
   const fileRef = useRef();
 
   useEffect(() => {
@@ -56,11 +57,12 @@ export default function BypassManage() {
         fd.append("category", form.category || "Uncategorized"); fd.append("description", form.description);
         if (coverFile) fd.append("cover", coverFile); else fd.append("cover_url", form.cover_url);
         if (fileRef.current?.files?.[0]) fd.append("file", fileRef.current.files[0]);
+        else if (fileUrl) fd.append("file_url", fileUrl);
         const { data } = await api.post("/bypasses", fd);
         toast.success(t("bypass.created"));
         navigate(`/bypass/${data.id}`);
       }
-    } catch { toast.error(t("game.saveFail")); }
+    } catch (e) { toast.error(e.response?.data?.detail || t("game.saveFail")); }
     finally { setSaving(false); }
   };
 
@@ -75,7 +77,7 @@ export default function BypassManage() {
       setItem(data);
       toast.success(t("bypass.fileSet"));
       fileRef.current.value = "";
-    } catch { toast.error(t("deps.uploadFail")); }
+    } catch (e) { toast.error(e.response?.data?.detail || t("deps.uploadFail")); }
     finally { setUploading(false); }
   };
 
@@ -115,6 +117,8 @@ export default function BypassManage() {
             <div>
               <label className={label}>{t("bypass.file")}</label>
               <input data-testid="bypass-file-new" ref={fileRef} type="file" className={input} />
+              <label className={label} style={{ marginTop: 10 }}>{t("bypass.orUrl")}</label>
+              <input data-testid="bypass-fileurl-new" className={input} placeholder="https://…" value={fileUrl} onChange={(e) => setFileUrl(e.target.value)} />
             </div>
           )}
 
@@ -135,6 +139,13 @@ export default function BypassManage() {
             </label>
           </div>
           {uploading && <p className="text-xs text-cyan-400 mt-3 flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" /> {t("game.uploading")}</p>}
+          <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-4 max-w-md mt-3">
+            <label className={label}>{t("bypass.orUrl")}</label>
+            <div className="flex gap-2">
+              <input data-testid="bypass-fileurl-edit" className={`${input} flex-1`} placeholder="https://…" value={fileUrl} onChange={(e) => setFileUrl(e.target.value)} />
+              <button data-testid="bypass-fileurl-save" onClick={async () => { if (!fileUrl) return; try { const { data } = await api.put(`/bypasses/${id}`, { file_url: fileUrl }); setItem(data); toast.success(t("bypass.fileSet")); } catch { toast.error(t("game.saveFail")); } }} className="px-3 rounded-lg bg-cyan-500 text-black text-sm font-semibold hover:bg-cyan-400">{t("common.save")}</button>
+            </div>
+          </div>
           <div className="mt-4 rounded-xl border border-white/10 bg-[#10131E] max-w-2xl p-4">
             {item.file && item.file.filename ? (
               <div className="flex items-center gap-3">

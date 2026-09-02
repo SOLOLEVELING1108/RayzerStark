@@ -21,7 +21,8 @@ def hit(path):
 
 
 def test_concurrent_reads_no_500():
-    paths = ["/games", "/categories", "/purchases/count", "/dependencies", "/settings"] * 6
+    # public read endpoints only (/purchases/count is admin-protected -> 401 by design)
+    paths = ["/games", "/categories", "/bypasses", "/dependencies", "/settings"] * 6
     with ThreadPoolExecutor(max_workers=10) as ex:
         codes = list(ex.map(hit, paths))
     bad = [c for c in codes if c != 200]

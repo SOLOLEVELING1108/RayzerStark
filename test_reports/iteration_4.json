@@ -1,0 +1,56 @@
+{
+  "summary": "Iteration 4: ACCESS KEYS system + bypass large-file fix (external URL) tested end-to-end. Backend: created /app/backend/tests/test_keys.py (17 tests: key generate/list/delete/reset, HWID bind flow activated->ok->other_device, unknown/missing/deleted key, admin 401 boundary, public validate, bypass small-zip upload+download, bypass create/update via file_url) and /app/backend/tests/test_large_upload.py (55MB upload -> clear 400 with the ~50MB/URL message, no 500). Full suite run: 95/95 passed (existing auth/games/deps/purchases/settings/bypass regression + new). Frontend (Playwright, public URL, PT/EN/ES): admin login OK, nav-keys present, generate key (RZR-XXXX-XXXX-XXXX row appears, label cleared, 'Key gerada' toast), copy, HWID binding shown after public validate ('Travada no PC: PC-QA-UI'), reset-key clears HWID (only rendered when bound), del-key removes row; Bypass create with ONLY bypass-fileurl-new succeeds and redirects to /bypass/<id> showing the derived filename; bypass-fileurl-edit + bypass-fileurl-save updates the file (qa-updated.zip, 0 B) with success toast; bypass delete (window.confirm) works. i18n PT/EN/ES switch fine and Keys page title translates (Keys de Acesso / Access Keys / Claves de Acceso). All test-created keys and bypasses were deleted (Keys list and Bypass grid verified empty of TEST_ data).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "DELETE /api/keys/{id}, POST /api/keys/{id}/reset", "issue": "Return {ok:true} (200) even for a non-existent key id - no 404. Silent no-op makes UI/API errors invisible."},
+      {"endpoint": "POST /api/keys/validate", "issue": "Public and unthrottled; each call can bind a key to the caller's HWID. Key space is large so brute force is impractical, but adding basic rate limiting would be prudent."},
+      {"endpoint": "POST /api/keys", "issue": "Untyped `payload: dict = None` body (no Pydantic model); label is not length-validated. Same pattern as update_game/update_bypass."},
+      {"endpoint": "POST /api/bypasses", "issue": "If a cover file is uploaded and the main file upload then fails with the 400 (>50MB), the already-uploaded cover object is left orphaned in Storage (no rollback)."},
+      {"endpoint": "POST /api/auth/login", "issue": "Still no brute-force lockout (playbook expects lockout after 5 fails); token in JSON body + localStorage (no httpOnly cookie); CORS_ORIGINS defaults to '*' with allow_credentials=True. Unchanged from iteration 3."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Keys.js", "issue": "Hardcoded English toast 'HWID reset' on reset (shown even in PT/ES) - i18n keys keys.reset exists; also error toasts reuse t('game.saveFail') instead of a keys-specific message.", "selector": "[data-testid=\"reset-key-<id>\"]", "priority": "LOW"},
+      {"component": "Layout.js / i18n.js", "issue": "nav.keys is literally 'Keys' in all three locales (pt/en/es), so the nav label does not visibly translate (page title does). Intentional? If not, use 'Keys de Acesso'/'Access Keys'/'Claves'.", "selector": "[data-testid=\"nav-keys\"]", "priority": "LOW"},
+      {"component": "BypassManage.js", "issue": "Upload failures are swallowed into a generic toast (t('game.saveFail')/t('deps.uploadFail')). The backend's specific 400 message about the ~50MB Storage cap + 'use an external URL' never reaches the admin, defeating the point of the fix. Surface err.response.data.detail.", "selector": "[data-testid=\"bypass-save\"]", "priority": "MEDIUM"},
+      {"component": "BypassManage.js", "issue": "Create form's file input is a raw unstyled <input type=file> using the text-input class (bypass-file-new) - visually inconsistent with the styled upload button used on the manage page.", "selector": "[data-testid=\"bypass-file-new\"]", "priority": "LOW"},
+      {"component": "Keys.js", "issue": "Delete key has no confirmation (single click revokes permanently), while bypass/game delete uses window.confirm. Inconsistent and destructive.", "selector": "[data-testid=\"del-key-<id>\"]", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Keys page", "issues": ["No visible layout/contrast problems at 1920x1080; key rows, badges (cyan/emerald), buttons and empty state all render correctly."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_keys.py",
+    "/app/backend/tests/test_large_upload.py",
+    "/app/test_reports/pytest/keys.xml",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Surface the backend 400 detail (50MB / use external URL) in BypassManage toasts instead of a generic error message.",
+    "Translate the 'HWID reset' toast in Keys.js and decide whether nav.keys should differ per locale.",
+    "Return 404 from DELETE /api/keys/{id} and POST /api/keys/{id}/reset when the key does not exist.",
+    "Optional: add a confirm step to key deletion; model /api/keys body with Pydantic; roll back the uploaded cover when the bypass file upload fails."
+  ],
+  "critical_code_review_comments": [
+    "server.py is now 587 lines with keys+bypasses+games+purchases in one module - split into routers before it crosses the 700-line threshold.",
+    "create_key's uniqueness loop leaves `key` bound to the last generated value if all 5 attempts collide; there is no unique-constraint fallback/error path.",
+    "validate_key mutates state (binds hwid) on a public, unauthenticated POST - document/limit this; also `status` is never set to 'used' so 'single-use' is enforced solely by the hwid column.",
+    "Historical 500s in backend.err.log for /api/keys and /api/keys/validate were Supabase PGRST205 'Could not find the table public.access_keys in the schema cache' (before ~07:36 today); resolved after the schema cache refreshed. No 500s during this iteration's runs."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_keys.py (new)",
+    "/app/backend/tests/test_large_upload.py (new)",
+    "/app/backend/tests/test_concurrency.py (replaced /purchases/count with /bypasses - the endpoint is admin-only by design and made the unauthenticated concurrency test fail with 401s)"
+  ],
+  "success_rate": {"backend": "100% (95/95 pytest, incl. 18 new keys/bypass-url/large-upload tests)", "frontend": "100% of tested flows (login, keys generate/copy/bind/reset/delete, bypass create-via-URL, bypass URL update, bypass delete, i18n PT/EN/ES)"},
+  "seed_data_creation": "Transient TEST_ keys and bypasses created via API and UI; all deleted (Keys list empty, no TEST_ bypass cards remain). One 55MB upload attempt was rejected by Storage so nothing was persisted.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "Admin pf149429@gmail.com / Wdsoneluiza123@@@@ (from /app/memory/test_credentials.md) - works on backend and frontend.",
+  "context_for_next_testing_agent": "New suite: tests/test_keys.py (module-scoped `admin` session fixture + cleanup of created keys/bypasses) and tests/test_large_upload.py (run with -n 0, ~10s). Frontend gotchas: the language switcher (lang-pt/en/es) lives ONLY on the Settings page, not in the sidebar; nav-keys label is 'Keys' in every locale; bypass list uses add-bypass-btn and bypass-delete-<app_id> with window.confirm (register page.on('dialog', accept)); reset-key-<id> renders only when the key has an hwid, so bind first via POST /api/keys/validate; /api/purchases/count is admin-only (401 unauthenticated).",
+  "rca_of_the_issue": "The >50MB bypass upload fix works as designed: Supabase Storage returns 400 and the backend converts it into HTTP 400 with a clear PT message (no 500), and the external file_url path stores {filename,url,size:0} on both create and update. Remaining gap is purely presentational - the frontend replaces that detail with a generic error toast, so the admin is not told to use a URL."
+}

@@ -149,8 +149,8 @@ ipcMain.handle("delete-all", async () => {
 ipcMain.handle("download-bypass", async (_e, bypass) => {
   const api = getApiBase();
   const file = bypass && bypass.file;
-  if (!file || !file.path) throw new Error("no-file");
-  const url = `${api}/api/files/download?path=${encodeURIComponent(file.path)}`;
+  if (!file || (!file.path && !file.url)) throw new Error("no-file");
+  const url = file.url ? file.url : `${api}/api/files/download?path=${encodeURIComponent(file.path)}`;
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Download failed (${res.status})`);
   const buf = Buffer.from(await res.arrayBuffer());
@@ -160,3 +160,7 @@ ipcMain.handle("download-bypass", async (_e, bypass) => {
   fs.writeFileSync(dest, buf);
   return { ok: true, dest, filename: file.filename };
 });
+
+ipcMain.handle("get-key", () => (loadStore().accessKey || ""));
+ipcMain.handle("set-key", (_e, k) => { const s = loadStore(); s.accessKey = k; saveStore(s); return true; });
+ipcMain.handle("quit-app", () => { app.quit(); });

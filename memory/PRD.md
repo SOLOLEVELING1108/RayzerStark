@@ -74,3 +74,10 @@ and the app fetches that game's files from a server and drops them in the right 
 - BYPASS feature: Supabase table `bypasses` (SQL in backend/supabase_bypass.sql). Backend endpoints: GET /api/bypasses (public), GET/{id}, POST (admin, cover+file), PUT, POST /{id}/file, POST /{id}/cover, DELETE (soft). Admin pages BypassLibrary + BypassManage (nav 'Bypass'). Client 'Bypass' tab: Download button saves the file to the Windows Downloads folder (main.js download-bypass → app.getPath('downloads')). Open to everyone (no entitlement).
 - Windows builds rebuilt: RayzerStarkGame-Client-win-x64.zip + RayzerStarkGame-Admin-win-x64.zip (served by /api/client-build/download and /api/admin-build/download). Backend paths updated.
 - Tests: iteration_3 backend 77/77 (auth+bypass+legacy), frontend all flows pass. Fixed GameManage i18n leftovers + BypassManage error toast. Cleaned 13 residual test purchase_requests.
+
+## Update (2026-09-02) — Bypass large-file fix + Access Keys
+- Bypass upload bug: files >~50MB failed with 500 (Supabase free-tier Storage cap). Now returns a clear HTTP 400 message; admins can instead paste an EXTERNAL file URL (file_url) on create/edit — works for any size. Client download supports {url} or {path}. Frontend now surfaces the backend 400 detail.
+- ACCESS KEYS (license): Supabase table access_keys (SQL in backend/supabase_keys.sql). Admin: POST/GET/DELETE /api/keys, POST /api/keys/{id}/reset (all admin-JWT). Public POST /api/keys/validate {key,hwid}: first PC binds hwid (activated), same PC ok, other PC => invalid(other_device). Admin Keys page (nav 'Keys'): generate/copy/reset/delete.
+- Client key gate: on startup validates stored key + deviceCode(HWID). No key => activation screen; invalid/other-PC => blocked message + auto-close (5s). Key stored locally by main process.
+- Windows client rebuilt (RayzerStarkGame-Client-win-x64.zip) with key gate + bypass URL/HWID.
+- Tests iteration_4: backend 95/95, frontend flows pass. Known backlog: no login brute-force lockout; keys delete/reset no 404 on missing; consider splitting server.py into routers.

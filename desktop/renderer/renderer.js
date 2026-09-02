@@ -72,6 +72,13 @@ const TR = {
 const LANGS = [{ code: "pt", label: "Português", flag: "🇧🇷" }, { code: "en", label: "English", flag: "🇺🇸" }, { code: "es", label: "Español", flag: "🇪🇸" }];
 const tr = (k) => (TR[LANG] && TR[LANG][k]) || TR.pt[k] || k;
 
+const GATE = {
+  pt: { enter: "Digite sua key de acesso para continuar", activate: "Ativar", invalid: "Key inválida.", other: "Esta key já está em uso em outro PC.", blocked: "Key inválida ou usada em outro computador. O aplicativo será fechado.", close: "Fechar", checking: "Verificando…" },
+  en: { enter: "Enter your access key to continue", activate: "Activate", invalid: "Invalid key.", other: "This key is already used on another PC.", blocked: "Invalid key or used on another computer. The app will close.", close: "Close", checking: "Checking…" },
+  es: { enter: "Ingresa tu clave de acceso para continuar", activate: "Activar", invalid: "Clave inválida.", other: "Esta clave ya se usa en otro PC.", blocked: "Clave inválida o usada en otro equipo. La app se cerrará.", close: "Cerrar", checking: "Verificando…" },
+};
+const gt = (k) => (GATE[LANG] && GATE[LANG][k]) || GATE.pt[k];
+
 const $ = (s) => document.querySelector(s);
 const grid = $("#grid"), storeGrid = $("#store-grid"), bypassGrid = $("#bypass-grid");
 
@@ -333,9 +340,54 @@ async function loadBypass() {
   catch (e) { toast(tr("t.storeFail"), e.message, "err"); $("#empty-bypass").classList.remove("hidden"); }
 }
 
+async function validateKey(key) {
+  try {
+    const r = await fetch(`${CONFIG.apiBase}/api/keys/validate`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key, hwid: CONFIG.deviceCode }) });
+    return await r.json();
+  } catch (e) { return { valid: false, reason: "network" }; }
+}
+function showGate(msg, blocked) {
+  const g = $("#key-gate"); g.classList.remove("hidden");
+  $("#key-gate-msg").textContent = msg || gt("enter");
+  $("#key-device").textContent = CONFIG.deviceCode;
+  $("#key-input").style.display = blocked ? "none" : "block";
+  $("#key-submit").style.display = blocked ? "none" : "block";
+  $("#key-quit").classList.toggle("hidden", !blocked);
+}
+$("#key-submit").addEventListener("click", async () => {
+  const key = ($("#key-input").value || "").trim().toUpperCase();
+  if (!key) return;
+  $("#key-gate-msg").textContent = gt("checking");
+  const res = await validateKey(key);
+  if (res.valid) {
+    await window.api.setKey(key);
+    $("#key-gate").classList.add("hidden");
+    applyLang();
+    await loadLibrary();
+  } else {
+    $("#key-gate-msg").textContent = res.reason === "other_device" ? gt("other") : gt("invalid");
+  }
+});
+$("#key-quit").addEventListener("click", () => window.api.quitApp());
+
+async function gate() {
+  const stored = await window.api.getKey();
+  if (stored) {
+    const res = await validateKey(stored);
+    if (res.valid) return true;
+    showGate(gt("blocked"), true);
+    setTimeout(() => window.api.quitApp(), 5000);
+    return false;
+  }
+  showGate("", false);
+  return false;
+}
+
 async function init() {
   CONFIG = await window.api.getConfig();
   applyLang();
+  const ok = await gate();
+  if (!ok) return;
   await loadLibrary();
 }
 init();
