@@ -89,3 +89,14 @@ and the app fetches that game's files from a server and drops them in the right 
 - Admin UI (BypassManage.js): added i18n hint `bypass.urlHint` under both URL fields (Drive must be "Anyone with the link"); edit-URL save now surfaces backend error detail and clears the input.
 - Client renderer: friendly `t.bpBadLink` error (PT/EN/ES) for invalid/private links.
 - USER ACTION REQUIRED: set the Drive file sharing to "Anyone with the link" and re-download the updated client .exe. Verified backend normalization via curl + admin screenshot; Windows runtime not re-tested here.
+
+## Update (2026-06) — Bypasses migrated to GitHub Releases + Client UX polish
+- HOSTING: user's bypass files (276MB, 217MB) now hosted on GitHub Releases (repo SOLOLEVELING1108/RayzerStark, tag v1.0). Verified end-to-end from server: 302→200, valid ZIPs (PK magic), full sizes, content-disposition filename, no IP block/quota. Both bypass records updated to the GitHub asset URLs. GitHub is the recommended host going forward (Drive has daily download quotas + interstitials).
+- normalize_file_url now also URL-decodes generic filenames (%20 → space).
+- CLIENT UX (desktop/renderer only — main.js unchanged):
+  1) Splash on launch: pulsing glowing logo + "RAYZER STARK GAME" + indeterminate bar (~1.6s) via #app-loader overlay.
+  2) Entry gate ALWAYS shown: saved key is pre-filled, button reads "Entrar" (vs "Ativar" when no key); client must click each launch (key still validated against HWID; other-device/invalid keeps them on the gate). Enter key submits.
+  3) Dependency install shows the same full-screen loader ("Instalando dependências… (x/total)").
+  4) First launch shows "Carregando jogos…" loader while the library loads (localStorage flag firstLoadDone); later launches load instantly and users search Biblioteca by name/App ID from the DB.
+  - New i18n (PT/EN/ES): load.starting/load.games/load.deps; GATE welcome/enterBtn/activateBtn.
+- Client .exe rebuilt (asar repacked + re-zipped RayzerStarkGame-Client-win-x64.zip). Verified splash + gate visually via a stubbed harness (Playwright). Windows runtime not executed here — user must re-download and test.

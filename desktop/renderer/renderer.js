@@ -27,6 +27,7 @@ const TR = {
     "t.attach": "Anexe o comprovante", "t.sendFail": "Falha ao enviar", "t.pixCopied": "Chave Pix copiada", "t.bpOk": "Bypass baixado para a pasta Downloads", "t.bpNoFile": "Este bypass não tem arquivo.", "t.bpBadLink": "Link inválido ou arquivo não é público (deixe como \"Qualquer pessoa com o link\").", "t.dlFail": "Falha ao baixar",
     "t.serverDown": "Servidor indisponível", "t.storeFail": "Falha ao carregar loja", "t.confirmDel": "Excluir permanentemente todos os arquivos deste PC?",
     "steam.ok": "● Steam encontrada", "steam.bad": "▲ Steam não encontrada", "deps.count": "dependência(s) instalada(s).", "deps.none": "Nenhuma dependência instalada ainda.",
+    "load.starting": "Iniciando…", "load.games": "Carregando jogos…", "load.deps": "Instalando dependências…",
   },
   en: {
     "nav.library": "Library", "nav.bypass": "Bypass", "nav.store": "Store", "nav.settings": "Settings",
@@ -47,6 +48,7 @@ const TR = {
     "t.attach": "Attach the receipt", "t.sendFail": "Send failed", "t.pixCopied": "Pix key copied", "t.bpOk": "Bypass downloaded to your Downloads folder", "t.bpNoFile": "This bypass has no file.", "t.bpBadLink": "Invalid link or file is not public (set it to \"Anyone with the link\").", "t.dlFail": "Download failed",
     "t.serverDown": "Server unavailable", "t.storeFail": "Failed to load store", "t.confirmDel": "Permanently delete all files from this PC?",
     "steam.ok": "● Steam found", "steam.bad": "▲ Steam not found", "deps.count": "dependency(ies) installed.", "deps.none": "No dependencies installed yet.",
+    "load.starting": "Starting…", "load.games": "Loading games…", "load.deps": "Installing dependencies…",
   },
   es: {
     "nav.library": "Biblioteca", "nav.bypass": "Bypass", "nav.store": "Tienda", "nav.settings": "Ajustes",
@@ -67,15 +69,16 @@ const TR = {
     "t.attach": "Adjunta el comprobante", "t.sendFail": "Error al enviar", "t.pixCopied": "Clave Pix copiada", "t.bpOk": "Bypass descargado a la carpeta Descargas", "t.bpNoFile": "Este bypass no tiene archivo.", "t.bpBadLink": "Enlace inválido o archivo no público (déjalo como \"Cualquier persona con el enlace\").", "t.dlFail": "Error al descargar",
     "t.serverDown": "Servidor no disponible", "t.storeFail": "Error al cargar la tienda", "t.confirmDel": "¿Eliminar permanentemente todos los archivos de este PC?",
     "steam.ok": "● Steam encontrada", "steam.bad": "▲ Steam no encontrada", "deps.count": "dependencia(s) instalada(s).", "deps.none": "Ninguna dependencia instalada aún.",
+    "load.starting": "Iniciando…", "load.games": "Cargando juegos…", "load.deps": "Instalando dependencias…",
   },
 };
 const LANGS = [{ code: "pt", label: "Português", flag: "🇧🇷" }, { code: "en", label: "English", flag: "🇺🇸" }, { code: "es", label: "Español", flag: "🇪🇸" }];
 const tr = (k) => (TR[LANG] && TR[LANG][k]) || TR.pt[k] || k;
 
 const GATE = {
-  pt: { enter: "Digite sua key de acesso para continuar", activate: "Ativar", invalid: "Key inválida.", other: "Esta key já está em uso em outro PC.", blocked: "Key inválida ou usada em outro computador. O aplicativo será fechado.", close: "Fechar", checking: "Verificando…" },
-  en: { enter: "Enter your access key to continue", activate: "Activate", invalid: "Invalid key.", other: "This key is already used on another PC.", blocked: "Invalid key or used on another computer. The app will close.", close: "Close", checking: "Checking…" },
-  es: { enter: "Ingresa tu clave de acceso para continuar", activate: "Activar", invalid: "Clave inválida.", other: "Esta clave ya se usa en otro PC.", blocked: "Clave inválida o usada en otro equipo. La app se cerrará.", close: "Cerrar", checking: "Verificando…" },
+  pt: { enter: "Digite sua key de acesso para continuar", welcome: "Bem-vindo de volta! Clique em Entrar para continuar.", enterBtn: "Entrar", activateBtn: "Ativar", activate: "Ativar", invalid: "Key inválida.", other: "Esta key já está em uso em outro PC.", blocked: "Key inválida ou usada em outro computador. O aplicativo será fechado.", close: "Fechar", checking: "Verificando…" },
+  en: { enter: "Enter your access key to continue", welcome: "Welcome back! Click Enter to continue.", enterBtn: "Enter", activateBtn: "Activate", activate: "Activate", invalid: "Invalid key.", other: "This key is already used on another PC.", blocked: "Invalid key or used on another computer. The app will close.", close: "Close", checking: "Checking…" },
+  es: { enter: "Ingresa tu clave de acceso para continuar", welcome: "¡Bienvenido de nuevo! Pulsa Entrar para continuar.", enterBtn: "Entrar", activateBtn: "Activar", activate: "Activar", invalid: "Clave inválida.", other: "Esta clave ya se usa en otro PC.", blocked: "Clave inválida o usada en otro equipo. La app se cerrará.", close: "Cerrar", checking: "Verificando…" },
 };
 const gt = (k) => (GATE[LANG] && GATE[LANG][k]) || GATE.pt[k];
 
@@ -91,6 +94,8 @@ function toast(title, desc, type = "info") {
 }
 async function apiGet(p) { const r = await fetch(`${CONFIG.apiBase}${p}`); if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }
 function coverUrl(u) { return !u ? "" : (u.startsWith("http") ? u : `${CONFIG.apiBase}${u}`); }
+function showLoader(text) { const el = $("#app-loader-text"); if (el) el.textContent = text; $("#app-loader").classList.remove("hidden"); }
+function hideLoader() { $("#app-loader").classList.add("hidden"); }
 
 // ---------- LIBRARY ----------
 function libCardHtml(g) {
@@ -240,14 +245,18 @@ $("#submit-purchase").addEventListener("click", async () => {
 // ---------- SETTINGS ----------
 $("#install-deps-btn").addEventListener("click", async () => {
   const btn = $("#install-deps-btn"); btn.disabled = true;
+  showLoader(tr("load.deps"));
   try {
     const res = await window.api.installDependencies();
     toast(tr("t.depsOk"), `${res.count}`, "ok");
     CONFIG = await window.api.getConfig(); updateSettingsUI();
   } catch (e) { toast(tr("t.depsFail"), e.message, "err"); }
-  finally { btn.disabled = false; }
+  finally { hideLoader(); btn.disabled = false; }
 });
-window.api.onDepProgress((d) => { $("#deps-progress-label").textContent = `${tr("installing")} (${d.current}/${d.total})`; });
+window.api.onDepProgress((d) => {
+  $("#deps-progress-label").textContent = `${tr("installing")} (${d.current}/${d.total})`;
+  const el = $("#app-loader-text"); if (el) el.textContent = `${tr("load.deps")} (${d.current}/${d.total})`;
+});
 $("#delete-all-btn").addEventListener("click", async () => {
   if (!confirm(tr("t.confirmDel"))) return;
   try {
@@ -348,14 +357,17 @@ async function validateKey(key) {
     return await r.json();
   } catch (e) { return { valid: false, reason: "network" }; }
 }
-function showGate(msg, blocked) {
+function showGate(msg, blocked, prefill, btnLabel) {
   const g = $("#key-gate"); g.classList.remove("hidden");
   $("#key-gate-msg").textContent = msg || gt("enter");
   $("#key-device").textContent = CONFIG.deviceCode;
+  if (prefill !== undefined) $("#key-input").value = prefill || "";
+  if (btnLabel) $("#key-submit").textContent = btnLabel;
   $("#key-input").style.display = blocked ? "none" : "block";
   $("#key-submit").style.display = blocked ? "none" : "block";
   $("#key-quit").classList.toggle("hidden", !blocked);
 }
+$("#key-input").addEventListener("keydown", (e) => { if (e.key === "Enter") $("#key-submit").click(); });
 $("#key-submit").addEventListener("click", async () => {
   const key = ($("#key-input").value || "").trim().toUpperCase();
   if (!key) return;
@@ -365,31 +377,46 @@ $("#key-submit").addEventListener("click", async () => {
     await window.api.setKey(key);
     $("#key-gate").classList.add("hidden");
     applyLang();
-    await loadLibrary();
+    await enterApp();
   } else {
     $("#key-gate-msg").textContent = res.reason === "other_device" ? gt("other") : gt("invalid");
   }
 });
 $("#key-quit").addEventListener("click", () => window.api.quitApp());
 
+// Always show the entry screen; a saved key is pre-filled so the client just clicks Enter.
 async function gate() {
   const stored = await window.api.getKey();
-  if (stored) {
-    const res = await validateKey(stored);
-    if (res.valid) return true;
-    showGate(gt("blocked"), true);
-    setTimeout(() => window.api.quitApp(), 5000);
-    return false;
+  if (stored) showGate(gt("welcome"), false, stored, gt("enterBtn"));
+  else showGate(gt("enter"), false, "", gt("activateBtn"));
+}
+
+// After a successful key confirmation: first launch shows a loading screen while the
+// games catalog loads; subsequent launches load instantly (search pulls from the DB).
+async function enterApp() {
+  const first = !localStorage.getItem("firstLoadDone");
+  if (first) {
+    showLoader(tr("load.games"));
+    const t0 = Date.now();
+    await loadLibrary();
+    localStorage.setItem("firstLoadDone", "1");
+    setTimeout(hideLoader, Math.max(0, 1400 - (Date.now() - t0)));
+  } else {
+    await loadLibrary();
   }
-  showGate("", false);
-  return false;
+}
+
+function runSplash() {
+  return new Promise((resolve) => {
+    showLoader(tr("load.starting"));
+    setTimeout(() => { hideLoader(); resolve(); }, 1600);
+  });
 }
 
 async function init() {
   CONFIG = await window.api.getConfig();
   applyLang();
-  const ok = await gate();
-  if (!ok) return;
-  await loadLibrary();
+  await runSplash();
+  await gate();
 }
 init();
