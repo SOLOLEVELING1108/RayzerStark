@@ -342,12 +342,18 @@ def _gen_key():
 
 @api_router.post("/keys")
 def create_key(payload: dict = None, admin: dict = Depends(auth.require_admin)):
-    label = (payload or {}).get("label", "")
+    p = payload or {}
+    full_name = (p.get("full_name") or "").strip()
+    email = (p.get("email") or "").strip()
+    phone = (p.get("phone") or "").strip()
+    if not full_name or not email or not phone:
+        raise HTTPException(400, "Preencha nome completo, e-mail e telefone do cliente.")
     for _ in range(5):
         key = _gen_key()
         if not rows(supa.t("access_keys").select("id").eq("key", key).execute()):
             break
-    row = {"id": str(uuid.uuid4()), "key": key, "hwid": None, "label": label,
+    row = {"id": str(uuid.uuid4()), "key": key, "hwid": None,
+           "full_name": full_name, "email": email, "phone": phone, "label": p.get("label", ""),
            "status": "active", "created_at": now_iso(), "activated_at": None}
     supa.t("access_keys").insert(row).execute()
     return row
