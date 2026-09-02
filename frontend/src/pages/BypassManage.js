@@ -119,6 +119,7 @@ export default function BypassManage() {
               <input data-testid="bypass-file-new" ref={fileRef} type="file" className={input} />
               <label className={label} style={{ marginTop: 10 }}>{t("bypass.orUrl")}</label>
               <input data-testid="bypass-fileurl-new" className={input} placeholder="https://…" value={fileUrl} onChange={(e) => setFileUrl(e.target.value)} />
+              <p className="text-[11px] text-slate-500 mt-1.5 leading-relaxed">{t("bypass.urlHint")}</p>
             </div>
           )}
 
@@ -143,8 +144,9 @@ export default function BypassManage() {
             <label className={label}>{t("bypass.orUrl")}</label>
             <div className="flex gap-2">
               <input data-testid="bypass-fileurl-edit" className={`${input} flex-1`} placeholder="https://…" value={fileUrl} onChange={(e) => setFileUrl(e.target.value)} />
-              <button data-testid="bypass-fileurl-save" onClick={async () => { if (!fileUrl) return; try { const { data } = await api.put(`/bypasses/${id}`, { file_url: fileUrl }); setItem(data); toast.success(t("bypass.fileSet")); } catch { toast.error(t("game.saveFail")); } }} className="px-3 rounded-lg bg-cyan-500 text-black text-sm font-semibold hover:bg-cyan-400">{t("common.save")}</button>
+              <button data-testid="bypass-fileurl-save" onClick={async () => { if (!fileUrl) return; try { const { data } = await api.put(`/bypasses/${id}`, { file_url: fileUrl }); setItem(data); setFileUrl(""); toast.success(t("bypass.fileSet")); } catch (e) { toast.error(e.response?.data?.detail || t("game.saveFail")); } }} className="px-3 rounded-lg bg-cyan-500 text-black text-sm font-semibold hover:bg-cyan-400">{t("common.save")}</button>
             </div>
+            <p className="text-[11px] text-slate-500 mt-2 leading-relaxed">{t("bypass.urlHint")}</p>
           </div>
           <div className="mt-4 rounded-xl border border-white/10 bg-[#10131E] max-w-2xl p-4">
             {item.file && item.file.filename ? (

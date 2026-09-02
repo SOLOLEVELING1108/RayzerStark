@@ -81,3 +81,11 @@ and the app fetches that game's files from a server and drops them in the right 
 - Client key gate: on startup validates stored key + deviceCode(HWID). No key => activation screen; invalid/other-PC => blocked message + auto-close (5s). Key stored locally by main process.
 - Windows client rebuilt (RayzerStarkGame-Client-win-x64.zip) with key gate + bypass URL/HWID.
 - Tests iteration_4: backend 95/95, frontend flows pass. Known backlog: no login brute-force lockout; keys delete/reset no 404 on missing; consider splitting server.py into routers.
+
+## Update (2026-06) — Bypass external-URL download fix (Google Drive/Dropbox)
+- Root cause of client "Falha ao baixar / no-file": (1) admin pasted a Drive *view* link (HTML page, not a file), and (2) the running client .exe was an OLD build without external-URL support; also the target file was NOT publicly shared (HTTP 403).
+- Backend: added `normalize_file_url()` in server.py — converts any Google Drive share link to `https://drive.usercontent.google.com/download?id=<ID>&export=download&confirm=t`, and Dropbox `?dl=0`→`?dl=1`. Applied on POST/PUT /bypasses (file_url). Existing record migrated.
+- Client (desktop/main.js `download-bypass`): now follows redirects, handles Drive virus-scan interstitial (parses the confirm form / falls back to usercontent URL), rejects HTML responses ("bad-link"), and derives filename from Content-Disposition. Repacked app.asar and re-zipped RayzerStarkGame-Client-win-x64.zip (served by /api/client-build/download).
+- Admin UI (BypassManage.js): added i18n hint `bypass.urlHint` under both URL fields (Drive must be "Anyone with the link"); edit-URL save now surfaces backend error detail and clears the input.
+- Client renderer: friendly `t.bpBadLink` error (PT/EN/ES) for invalid/private links.
+- USER ACTION REQUIRED: set the Drive file sharing to "Anyone with the link" and re-download the updated client .exe. Verified backend normalization via curl + admin screenshot; Windows runtime not re-tested here.

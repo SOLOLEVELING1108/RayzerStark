@@ -150,15 +150,51 @@ ipcMain.handle("download-bypass", async (_e, bypass) => {
   const api = getApiBase();
   const file = bypass && bypass.file;
   if (!file || (!file.path && !file.url)) throw new Error("no-file");
-  const url = file.url ? file.url : `${api}/api/files/download?path=${encodeURIComponent(file.path)}`;
-  const res = await fetch(url);
+  let url = file.url ? file.url : `${api}/api/files/download?path=${encodeURIComponent(file.path)}`;
+
+  const fetchFollow = async (u) => {
+    const r = await fetch(u, { redirect: "follow", headers: { "User-Agent": "Mozilla/5.0" } });
+    return r;
+  };
+
+  let res = await fetchFollow(url);
   if (!res.ok) throw new Error(`Download failed (${res.status})`);
+
+  let ct = (res.headers.get("content-type") || "").toLowerCase();
+  // Google Drive virus-scan interstitial: an HTML page with a confirm form
+  if (ct.includes("text/html") && /google\.com/.test(url)) {
+    const html = await res.text();
+    // Newer Drive returns a <form> that posts to a download URL with confirm/uuid params
+    const action = (html.match(/action="([^"]+)"/i) || [])[1];
+    if (action) {
+      const params = {};
+      const re = /name="([^"]+)"\s+value="([^"]*)"/gi; let mm;
+      while ((mm = re.exec(html))) params[mm[1]] = mm[2];
+      const qs = Object.keys(params).map((k) => `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`).join("&");
+      const dl = action.replace(/&amp;/g, "&") + (qs ? (action.includes("?") ? "&" : "?") + qs : "");
+      res = await fetchFollow(dl);
+    } else {
+      const idm = url.match(/[?&]id=([\w-]+)/);
+      if (idm) res = await fetchFollow(`https://drive.usercontent.google.com/download?id=${idm[1]}&export=download&confirm=t`);
+    }
+    ct = (res.headers.get("content-type") || "").toLowerCase();
+    if (!res.ok) throw new Error(`Download failed (${res.status})`);
+  }
+  if (ct.includes("text/html")) throw new Error("bad-link");
+
   const buf = Buffer.from(await res.arrayBuffer());
+  // Prefer server-provided filename
+  let filename = file.filename || "bypass.zip";
+  const cd = res.headers.get("content-disposition") || "";
+  const fm = cd.match(/filename\*?=(?:UTF-8''|")?([^";]+)/i);
+  if (fm) filename = decodeURIComponent(fm[1].replace(/"/g, ""));
+  if (!/\.[a-z0-9]{2,4}$/i.test(filename)) filename = (bypass.title || "bypass").replace(/[^\w.-]+/g, "_") + ".zip";
+
   const dir = app.getPath("downloads");
   fs.mkdirSync(dir, { recursive: true });
-  const dest = path.join(dir, file.filename || "bypass.zip");
+  const dest = path.join(dir, filename);
   fs.writeFileSync(dest, buf);
-  return { ok: true, dest, filename: file.filename };
+  return { ok: true, dest, filename };
 });
 
 ipcMain.handle("get-key", () => (loadStore().accessKey || ""));

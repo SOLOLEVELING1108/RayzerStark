@@ -36,6 +36,33 @@ def ext_of(name, default="bin"):
     return (name.rsplit(".", 1)[-1] if "." in name else default).lower()
 
 
+def normalize_file_url(url: str):
+    """Convert share links (Google Drive, Dropbox) into direct-download URLs.
+    Returns (direct_url, suggested_filename)."""
+    import re
+    u = (url or "").strip()
+    if not u:
+        return u, "bypass.zip"
+    # Google Drive: extract the file id from any of its share link shapes
+    m = re.search(r"drive\.google\.com/file/d/([\w-]+)", u) \
+        or re.search(r"drive\.google\.com/open\?id=([\w-]+)", u) \
+        or re.search(r"[?&]id=([\w-]+)", u) if "drive.google" in u or "usercontent.google" in u else None
+    if m:
+        fid = m.group(1)
+        return (f"https://drive.usercontent.google.com/download?id={fid}&export=download&confirm=t", "bypass.zip")
+    # Dropbox: force direct download
+    if "dropbox.com" in u:
+        u = u.replace("?dl=0", "?dl=1").replace("&dl=0", "&dl=1")
+        if "dl=1" not in u:
+            u = u + ("&dl=1" if "?" in u else "?dl=1")
+        name = u.split("?")[0].rstrip("/").split("/")[-1] or "bypass.zip"
+        return u, name
+    name = u.split("?")[0].rstrip("/").split("/")[-1] or "bypass.zip"
+    if "." not in name:
+        name = "bypass.zip"
+    return u, name
+
+
 def rows(res):
     return res.data or []
 
@@ -443,8 +470,8 @@ async def create_bypass(
             raise HTTPException(400, "Falha ao enviar o arquivo (talvez maior que o limite de ~50MB do Storage). Use um link externo (URL).")
         file_meta = {"filename": file.filename, "path": path, "size": len(data)}
     elif file_url:
-        name = file_url.split("?")[0].rstrip("/").split("/")[-1] or "bypass.zip"
-        file_meta = {"filename": name, "url": file_url, "size": 0}
+        direct, name = normalize_file_url(file_url)
+        file_meta = {"filename": name, "url": direct, "size": 0}
     row = {"id": bid, "app_id": app_id, "title": title, "category": category, "description": description,
            "cover_url": final_cover, "file": file_meta, "is_deleted": False,
            "created_at": now_iso(), "updated_at": now_iso()}
@@ -459,9 +486,8 @@ def update_bypass(bid: str, payload: dict, admin: dict = Depends(auth.require_ad
     if updates.get("cover_url", None) == "":
         updates.pop("cover_url")
     if payload.get("file_url"):
-        url = payload["file_url"]
-        name = url.split("?")[0].rstrip("/").split("/")[-1] or "bypass.zip"
-        updates["file"] = {"filename": name, "url": url, "size": 0}
+        direct, name = normalize_file_url(payload["file_url"])
+        updates["file"] = {"filename": name, "url": direct, "size": 0}
     updates["updated_at"] = now_iso()
     supa.t("bypasses").update(updates).eq("id", bid).execute()
     return get_bypass(bid)
