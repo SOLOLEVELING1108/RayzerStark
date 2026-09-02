@@ -60,6 +60,11 @@ def normalize_file_url(url: str):
     name = u.split("?")[0].rstrip("/").split("/")[-1] or "bypass.zip"
     if "." not in name:
         name = "bypass.zip"
+    try:
+        from urllib.parse import unquote
+        name = unquote(name)
+    except Exception:
+        pass
     return u, name
 
 
