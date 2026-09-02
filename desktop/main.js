@@ -2,6 +2,8 @@ const { app, BrowserWindow, ipcMain } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const crypto = require("crypto");
+let machineIdSync = null;
+try { machineIdSync = require("node-machine-id").machineIdSync; } catch { machineIdSync = null; }
 
 const CONFIG_PATH = path.join(__dirname, "config.json");
 
@@ -21,6 +23,14 @@ function saveStore(s) {
 function getSteamPath() { return loadStore().steamPath || fileConfig().steamPath; }
 function getApiBase() { return fileConfig().apiBase.replace(/\/$/, ""); }
 function getDeviceCode() {
+  // Stable per-PC code derived from the Windows machine GUID (HWID).
+  let base = null;
+  try { base = machineIdSync ? machineIdSync(true) : null; } catch { base = null; }
+  if (base) {
+    const hash = crypto.createHash("sha256").update(base).digest("hex").slice(0, 8).toUpperCase();
+    return "PC-" + hash;
+  }
+  // Fallback: persist a random code if HWID is unavailable.
   const s = loadStore();
   if (!s.deviceCode) {
     s.deviceCode = "PC-" + crypto.randomBytes(4).toString("hex").toUpperCase();
@@ -38,7 +48,7 @@ let win;
 function createWindow() {
   win = new BrowserWindow({
     width: 1280, height: 820, minWidth: 980, minHeight: 640,
-    backgroundColor: "#08090E", autoHideMenuBar: true, title: "Steam Config Patcher",
+    backgroundColor: "#08090E", autoHideMenuBar: true, title: "Rayzer Stark Game",
     webPreferences: { preload: path.join(__dirname, "preload.js"), contextIsolation: true, nodeIntegration: false },
   });
   win.loadFile(path.join(__dirname, "renderer", "index.html"));
@@ -134,4 +144,19 @@ ipcMain.handle("delete-all", async () => {
   s.deps = [];
   saveStore(s);
   return { ok: true, removed };
+});
+
+ipcMain.handle("download-bypass", async (_e, bypass) => {
+  const api = getApiBase();
+  const file = bypass && bypass.file;
+  if (!file || !file.path) throw new Error("no-file");
+  const url = `${api}/api/files/download?path=${encodeURIComponent(file.path)}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Download failed (${res.status})`);
+  const buf = Buffer.from(await res.arrayBuffer());
+  const dir = app.getPath("downloads");
+  fs.mkdirSync(dir, { recursive: true });
+  const dest = path.join(dir, file.filename || "bypass.zip");
+  fs.writeFileSync(dest, buf);
+  return { ok: true, dest, filename: file.filename };
 });

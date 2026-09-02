@@ -1,18 +1,12 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { LibraryBig, PlusCircle, Settings, Gamepad2, HardDriveDownload, Boxes, Inbox, LogOut } from "lucide-react";
+import { LibraryBig, PlusCircle, Settings, Gamepad2, Boxes, Inbox, LogOut, ShieldCheck } from "lucide-react";
 import { api } from "@/lib/api";
-
-const navItems = [
-  { to: "/", label: "Library", icon: LibraryBig, testid: "nav-library", end: true },
-  { to: "/games/new", label: "Add Game", icon: PlusCircle, testid: "nav-add-game" },
-  { to: "/dependencies", label: "Dependencies", icon: Boxes, testid: "nav-dependencies" },
-  { to: "/orders", label: "Orders", icon: Inbox, testid: "nav-orders", badge: true },
-  { to: "/settings", label: "Settings", icon: Settings, testid: "nav-settings" },
-];
+import { useI18n } from "@/i18n";
 
 export default function Layout() {
   const navigate = useNavigate();
+  const { t } = useI18n();
   const [pending, setPending] = useState(0);
 
   useEffect(() => {
@@ -22,16 +16,23 @@ export default function Layout() {
     return () => clearInterval(iv);
   }, []);
 
+  const navItems = [
+    { to: "/", label: t("nav.library"), icon: LibraryBig, testid: "nav-library", end: true },
+    { to: "/games/new", label: t("nav.addGame"), icon: PlusCircle, testid: "nav-add-game" },
+    { to: "/bypass", label: t("nav.bypass"), icon: ShieldCheck, testid: "nav-bypass" },
+    { to: "/dependencies", label: t("nav.dependencies"), icon: Boxes, testid: "nav-dependencies" },
+    { to: "/orders", label: t("nav.orders"), icon: Inbox, testid: "nav-orders", badge: true },
+    { to: "/settings", label: t("nav.settings"), icon: Settings, testid: "nav-settings" },
+  ];
+
   return (
     <div className="min-h-screen flex bg-[#08090E] text-slate-100">
       <aside className="w-64 shrink-0 border-r border-white/10 glass flex flex-col fixed h-screen z-20">
         <div className="px-5 h-16 flex items-center gap-3 border-b border-white/10">
-          <div className="w-9 h-9 rounded-lg bg-cyan-500/15 border border-cyan-500/30 grid place-items-center">
-            <HardDriveDownload className="w-5 h-5 text-cyan-400" />
-          </div>
+          <img src="/logo.png" alt="Rayzer" className="w-9 h-9 rounded-lg border border-cyan-500/30" />
           <div className="leading-tight">
-            <div className="font-display font-extrabold tracking-tight text-[15px]">ADMIN</div>
-            <div className="font-mono text-[10px] uppercase tracking-widest text-slate-500">Config Patcher</div>
+            <div className="font-display font-extrabold tracking-tight text-[14px]">RAYZER STARK</div>
+            <div className="font-mono text-[10px] uppercase tracking-widest text-slate-500">{t("app.tag")}</div>
           </div>
         </div>
 
@@ -63,17 +64,14 @@ export default function Layout() {
 
         <div className="p-3">
           <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-4 mb-2">
-            <div className="text-cyan-300 text-xs font-mono uppercase tracking-widest mb-2">Client App</div>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Games you publish or release appear in the customer's desktop client.
-            </p>
+            <p className="text-xs text-slate-400 leading-relaxed">{t("nav.clientNote")}</p>
           </div>
           <button
             data-testid="logout-btn"
             onClick={() => { localStorage.removeItem("admin_token"); navigate("/login"); }}
             className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-red-300 hover:bg-red-500/10 border border-white/10 hover:border-red-500/30 transition-colors"
           >
-            <LogOut className="w-4 h-4" /> Sair
+            <LogOut className="w-4 h-4" /> {t("nav.logout")}
           </button>
         </div>
       </aside>
@@ -81,8 +79,7 @@ export default function Layout() {
       <div className="flex-1 ml-64 min-h-screen bg-grid">
         <header className="h-16 border-b border-white/10 glass flex items-center gap-3 px-8 sticky top-0 z-10">
           <Gamepad2 className="w-5 h-5 text-cyan-400" />
-          <span className="font-display font-semibold">Game Config Patcher — Admin</span>
-          <span className="ml-auto font-mono text-[11px] text-cyan-400/80">Supabase</span>
+          <span className="font-display font-semibold">{t("app.name")}</span>
         </header>
         <main className="p-8 max-w-[1400px]">
           <Outlet />

@@ -25,10 +25,22 @@ PNG = bytes.fromhex(
 )
 
 
+ADMIN_EMAIL = "pf149429@gmail.com"
+ADMIN_PASSWORD = "Wdsoneluiza123@@@@"
+
+
 @pytest.fixture(scope="session")
 def client():
+    """Admin-authenticated session (admin routes need Bearer token)."""
     s = requests.Session()
     s.headers.update({"Accept": "application/json"})
+    r = s.post(f"{API}/auth/login", json={"email": ADMIN_EMAIL, "password": ADMIN_PASSWORD}, timeout=30)
+    if r.status_code != 200:
+        pytest.fail(f"Admin login failed {r.status_code}: {r.text[:300]}")
+    token = r.json().get("token")
+    if not token:
+        pytest.fail("Login response has no token")
+    s.headers.update({"Authorization": f"Bearer {token}"})
     return s
 
 

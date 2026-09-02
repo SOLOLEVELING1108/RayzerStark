@@ -22,6 +22,7 @@ MIME = {
     "jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "gif": "image/gif",
     "webp": "image/webp", "dll": "application/octet-stream", "lua": "text/plain",
     "txt": "text/plain", "pdf": "application/pdf",
+    "zip": "application/zip", "rar": "application/vnd.rar", "7z": "application/x-7z-compressed",
 }
 
 
@@ -330,9 +331,105 @@ def download_file(path: str = Query(...)):
     return Response(content=data, media_type=MIME.get(ext, "application/octet-stream"))
 
 
+# ============ BYPASSES ============
+@api_router.get("/bypasses")
+def list_bypasses(search: str | None = None):
+    data = rows(supa.t("bypasses").select("*").eq("is_deleted", False).order("created_at", desc=True).execute())
+    if search:
+        s = search.lower()
+        data = [b for b in data if s in b["title"].lower() or s in str(b["app_id"]).lower()]
+    return data
+
+
+@api_router.get("/bypasses/{bid}")
+def get_bypass(bid: str):
+    b = one(supa.t("bypasses").select("*").eq("id", bid).eq("is_deleted", False).execute())
+    if not b:
+        raise HTTPException(404, "Bypass not found")
+    return b
+
+
+@api_router.post("/bypasses")
+async def create_bypass(
+    title: str = Form(...),
+    app_id: str = Form(...),
+    category: str = Form("Uncategorized"),
+    description: str = Form(""),
+    cover_url: str = Form(""),
+    cover: UploadFile | None = File(None),
+    file: UploadFile | None = File(None),
+    admin: dict = Depends(auth.require_admin),
+):
+    bid = str(uuid.uuid4())
+    final_cover = cover_url
+    if cover is not None:
+        ext = ext_of(cover.filename, "png")
+        path = f"bypass-covers/{bid}.{ext}"
+        supa.upload(path, await cover.read(), MIME.get(ext, "image/png"))
+        final_cover = f"/api/files/download?path={path}"
+    file_meta = {}
+    if file is not None:
+        data = await file.read()
+        ext = ext_of(file.filename, "zip")
+        path = f"bypass/{bid}/{file.filename}"
+        supa.upload(path, data, MIME.get(ext, "application/octet-stream"))
+        file_meta = {"filename": file.filename, "path": path, "size": len(data)}
+    row = {"id": bid, "app_id": app_id, "title": title, "category": category, "description": description,
+           "cover_url": final_cover, "file": file_meta, "is_deleted": False,
+           "created_at": now_iso(), "updated_at": now_iso()}
+    supa.t("bypasses").insert(row).execute()
+    return row
+
+
+@api_router.put("/bypasses/{bid}")
+def update_bypass(bid: str, payload: dict, admin: dict = Depends(auth.require_admin)):
+    allowed = {"app_id", "title", "category", "description", "cover_url"}
+    updates = {k: v for k, v in payload.items() if k in allowed and v is not None}
+    if updates.get("cover_url", None) == "":
+        updates.pop("cover_url")
+    updates["updated_at"] = now_iso()
+    supa.t("bypasses").update(updates).eq("id", bid).execute()
+    return get_bypass(bid)
+
+
+@api_router.post("/bypasses/{bid}/file")
+async def set_bypass_file(bid: str, file: UploadFile = File(...), admin: dict = Depends(auth.require_admin)):
+    b = get_bypass(bid)
+    old = b.get("file") or {}
+    if old.get("path"):
+        supa.remove(old["path"])
+    data = await file.read()
+    ext = ext_of(file.filename, "zip")
+    path = f"bypass/{bid}/{file.filename}"
+    supa.upload(path, data, MIME.get(ext, "application/octet-stream"))
+    file_meta = {"filename": file.filename, "path": path, "size": len(data)}
+    supa.t("bypasses").update({"file": file_meta, "updated_at": now_iso()}).eq("id", bid).execute()
+    return get_bypass(bid)
+
+
+@api_router.post("/bypasses/{bid}/cover")
+async def set_bypass_cover(bid: str, cover: UploadFile = File(...), admin: dict = Depends(auth.require_admin)):
+    get_bypass(bid)
+    ext = ext_of(cover.filename, "png")
+    path = f"bypass-covers/{bid}.{ext}"
+    supa.upload(path, await cover.read(), MIME.get(ext, "image/png"))
+    url = f"/api/files/download?path={path}"
+    supa.t("bypasses").update({"cover_url": url, "updated_at": now_iso()}).eq("id", bid).execute()
+    return get_bypass(bid)
+
+
+@api_router.delete("/bypasses/{bid}")
+def delete_bypass(bid: str, admin: dict = Depends(auth.require_admin)):
+    b = one(supa.t("bypasses").select("*").eq("id", bid).execute())
+    if b and (b.get("file") or {}).get("path"):
+        supa.remove(b["file"]["path"])
+    supa.t("bypasses").update({"is_deleted": True}).eq("id", bid).execute()
+    return {"ok": True}
+
+
 # ============ CLIENT BUILD (Windows .exe download) ============
-CLIENT_BUILD = Path("/app/desktop/dist/SteamConfigPatcher-win-x64.zip")
-ADMIN_BUILD = Path("/app/admin-desktop/dist/ConfigPatcherAdmin-win-x64.zip")
+CLIENT_BUILD = Path("/app/desktop/dist/RayzerStarkGame-Client-win-x64.zip")
+ADMIN_BUILD = Path("/app/admin-desktop/dist/RayzerStarkGame-Admin-win-x64.zip")
 
 
 @api_router.get("/client-build/info")

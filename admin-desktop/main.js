@@ -19,7 +19,7 @@ function createWindow() {
     minHeight: 640,
     backgroundColor: "#08090E",
     autoHideMenuBar: true,
-    title: "Config Patcher — Admin",
+    title: "Rayzer Stark Game — Admin",
     webPreferences: { contextIsolation: true, nodeIntegration: false },
   });
 

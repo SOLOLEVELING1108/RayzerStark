@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { KeyRound, Save, Terminal, Download, Loader2, QrCode } from "lucide-react";
+import { Save, Download, Loader2, QrCode, Languages } from "lucide-react";
+import { api } from "@/lib/api";
+import { useI18n, LANGS } from "@/i18n";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-import { api } from "@/lib/api";
-
 const PIX_TYPES = ["CPF", "CNPJ", "Celular", "E-mail", "Aleatória"];
 
 export default function Settings() {
+  const { t, lang, changeLang } = useI18n();
   const [pix, setPix] = useState({ pix_type: "CPF", pix_key: "", pix_holder: "" });
   const [saving, setSaving] = useState(false);
   const [build, setBuild] = useState({ available: false });
@@ -24,14 +25,9 @@ export default function Settings() {
 
   const save = async () => {
     setSaving(true);
-    try {
-      await api.put("/settings", pix);
-      toast.success("Pix settings saved");
-    } catch {
-      toast.error("Save failed");
-    } finally {
-      setSaving(false);
-    }
+    try { await api.put("/settings", pix); toast.success(t("settings.pixSaved")); }
+    catch { toast.error(t("game.saveFail")); }
+    finally { setSaving(false); }
   };
 
   const card = "rounded-2xl border border-white/10 bg-[#10131E] p-6";
@@ -40,89 +36,62 @@ export default function Settings() {
 
   return (
     <div className="max-w-3xl space-y-6">
-      <div><h1 className="font-display text-3xl font-black tracking-tight">Settings</h1><p className="text-slate-400 mt-1 text-sm">Pix payment details and client build info.</p></div>
+      <div><h1 className="font-display text-3xl font-black tracking-tight">{t("settings.title")}</h1><p className="text-slate-400 mt-1 text-sm">{t("settings.subtitle")}</p></div>
 
       <div className={card}>
-        <div className="flex items-center gap-2 mb-4"><QrCode className="w-5 h-5 text-cyan-400" /><h2 className="font-display text-lg font-bold">Pix (shown in the customer Store)</h2></div>
+        <div className="flex items-center gap-2 mb-4"><Languages className="w-5 h-5 text-cyan-400" /><h2 className="font-display text-lg font-bold">{t("settings.lang")}</h2></div>
+        <p className="text-sm text-slate-400 mb-4">{t("settings.langDesc")}</p>
+        <div className="flex gap-2 flex-wrap">
+          {LANGS.map((l) => (
+            <button key={l.code} data-testid={`lang-${l.code}`} onClick={() => changeLang(l.code)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${lang === l.code ? "bg-cyan-500/15 text-cyan-300 border border-cyan-500/40" : "text-slate-300 border border-white/10 hover:text-slate-100"}`}>
+              <span className="text-base">{l.flag}</span> {l.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className={card}>
+        <div className="flex items-center gap-2 mb-4"><QrCode className="w-5 h-5 text-cyan-400" /><h2 className="font-display text-lg font-bold">{t("settings.pix")}</h2></div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <label className={label}>Type</label>
+            <label className={label}>{t("settings.pixType")}</label>
             <select data-testid="pix-type-input" className={input} value={pix.pix_type} onChange={(e) => setPix({ ...pix, pix_type: e.target.value })}>
-              {PIX_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+              {PIX_TYPES.map((tp) => <option key={tp} value={tp}>{tp}</option>)}
             </select>
           </div>
           <div className="sm:col-span-2">
-            <label className={label}>Pix Key</label>
-            <input data-testid="pix-key-input" className={`${input} font-mono`} value={pix.pix_key} onChange={(e) => setPix({ ...pix, pix_key: e.target.value })} placeholder="08624582504" />
+            <label className={label}>{t("settings.pixKey")}</label>
+            <input data-testid="pix-key-input" className={`${input} font-mono`} value={pix.pix_key} onChange={(e) => setPix({ ...pix, pix_key: e.target.value })} />
           </div>
         </div>
         <div className="mt-4">
-          <label className={label}>Account Holder</label>
-          <input data-testid="pix-holder-input" className={input} value={pix.pix_holder} onChange={(e) => setPix({ ...pix, pix_holder: e.target.value })} placeholder="Full name" />
+          <label className={label}>{t("settings.pixHolder")}</label>
+          <input data-testid="pix-holder-input" className={input} value={pix.pix_holder} onChange={(e) => setPix({ ...pix, pix_holder: e.target.value })} />
         </div>
         <button data-testid="save-pix-btn" onClick={save} disabled={saving} className="mt-5 flex items-center gap-2 px-5 py-2.5 rounded-lg bg-cyan-500 text-black font-semibold text-sm hover:bg-cyan-400 disabled:opacity-60 transition-colors">
-          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save Pix
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} {t("settings.savePix")}
         </button>
       </div>
 
       <div className={card}>
-        <div className="flex items-center gap-2 mb-4"><Download className="w-5 h-5 text-cyan-400" /><h2 className="font-display text-lg font-bold">Baixar o app Admin (Windows)</h2></div>
-        <p className="text-sm text-slate-400 leading-relaxed mb-4">
-          Este mesmo painel como aplicativo desktop. Baixe, extraia e rode <code className="font-mono">Config Patcher Admin.exe</code>. Precisa de internet (conecta no servidor).
-        </p>
+        <div className="flex items-center gap-2 mb-4"><Download className="w-5 h-5 text-cyan-400" /><h2 className="font-display text-lg font-bold">{t("settings.adminApp")}</h2></div>
+        <p className="text-sm text-slate-400 leading-relaxed mb-4">{t("settings.adminDesc")}</p>
         {adminBuild.available ? (
-          <a
-            data-testid="download-admin-btn"
-            href={`${BACKEND_URL}/api/admin-build/download`}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-cyan-500 text-black font-semibold text-sm hover:bg-cyan-400 transition-colors"
-          >
-            <Download className="w-4 h-4" /> Baixar .zip do Admin ({adminMb} MB)
+          <a data-testid="download-admin-btn" href={`${BACKEND_URL}/api/admin-build/download`} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-cyan-500 text-black font-semibold text-sm hover:bg-cyan-400 transition-colors">
+            <Download className="w-4 h-4" /> {t("settings.download")} .zip ({adminMb} MB)
           </a>
-        ) : (
-          <p className="text-sm text-amber-300">Build ainda não disponível.</p>
-        )}
+        ) : <p className="text-sm text-amber-300">{t("settings.buildNA")}</p>}
       </div>
 
       <div className={card}>
-        <div className="flex items-center gap-2 mb-4"><Download className="w-5 h-5 text-emerald-400" /><h2 className="font-display text-lg font-bold">Baixar o app do cliente (Windows)</h2></div>
-        <p className="text-sm text-slate-400 leading-relaxed mb-4">
-          Versão portátil já compilada (.exe dentro de um .zip). Baixe, extraia a pasta no Windows e rode <code className="font-mono">Steam Config Patcher.exe</code>. Não precisa instalar nada.
-        </p>
+        <div className="flex items-center gap-2 mb-4"><Download className="w-5 h-5 text-emerald-400" /><h2 className="font-display text-lg font-bold">{t("settings.clientApp")}</h2></div>
+        <p className="text-sm text-slate-400 leading-relaxed mb-4">{t("settings.clientDesc")}</p>
         {build.available ? (
-          <a
-            data-testid="download-client-btn"
-            href={`${BACKEND_URL}/api/client-build/download`}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-emerald-500 text-black font-semibold text-sm hover:bg-emerald-400 transition-colors"
-          >
-            <Download className="w-4 h-4" /> Baixar .zip do cliente ({mb} MB)
+          <a data-testid="download-client-btn" href={`${BACKEND_URL}/api/client-build/download`} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-emerald-500 text-black font-semibold text-sm hover:bg-emerald-400 transition-colors">
+            <Download className="w-4 h-4" /> {t("settings.download")} .zip ({mb} MB)
           </a>
-        ) : (
-          <p className="text-sm text-amber-300">Build ainda não disponível.</p>
-        )}
-      </div>
-
-      <div className={card}>
-        <div className="flex items-center gap-2 mb-4"><Terminal className="w-5 h-5 text-cyan-400" /><h2 className="font-display text-lg font-bold">Customer Desktop Client (build manual)</h2></div>
-        <p className="text-sm text-slate-400 leading-relaxed mb-4">
-          The customer's Electron app has <span className="text-cyan-300">Library</span>, <span className="text-cyan-300">Store</span> and <span className="text-cyan-300">Settings</span> (Install dependencies · Delete all games). It connects to this same server.
-        </p>
-        <div className="rounded-xl bg-[#0b0d14] border border-white/10 p-4">
-          <div className="flex items-center gap-2 text-slate-300 text-xs font-mono uppercase tracking-widest mb-3"><Terminal className="w-3.5 h-3.5" /> Build the client app</div>
-          <pre className="text-[12px] font-mono text-cyan-200 whitespace-pre-wrap leading-relaxed">{`cd desktop
-npm install
-# config.json -> "apiBase" already points to this server
-npm start            # dev
-npm run build:win    # Windows .exe (dist/)`}</pre>
-        </div>
-        <div className="mt-4">
-          <label className={label}>Server URL (apiBase)</label>
-          <input data-testid="api-base-input" readOnly value={BACKEND_URL} className={`${input} font-mono text-cyan-300`} />
-        </div>
-      </div>
-
-      <div className={card}>
-        <div className="flex items-center gap-2 mb-2"><KeyRound className="w-5 h-5 text-amber-400" /><h2 className="font-display text-lg font-bold">Storage</h2></div>
-        <p className="text-sm text-slate-400">Games, files and receipts are stored in your <span className="text-amber-300">Supabase</span> project (Postgres + Storage bucket <code className="font-mono">game-files</code>).</p>
+        ) : <p className="text-sm text-amber-300">{t("settings.buildNA")}</p>}
       </div>
     </div>
   );

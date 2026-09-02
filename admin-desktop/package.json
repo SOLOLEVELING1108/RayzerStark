@@ -1,9 +1,10 @@
 {
-  "name": "config-patcher-admin",
-  "productName": "Config Patcher Admin",
+  "name": "rayzer-stark-game-admin",
+  "productName": "Rayzer Stark Game Admin",
   "version": "1.0.0",
-  "description": "Painel administrador do Steam Config Patcher.",
+  "description": "Rayzer Stark Game — admin panel.",
   "main": "main.js",
+  "author": "Rayzer Stark",
   "scripts": {
     "start": "electron .",
     "build:win": "electron-builder --win dir --x64"
@@ -13,8 +14,8 @@
     "electron-builder": "^24.13.3"
   },
   "build": {
-    "appId": "com.you.configpatcheradmin",
-    "productName": "Config Patcher Admin",
+    "appId": "com.rayzer.starkgameadmin",
+    "productName": "Rayzer Stark Game Admin",
     "files": ["main.js", "config.json"],
     "win": {
       "target": ["dir"],

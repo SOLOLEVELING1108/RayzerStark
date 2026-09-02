@@ -1,9 +1,11 @@
 import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
-import { Inbox, Check, X, ExternalLink, Loader2, Cpu } from "lucide-react";
+import { Inbox, Check, X, ExternalLink, Cpu } from "lucide-react";
 import { api, resolveImg } from "@/lib/api";
+import { useI18n } from "@/i18n";
 
 export default function Orders() {
+  const { t } = useI18n();
   const [tab, setTab] = useState("pending");
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -21,10 +23,10 @@ export default function Orders() {
   const act = async (id, action) => {
     try {
       await api.post(`/purchases/${id}/${action}`);
-      toast.success(action === "approve" ? "Access released ✓" : "Order rejected");
+      toast.success(action === "approve" ? t("orders.released") : t("orders.rejectedMsg"));
       load();
     } catch {
-      toast.error("Action failed");
+      toast.error(t("game.saveFail"));
     }
   };
 
@@ -35,24 +37,24 @@ export default function Orders() {
 
   return (
     <div className="max-w-4xl">
-      <div className="flex items-center gap-2 mb-1"><Inbox className="w-6 h-6 text-cyan-400" /><h1 className="font-display text-3xl font-black tracking-tight">Orders</h1></div>
-      <p className="text-slate-400 text-sm mb-6">Customer purchase requests. Review the Pix receipt and release access.</p>
+      <div className="flex items-center gap-2 mb-1"><Inbox className="w-6 h-6 text-cyan-400" /><h1 className="font-display text-3xl font-black tracking-tight">{t("orders.title")}</h1></div>
+      <p className="text-slate-400 text-sm mb-6">{t("orders.subtitle")}</p>
 
       <div className="flex gap-2 mb-5">
-        {["pending", "approved", "rejected", "all"].map((t) => (
-          <button key={t} data-testid={`orders-tab-${t}`} onClick={() => setTab(t)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-colors ${tab === t ? "bg-cyan-500/15 text-cyan-300 border border-cyan-500/40" : "text-slate-400 border border-white/10 hover:text-slate-200"}`}>
-            {t}
+        {["pending", "approved", "rejected", "all"].map((tb) => (
+          <button key={tb} data-testid={`orders-tab-${tb}`} onClick={() => setTab(tb)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${tab === tb ? "bg-cyan-500/15 text-cyan-300 border border-cyan-500/40" : "text-slate-400 border border-white/10 hover:text-slate-200"}`}>
+            {t(`orders.${tb}`)}
           </button>
         ))}
       </div>
 
       {loading ? (
-        <p className="p-6 text-center text-slate-500 text-sm">Loading…</p>
+        <p className="p-6 text-center text-slate-500 text-sm">{t("common.loading")}</p>
       ) : orders.length === 0 ? (
         <div className="text-center py-20 border border-dashed border-white/10 rounded-2xl">
           <Inbox className="w-10 h-10 mx-auto text-slate-700" />
-          <p className="mt-3 text-slate-400 text-sm">No {tab === "all" ? "" : tab} orders.</p>
+          <p className="mt-3 text-slate-400 text-sm">{t("orders.empty")}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -61,7 +63,7 @@ export default function Orders() {
               {o.receipt_url && (
                 <a href={resolveImg(o.receipt_url)} target="_blank" rel="noreferrer" className="shrink-0 group">
                   <img src={resolveImg(o.receipt_url)} alt="receipt" className="w-24 h-24 object-cover rounded-lg border border-white/10 group-hover:border-cyan-500/40 transition-colors" />
-                  <span className="text-[10px] text-cyan-400 flex items-center gap-1 mt-1"><ExternalLink className="w-3 h-3" /> view receipt</span>
+                  <span className="text-[10px] text-cyan-400 flex items-center gap-1 mt-1"><ExternalLink className="w-3 h-3" /> {t("orders.viewReceipt")}</span>
                 </a>
               )}
               <div className="flex-1 min-w-0">
@@ -79,7 +81,7 @@ export default function Orders() {
               </div>
               {o.status === "pending" && (
                 <div className="flex gap-2 shrink-0">
-                  <button data-testid={`approve-${o.id}`} onClick={() => act(o.id, "approve")} className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-500 text-black text-sm font-semibold hover:bg-emerald-400 transition-colors"><Check className="w-4 h-4" /> Liberar</button>
+                  <button data-testid={`approve-${o.id}`} onClick={() => act(o.id, "approve")} className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-500 text-black text-sm font-semibold hover:bg-emerald-400 transition-colors"><Check className="w-4 h-4" /> {t("orders.release")}</button>
                   <button data-testid={`reject-${o.id}`} onClick={() => act(o.id, "reject")} className="p-2 rounded-lg border border-white/10 text-slate-300 hover:text-red-400 hover:border-red-500/40 transition-colors"><X className="w-4 h-4" /></button>
                 </div>
               )}

@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { ArrowLeft, Save, Upload, FileCode2, Trash2, Loader2, ImagePlus, Globe, ShoppingCart } from "lucide-react";
 import { api, resolveImg } from "@/lib/api";
+import { useI18n } from "@/i18n";
 
 function Toggle({ checked, onChange, testid, label, icon: Icon }) {
   return (
@@ -26,6 +27,7 @@ function Toggle({ checked, onChange, testid, label, icon: Icon }) {
 export default function GameManage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { t } = useI18n();
   const editing = Boolean(id);
 
   const [form, setForm] = useState({ title: "", app_id: "", category: "", description: "", cover_url: "", is_public: false, in_store: false, price: 0 });
@@ -62,9 +64,9 @@ export default function GameManage() {
         fd.append("cover", file);
         const { data } = await api.post(`/games/${id}/cover`, fd);
         setGame(data);
-        toast.success("Cover updated");
+        toast.success(t("game.coverUpdated"));
       } catch {
-        toast.error("Cover upload failed");
+        toast.error(t("game.saveFail"));
       }
     } else {
       setCoverFile(file);
@@ -72,7 +74,7 @@ export default function GameManage() {
   };
 
   const save = async () => {
-    if (!form.title || !form.app_id) { toast.error("Title and App ID are required"); return; }
+    if (!form.title || !form.app_id) { toast.error(t("game.needFields")); return; }
     setSaving(true);
     try {
       if (editing) {
@@ -80,7 +82,7 @@ export default function GameManage() {
           title: form.title, app_id: form.app_id, category: form.category, description: form.description,
           cover_url: form.cover_url || undefined, is_public: form.is_public, in_store: form.in_store, price: Number(form.price),
         });
-        toast.success("Game updated");
+        toast.success(t("game.updated"));
         navigate("/");
       } else {
         const fd = new FormData();
@@ -94,11 +96,11 @@ export default function GameManage() {
         if (coverFile) fd.append("cover", coverFile);
         else fd.append("cover_url", form.cover_url);
         const { data } = await api.post("/games", fd);
-        toast.success("Game created — now add its .lua files");
+        toast.success(t("game.created"));
         navigate(`/games/${data.id}`);
       }
     } catch {
-      toast.error("Save failed");
+      toast.error(t("game.saveFail"));
     } finally {
       setSaving(false);
     }
@@ -113,7 +115,7 @@ export default function GameManage() {
       fd.append("file", file);
       const { data } = await api.post(`/games/${id}/lua`, fd);
       setGame(data);
-      toast.success(`LUA added: ${file.name}`);
+      toast.success(t("game.fileAdded") + ": " + file.name);
       luaRef.current.value = "";
     } catch {
       toast.error("Upload failed");
@@ -138,59 +140,59 @@ export default function GameManage() {
   return (
     <div className="max-w-4xl">
       <button data-testid="back-btn" onClick={() => navigate("/")} className="flex items-center gap-2 text-slate-400 hover:text-slate-100 text-sm mb-4 transition-colors">
-        <ArrowLeft className="w-4 h-4" /> Back to Library
+        <ArrowLeft className="w-4 h-4" /> {t("common.back")}
       </button>
-      <h1 className="font-display text-3xl font-black tracking-tight mb-6">{editing ? "Manage Game" : "Add New Game"}</h1>
+      <h1 className="font-display text-3xl font-black tracking-tight mb-6">{editing ? t("game.manage") : t("game.add")}</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div>
-          <label className={label}>Cover</label>
+          <label className={label}>{t("game.cover")}</label>
           <div className="aspect-[16/10] rounded-xl overflow-hidden border border-white/10 bg-[#0b0d14] relative">
             {coverPreview ? <img src={coverPreview} alt="cover" className="w-full h-full object-cover" /> : <div className="w-full h-full grid place-items-center text-slate-700"><ImagePlus className="w-10 h-10" /></div>}
           </div>
           <label className="mt-2 flex items-center justify-center gap-2 py-2 rounded-lg border border-white/10 text-xs text-slate-300 hover:border-cyan-500/40 cursor-pointer transition-colors">
-            <Upload className="w-3.5 h-3.5" /> Upload image
+            <Upload className="w-3.5 h-3.5" /> {t("game.uploadImg")}
             <input data-testid="cover-file-input" type="file" accept="image/*" className="hidden" onChange={onCover} />
           </label>
           <div className="mt-2">
-            <label className={label}>…or image URL</label>
+            <label className={label}>{t("game.orUrl")}</label>
             <input data-testid="cover-url-input" className={input} placeholder="https://…" value={form.cover_url} onChange={(e) => { set("cover_url")(e); setCoverPreview(e.target.value); setCoverFile(null); }} />
           </div>
         </div>
 
         <div className="lg:col-span-2 space-y-4">
-          <div><label className={label}>Game Title</label><input data-testid="title-input" className={input} placeholder="Resident Evil 2 Remake" value={form.title} onChange={set("title")} /></div>
+          <div><label className={label}>{t("game.title")}</label><input data-testid="title-input" className={input} placeholder="Resident Evil 2 Remake" value={form.title} onChange={set("title")} /></div>
           <div className="grid grid-cols-2 gap-4">
-            <div><label className={label}>Steam App ID</label><input data-testid="appid-input" className={`${input} font-mono`} placeholder="223308" value={form.app_id} onChange={set("app_id")} /></div>
-            <div><label className={label}>Category</label><input data-testid="category-input" className={input} placeholder="Horror / Action" value={form.category} onChange={set("category")} /></div>
+            <div><label className={label}>{t("game.appid")}</label><input data-testid="appid-input" className={`${input} font-mono`} placeholder="223308" value={form.app_id} onChange={set("app_id")} /></div>
+            <div><label className={label}>{t("game.category")}</label><input data-testid="category-input" className={input} placeholder="Horror / Action" value={form.category} onChange={set("category")} /></div>
           </div>
-          <div><label className={label}>Description</label><textarea data-testid="description-input" rows={2} className={input} placeholder="Short description…" value={form.description} onChange={set("description")} /></div>
+          <div><label className={label}>{t("game.desc")}</label><textarea data-testid="description-input" rows={2} className={input} placeholder="…" value={form.description} onChange={set("description")} /></div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Toggle testid="toggle-public" checked={form.is_public} onChange={(v) => setVal("is_public", v)} label="Public (free for everyone)" icon={Globe} />
-            <Toggle testid="toggle-store" checked={form.in_store} onChange={(v) => setVal("in_store", v)} label="Sell in Store" icon={ShoppingCart} />
+            <Toggle testid="toggle-public" checked={form.is_public} onChange={(v) => setVal("is_public", v)} label={t("game.public")} icon={Globe} />
+            <Toggle testid="toggle-store" checked={form.in_store} onChange={(v) => setVal("in_store", v)} label={t("game.sell")} icon={ShoppingCart} />
           </div>
           {form.in_store && (
             <div className="max-w-[220px]">
-              <label className={label}>Price (R$)</label>
+              <label className={label}>{t("game.price")}</label>
               <input data-testid="price-input" type="number" min="0" step="0.01" className={`${input} font-mono`} value={form.price} onChange={set("price")} />
             </div>
           )}
 
           <button data-testid="save-game-btn" onClick={save} disabled={saving} className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-cyan-500 text-black font-semibold text-sm hover:bg-cyan-400 disabled:opacity-60 transition-colors">
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            {editing ? "Save Changes" : "Create Game"}
+            {editing ? t("game.saveChanges") : t("game.create")}
           </button>
         </div>
       </div>
 
       {editing && game && (
         <div className="mt-10">
-          <div className="flex items-center gap-2 mb-4"><FileCode2 className="w-5 h-5 text-emerald-400" /><h2 className="font-display text-xl font-bold">LUA Files</h2></div>
+          <div className="flex items-center gap-2 mb-4"><FileCode2 className="w-5 h-5 text-emerald-400" /><h2 className="font-display text-xl font-bold">{t("game.files")}</h2></div>
           <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 max-w-md">
             <p className="text-[11px] font-mono text-slate-500 mb-3">Injected into → C:\Program Files (x86)\Steam\config\lua\</p>
             <label className="flex items-center justify-center gap-2 py-2 rounded-lg border border-emerald-500/30 text-xs text-emerald-300 hover:bg-emerald-500/10 cursor-pointer transition-colors">
-              <Upload className="w-3.5 h-3.5" /> Upload .lua
+              <Upload className="w-3.5 h-3.5" /> {t("game.uploadFile")}
               <input ref={luaRef} data-testid="lua-file-input" type="file" accept=".lua,text/*" className="hidden" onChange={uploadLua} />
             </label>
           </div>

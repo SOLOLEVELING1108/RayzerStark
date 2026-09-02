@@ -1,0 +1,52 @@
+{
+  "summary": "Full backend + frontend regression for the Rayzer Stark Game admin app (auth + BYPASS + i18n iteration). Backend: 77 pytest tests executed (26 legacy suite converted to admin-authenticated session, 25 new auth/boundary tests, 26 new bypass CRUD tests) — 77/77 passed. Verified single-admin JWT login (200/401), /auth/me, 401 on all 18 admin-only routes without token, all public routes still open (200), bypass create/list/get/update/file-replace/cover/soft-delete + file download via /api/files/download, games CRUD + lua + cover, dependencies, settings, full purchase approve/reject/entitlement/package flow. Frontend (Playwright, public URL): unauthenticated / -> /login, bad password stays on login (401 toast), correct creds log in and store admin_token, brand 'RAYZER STARK' present, i18n PT/EN/ES with loading overlay + persistence across navigation + localStorage, Bypass nav/list/create-with-file/replace-file/delete-with-confirm, Games create + lua upload/remove + delete, Dependencies upload/delete, Orders 4 tabs, logout clears token. No 500s in backend logs, no console errors other than the expected 401 on the intentional bad login.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/auth/login", "issue": "No brute-force protection / lockout: 8 consecutive wrong-password attempts all return 401 with no throttling or lockout (playbook expects lockout after 5 fails). Also the body is an untyped dict instead of a Pydantic model, so a missing email/password returns 401 instead of 422."},
+      {"endpoint": "CORS (all)", "issue": "CORS_ORIGINS=\"*\" combined with allow_credentials=True → responses carry 'access-control-allow-origin: *' + 'access-control-allow-credentials: true'. Not directly exploitable today (token lives in localStorage, no cookies), but should be an explicit origin list."},
+      {"endpoint": "Auth design", "issue": "JWT is returned in the JSON body and stored in localStorage (no httpOnly cookie) — XSS-exposed token. Deviation from the standard auth playbook; flagged as a design note, admin-only surface."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "GameManage", "issue": "i18n gap: hardcoded English strings remain after the i18n refactor — heading 'LUA Files' (line 191), hint 'Injected into → C:\\Program Files (x86)\\Steam\\config\\lua\\' (193), button 'Upload .lua' (195) and toast `LUA added: ${file.name}` (118). Translation keys game.files / game.uploadFile / game.fileAdded already exist and are unused.", "selector": "[data-testid=\"lua-file-input\"] section", "priority": "MEDIUM"},
+      {"component": "BypassManage", "issue": "Load failure shows toast.error(\"404\") — raw status string instead of a translated message.", "selector": "n/a", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Bypass / Game manage", "issues": ["No visible issues found: contrast, spacing, sidebar/nav alignment and toasts all render correctly at 1920x1080; cover placeholder is shown when no image exists."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/backend/tests/test_auth.py",
+    "/app/backend/tests/test_bypass.py",
+    "/app/test_reports/pytest/pytest_results.xml",
+    "/app/test_reports/pytest/auth_bypass.xml"
+  ],
+  "action_items": [
+    "Translate the remaining hardcoded English strings in GameManage.js (LUA Files heading, injected-path hint, Upload .lua button, 'LUA added' toast) using existing i18n keys.",
+    "Replace toast.error(\"404\") in BypassManage.js with a translated error message.",
+    "Optional hardening: model the /api/auth/login body with Pydantic, add simple attempt throttling/lockout, and set explicit CORS origins instead of \"*\" with allow_credentials=True."
+  ],
+  "critical_code_review_comments": [
+    "server.py (515 lines) is close to the split threshold — consider splitting games/bypasses/purchases into routers before it grows further.",
+    "auth.py hashes ADMIN_PASSWORD with bcrypt.gensalt() at import time, so each uvicorn worker holds a different hash; functionally fine for verify-only, but the hash step is pointless overhead — comparing with hmac.compare_digest on the env value would be equivalent and simpler.",
+    "update_game/update_bypass accept a raw dict payload; consider Pydantic models so unknown/invalid types are rejected with 422 instead of silently filtered.",
+    "Backend test data (purchase_requests rows created by tests) is never deleted — the Orders 'All' tab is now full of TEST_Game entries. Consider an admin cleanup endpoint or DB-level cleanup for test rows."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py (client fixture now logs in as admin and sends Bearer token)",
+    "/app/backend/tests/test_auth.py (new)",
+    "/app/backend/tests/test_bypass.py (new)",
+    "/app/frontend/src/i18n.js (added data-testid=\"lang-overlay\" to the language loading overlay)"
+  ],
+  "success_rate": {"backend": "100% (77/77)", "frontend": "100% of tested flows (login/auth-guard, i18n PT/EN/ES, bypass CRUD, games+lua, dependencies, orders tabs, logout)"},
+  "seed_data_creation": "Transient TEST_ prefixed games, bypasses, dependencies and purchase requests were created and deleted by the tests. Residual rows: purchase_requests created by the backend suite remain (approved/rejected) since no delete endpoint exists.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "Admin: pf149429@gmail.com / Wdsoneluiza123@@@@ (from /app/memory/test_credentials.md) — works on backend and frontend login.",
+  "context_for_next_testing_agent": "backend_test.py's session `client` fixture now authenticates (login -> Bearer) so admin routes work; test_auth.py covers login + 401/200 boundaries for all 18 admin routes and all public routes; test_bypass.py covers bypass CRUD/file/cover/delete. Playwright testids that actually exist for games/deps differ from the request note: use title-input, appid-input, category-input, save-game-btn, lua-file-input, remove-file-<fileId>, add-game-btn, delete-button-<appid>, dep-file-input, remove-dep-<id>, orders-tab-<pending|approved|rejected|all>. bypass-file-input and lua-file-input/dep-file-input are hidden inputs — use set_input_files (state='attached'), don't wait for visibility. Language switch takes ~1.4s; wait for [data-testid=\"lang-overlay\"] to detach. Note PT and ES both translate Library as 'Biblioteca' — assert on nav-add-game instead.",
+  "rca_of_the_issue": "No functional defects found. The only real defect class is an incomplete i18n refactor in GameManage.js where four literals were never routed through t(); the translation keys exist so it is a one-file fix."
+}

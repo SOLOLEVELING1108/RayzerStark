@@ -135,3 +135,18 @@ nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
 .pix-row .lbl { color: var(--dim); font-family: 'JetBrains Mono'; font-size: 11px; text-transform: uppercase; }
 .copyable { cursor: pointer; color: var(--accent2); }
 .copyable:hover { text-decoration: underline; }
+
+.brand-img { width: 38px; height: 38px; border-radius: 10px; border: 1px solid rgba(6,182,212,0.3); object-fit: cover; }
+.lang-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.lang-btn { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); background: #0b0d14; color: var(--muted); cursor: pointer; font-family: inherit; font-size: 14px; }
+.lang-btn.active { background: rgba(6,182,212,0.15); color: var(--accent2); border-color: rgba(6,182,212,0.4); }
+.lang-btn .flag { font-size: 18px; }
+
+.lang-overlay { position: fixed; inset: 0; z-index: 999; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; }
+.lang-logo { width: 72px; height: 72px; border-radius: 16px; animation: pulse 1s infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: .6; transform: scale(0.94); } }
+.lang-text { font-family: 'Outfit'; font-weight: 800; font-size: 20px; color: var(--accent2); }
+.lang-bar { width: 280px; height: 8px; border-radius: 8px; background: rgba(255,255,255,0.1); overflow: hidden; }
+.lang-bar > div { height: 100%; width: 0; background: var(--accent); transition: width .07s linear; }
+.lang-pct { color: var(--dim); font-size: 14px; }
+.dl-tag { color: var(--accent2); font-family: 'JetBrains Mono'; font-size: 11px; }

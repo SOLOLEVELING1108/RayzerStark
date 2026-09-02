@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld("api", {
   deactivateGame: (gameId) => ipcRenderer.invoke("deactivate-game", gameId),
   installDependencies: () => ipcRenderer.invoke("install-dependencies"),
   deleteAll: () => ipcRenderer.invoke("delete-all"),
+  downloadBypass: (bypass) => ipcRenderer.invoke("download-bypass", bypass),
   onProgress: (cb) => ipcRenderer.on("inject-progress", (_e, d) => cb(d)),
   onDepProgress: (cb) => ipcRenderer.on("dep-progress", (_e, d) => cb(d)),
 });

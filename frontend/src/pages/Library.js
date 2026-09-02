@@ -3,8 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Search, Plus, Settings2, Trash2, FileCode2, Boxes, Globe, ShoppingCart } from "lucide-react";
 import { api, resolveImg } from "@/lib/api";
+import { useI18n } from "@/i18n";
 
 function GameCard({ game, onManage, onDelete }) {
+  const { t } = useI18n();
   const luaCount = (game.lua_files || []).length;
   return (
     <div
@@ -24,7 +26,7 @@ function GameCard({ game, onManage, onDelete }) {
         <div className="absolute top-3 right-3 flex flex-col gap-1.5 items-end">
           {game.is_public && (
             <span className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 backdrop-blur">
-              <Globe className="w-3 h-3" /> PUBLIC
+              <Globe className="w-3 h-3" /> {t("lib.public")}
             </span>
           )}
           {game.in_store && (
@@ -46,7 +48,7 @@ function GameCard({ game, onManage, onDelete }) {
             onClick={() => onManage(game.id)}
             className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg bg-cyan-500 text-black text-sm font-semibold hover:bg-cyan-400 transition-colors"
           >
-            <Settings2 className="w-4 h-4" /> Manage
+            <Settings2 className="w-4 h-4" /> {t("common.manage")}
           </button>
           <button
             data-testid={`delete-button-${game.app_id}`}
@@ -63,6 +65,7 @@ function GameCard({ game, onManage, onDelete }) {
 
 export default function Library() {
   const navigate = useNavigate();
+  const { t } = useI18n();
   const [games, setGames] = useState([]);
   const [categories, setCategories] = useState([]);
   const [search, setSearch] = useState("");
@@ -79,7 +82,7 @@ export default function Library() {
       setGames(g.data);
       setCategories(c.data);
     } catch {
-      toast.error("Failed to load library (is the Supabase schema created?)");
+      toast.error(t("lib.loadFail"));
     } finally {
       setLoading(false);
     }
@@ -91,13 +94,13 @@ export default function Library() {
   }, [load]);
 
   const handleDelete = async (game) => {
-    if (!window.confirm(`Remover "${game.title}"? Ele some da biblioteca de todos os clientes.`)) return;
+    if (!window.confirm(t("lib.confirmDelete", { x: game.title }))) return;
     try {
       await api.delete(`/games/${game.id}`);
-      toast.success(`Removed ${game.title}`);
+      toast.success(t("lib.removed", { x: game.title }));
       load();
     } catch {
-      toast.error("Delete failed");
+      toast.error(t("game.saveFail"));
     }
   };
 
@@ -105,15 +108,15 @@ export default function Library() {
     <div>
       <div className="flex items-end justify-between gap-4 mb-6">
         <div>
-          <h1 className="font-display text-4xl font-black tracking-tight">Game Library</h1>
-          <p className="text-slate-400 mt-1 text-sm">Manage games, their .lua files, store listing and visibility.</p>
+          <h1 className="font-display text-4xl font-black tracking-tight">{t("lib.title")}</h1>
+          <p className="text-slate-400 mt-1 text-sm">{t("lib.subtitle")}</p>
         </div>
         <button
           data-testid="add-game-btn"
           onClick={() => navigate("/games/new")}
           className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-cyan-500 text-black font-semibold text-sm hover:bg-cyan-400 transition-colors"
         >
-          <Plus className="w-4 h-4" /> Add Game
+          <Plus className="w-4 h-4" /> {t("lib.add")}
         </button>
       </div>
 
@@ -124,7 +127,7 @@ export default function Library() {
             data-testid="search-input"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by title or App ID…"
+            placeholder={t("lib.searchPh")}
             className="w-full bg-[#0b0d14] border border-white/10 rounded-lg pl-9 pr-3 py-2 text-sm outline-none focus:border-cyan-500/50 text-slate-100 placeholder:text-slate-600"
           />
         </div>
@@ -156,8 +159,8 @@ export default function Library() {
       ) : games.length === 0 ? (
         <div className="text-center py-24 border border-dashed border-white/10 rounded-2xl">
           <Boxes className="w-12 h-12 mx-auto text-slate-700" />
-          <p className="mt-4 text-slate-400">No games yet.</p>
-          <button onClick={() => navigate("/games/new")} className="mt-4 text-cyan-400 text-sm font-semibold hover:underline">Add your first game →</button>
+          <p className="mt-4 text-slate-400">{t("lib.empty")}</p>
+          <button onClick={() => navigate("/games/new")} className="mt-4 text-cyan-400 text-sm font-semibold hover:underline">{t("lib.addFirst")}</button>
         </div>
       ) : (
         <div data-testid="games-grid" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">

@@ -65,3 +65,12 @@ and the app fetches that game's files from a server and drops them in the right 
   - Frontend: /login page, ProtectedRoute, axios interceptor attaches Bearer + redirects to /login on 401, Sair (logout) in sidebar. Token in localStorage 'admin_token'.
   - Admin desktop app shows the login too (loads hosted URL live — no rebuild needed).
 - Credentials in /app/memory/test_credentials.md.
+
+## Update (2026-09-01) — Rebrand + i18n + Bypass + HWID
+- Rebrand to "Rayzer Stark Game" (both apps): custom generated logo at frontend/public/logo.png, desktop/renderer/logo.png, and build/icon.png for both electron apps. Removed "Supabase" wording from admin UI.
+- i18n PT/EN/ES: admin frontend/src/i18n.js (I18nProvider/useI18n, loading overlay, lang buttons in Settings, default pt). Client has its own vanilla i18n in renderer.js (data-i18n + tr()) with loading overlay.
+- Client UX cleanup: removed all path displays and any .lua mention from Library/Store; Settings shows only Install dependencies + Delete all + Device code (no paths); Steam status shows found/not-found without path.
+- HWID device code: client derives a stable PC-XXXXXXXX from node-machine-id (Windows MachineGUID), fallback to persisted random.
+- BYPASS feature: Supabase table `bypasses` (SQL in backend/supabase_bypass.sql). Backend endpoints: GET /api/bypasses (public), GET/{id}, POST (admin, cover+file), PUT, POST /{id}/file, POST /{id}/cover, DELETE (soft). Admin pages BypassLibrary + BypassManage (nav 'Bypass'). Client 'Bypass' tab: Download button saves the file to the Windows Downloads folder (main.js download-bypass → app.getPath('downloads')). Open to everyone (no entitlement).
+- Windows builds rebuilt: RayzerStarkGame-Client-win-x64.zip + RayzerStarkGame-Admin-win-x64.zip (served by /api/client-build/download and /api/admin-build/download). Backend paths updated.
+- Tests: iteration_3 backend 77/77 (auth+bypass+legacy), frontend all flows pass. Fixed GameManage i18n leftovers + BypassManage error toast. Cleaned 13 residual test purchase_requests.

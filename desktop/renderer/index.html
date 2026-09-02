@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Steam Config Patcher</title>
+  <title>Rayzer Stark Game</title>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -11,16 +11,17 @@
   <div class="app">
     <aside class="sidebar">
       <div class="brand">
-        <div class="brand-badge">⚡</div>
-        <div><div class="brand-title">MEU LAUNCHER</div><div class="brand-sub">Steam Patcher</div></div>
+        <img src="logo.png" class="brand-img" alt="Rayzer" />
+        <div><div class="brand-title">RAYZER STARK</div><div class="brand-sub">GAME</div></div>
       </div>
       <nav>
-        <button class="nav-item active" data-view="library">Biblioteca</button>
-        <button class="nav-item" data-view="store">Loja</button>
-        <button class="nav-item" data-view="settings">Configurações</button>
+        <button class="nav-item active" data-view="library" data-i18n="nav.library">Biblioteca</button>
+        <button class="nav-item" data-view="bypass" data-i18n="nav.bypass">Bypass</button>
+        <button class="nav-item" data-view="store" data-i18n="nav.store">Loja</button>
+        <button class="nav-item" data-view="settings" data-i18n="nav.settings">Configurações</button>
       </nav>
       <div class="sidebar-foot">
-        <div id="steam-status" class="steam-status">Verificando Steam…</div>
+        <div id="steam-status" class="steam-status">…</div>
         <div class="device mono" id="device-foot"></div>
       </div>
     </aside>
@@ -28,61 +29,68 @@
     <main class="main">
       <header class="topbar">
         <span class="topbar-title" id="view-title">Biblioteca</span>
-        <span id="steam-path-label" class="topbar-path mono"></span>
       </header>
 
       <!-- LIBRARY -->
       <section id="view-library" class="view">
         <div class="page-head">
-          <div><h1>Biblioteca</h1><p class="muted">Seus jogos liberados. Clique em Ativar pra injetar os arquivos .lua.</p></div>
-          <button id="refresh-lib" class="btn-ghost">↻ Atualizar</button>
+          <div><h1 data-i18n="lib.title">Biblioteca</h1><p class="muted" data-i18n="lib.subtitle">Seus jogos liberados. Clique em Ativar.</p></div>
+          <button id="refresh-lib" class="btn-ghost" data-i18n="common.refresh">↻ Atualizar</button>
         </div>
-        <input id="search" class="input" placeholder="Buscar por título ou App ID…" />
+        <input id="search" class="input" />
         <div id="grid" class="grid" style="margin-top:18px"></div>
-        <div id="empty-lib" class="empty hidden">Nenhum jogo liberado ainda. Vá até a Loja para comprar.</div>
+        <div id="empty-lib" class="empty hidden" data-i18n="lib.empty">Nenhum jogo liberado ainda.</div>
+      </section>
+
+      <!-- BYPASS -->
+      <section id="view-bypass" class="view hidden">
+        <div class="page-head">
+          <div><h1 data-i18n="bp.title">Bypass</h1><p class="muted" data-i18n="bp.subtitle">Baixe o bypass do jogo direto para a pasta Downloads.</p></div>
+          <button id="refresh-bypass" class="btn-ghost" data-i18n="common.refresh">↻ Atualizar</button>
+        </div>
+        <input id="search-bypass" class="input" />
+        <div id="bypass-grid" class="grid" style="margin-top:18px"></div>
+        <div id="empty-bypass" class="empty hidden" data-i18n="bp.empty">Nenhum bypass disponível.</div>
       </section>
 
       <!-- STORE -->
       <section id="view-store" class="view hidden">
         <div class="page-head">
-          <div><h1>Loja</h1><p class="muted">Compre um jogo via Pix e envie o comprovante. O acesso é liberado após aprovação.</p></div>
-          <button id="refresh-store" class="btn-ghost">↻ Atualizar</button>
+          <div><h1 data-i18n="store.title">Loja</h1><p class="muted" data-i18n="store.subtitle">Compre via Pix e envie o comprovante.</p></div>
+          <button id="refresh-store" class="btn-ghost" data-i18n="common.refresh">↻ Atualizar</button>
         </div>
         <div id="store-grid" class="grid"></div>
-        <div id="empty-store" class="empty hidden">Nenhum jogo à venda no momento.</div>
+        <div id="empty-store" class="empty hidden" data-i18n="store.empty">Nenhum jogo à venda.</div>
       </section>
 
       <!-- SETTINGS -->
       <section id="view-settings" class="view hidden">
-        <div class="page-head"><div><h1>Configurações</h1><p class="muted">Dependências e exclusões.</p></div></div>
+        <div class="page-head"><div><h1 data-i18n="set.title">Configurações</h1></div></div>
 
         <div class="card">
-          <div class="card-title">▣ Instalar dependências</div>
-          <p class="muted">Baixa e instala as DLLs na raiz da Steam:<br><span class="mono dim" id="deps-target"></span></p>
-          <button id="install-deps-btn" class="btn" style="margin-top:12px">Instalar dependências</button>
+          <div class="card-title" data-i18n="set.lang">Idioma</div>
+          <p class="muted" data-i18n="set.langDesc">Escolha o idioma do aplicativo.</p>
+          <div class="lang-row" id="lang-row"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title" data-i18n="set.deps">Instalar dependências</div>
+          <p class="muted" data-i18n="set.depsDesc">Baixa e instala os arquivos necessários automaticamente.</p>
+          <button id="install-deps-btn" class="btn" style="margin-top:12px" data-i18n="set.depsBtn">Instalar dependências</button>
           <div id="deps-progress-label" class="progress-label"></div>
           <div class="muted small" id="deps-status" style="margin-top:8px"></div>
         </div>
 
         <div class="card danger-card">
-          <div class="card-title" style="color:var(--red)">⨯ Exclusões</div>
-          <p class="muted">Remove permanentemente deste PC todos os arquivos injetados (DLLs e .lua) de todos os jogos ativados.</p>
-          <button id="delete-all-btn" class="btn danger" style="margin-top:12px">Excluir todos os jogos</button>
+          <div class="card-title" style="color:var(--red)" data-i18n="set.del">Exclusões</div>
+          <p class="muted" data-i18n="set.delDesc">Remove permanentemente deste PC todos os arquivos dos jogos ativados.</p>
+          <button id="delete-all-btn" class="btn danger" style="margin-top:12px" data-i18n="set.delBtn">Excluir todos os jogos</button>
           <div class="muted small" id="delete-status" style="margin-top:8px"></div>
         </div>
 
         <div class="card">
-          <div class="card-title">Pasta da Steam</div>
-          <div class="row">
-            <input id="steam-path-input" class="input mono" />
-            <button id="save-path-btn" class="btn">Salvar</button>
-          </div>
-          <div id="path-check" class="path-check"></div>
-        </div>
-
-        <div class="card">
-          <div class="card-title">Este dispositivo</div>
-          <p class="muted">Envie este código junto do comprovante para o administrador liberar seu acesso:</p>
+          <div class="card-title" data-i18n="set.device">Este dispositivo</div>
+          <p class="muted" data-i18n="set.deviceDesc">Envie este código junto do comprovante para liberar seu acesso:</p>
           <div class="device-box mono" id="device-code"></div>
         </div>
       </section>
@@ -93,20 +101,28 @@
   <div id="modal" class="modal-overlay hidden">
     <div class="modal">
       <button id="modal-close" class="modal-close">✕</button>
-      <h2 id="modal-title">Comprar</h2>
+      <h2 id="modal-title">—</h2>
       <p class="muted" id="modal-price"></p>
       <div class="pix-box">
-        <div class="pix-row"><span class="lbl">Tipo</span><span id="pix-type" class="mono"></span></div>
-        <div class="pix-row"><span class="lbl">Chave Pix</span><span id="pix-key" class="mono copyable" title="clique para copiar"></span></div>
-        <div class="pix-row"><span class="lbl">Titular</span><span id="pix-holder"></span></div>
+        <div class="pix-row"><span class="lbl" data-i18n="pix.type">Tipo</span><span id="pix-type" class="mono"></span></div>
+        <div class="pix-row"><span class="lbl" data-i18n="pix.key">Chave Pix</span><span id="pix-key" class="mono copyable"></span></div>
+        <div class="pix-row"><span class="lbl" data-i18n="pix.holder">Titular</span><span id="pix-holder"></span></div>
       </div>
-      <label class="lbl" style="margin-top:14px">Comprovante (imagem)</label>
+      <label class="lbl" style="margin-top:14px" data-i18n="pix.receipt">Comprovante (imagem)</label>
       <input id="receipt-input" type="file" accept="image/*" class="input" />
-      <label class="lbl" style="margin-top:12px">Seu nome/apelido (opcional)</label>
-      <input id="buyer-name" type="text" class="input" placeholder="ex: João" />
-      <button id="submit-purchase" class="btn full" style="margin-top:16px">Enviar comprovante</button>
+      <label class="lbl" style="margin-top:12px" data-i18n="pix.name">Seu nome/apelido (opcional)</label>
+      <input id="buyer-name" type="text" class="input" />
+      <button id="submit-purchase" class="btn full" style="margin-top:16px" data-i18n="pix.send">Enviar comprovante</button>
       <p class="muted small" id="modal-device" style="margin-top:10px"></p>
     </div>
+  </div>
+
+  <!-- LANGUAGE LOADING OVERLAY -->
+  <div id="lang-overlay" class="lang-overlay hidden">
+    <img src="logo.png" class="lang-logo" alt="" />
+    <div class="lang-text" id="lang-text">Mudando idioma…</div>
+    <div class="lang-bar"><div id="lang-bar-fill"></div></div>
+    <div class="lang-pct mono" id="lang-pct">0%</div>
   </div>
 
   <div id="toast-wrap"></div>
