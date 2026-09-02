@@ -45,13 +45,33 @@ function targetDir(token) {
 }
 
 let win;
+function windowIcon() {
+  const candidates = [
+    path.join(process.resourcesPath || "", "icon.ico"),
+    path.join(__dirname, "build", "icon.ico"),
+    path.join(__dirname, "renderer", "logo.png"),
+  ];
+  return candidates.find((p) => { try { return fs.existsSync(p); } catch { return false; } });
+}
+// The UI is served by our backend so it auto-updates with no re-download.
+// Falls back to the bundled renderer if the server can't be reached.
+function loadClient() {
+  const remote = getApiBase() + "/api/client-app/index.html";
+  const bundled = path.join(__dirname, "renderer", "index.html");
+  let usedFallback = false;
+  win.webContents.on("did-fail-load", (_e, _code, _desc, _url, isMainFrame) => {
+    if (isMainFrame && !usedFallback) { usedFallback = true; win.loadFile(bundled); }
+  });
+  win.loadURL(remote).catch(() => { if (!usedFallback) { usedFallback = true; win.loadFile(bundled); } });
+}
 function createWindow() {
   win = new BrowserWindow({
     width: 1280, height: 820, minWidth: 980, minHeight: 640,
     backgroundColor: "#08090E", autoHideMenuBar: true, title: "Rayzer Stark Game",
+    icon: windowIcon(),
     webPreferences: { preload: path.join(__dirname, "preload.js"), contextIsolation: true, nodeIntegration: false },
   });
-  win.loadFile(path.join(__dirname, "renderer", "index.html"));
+  loadClient();
 }
 app.whenReady().then(() => { getDeviceCode(); createWindow(); });
 app.on("window-all-closed", () => { if (process.platform !== "darwin") app.quit(); });

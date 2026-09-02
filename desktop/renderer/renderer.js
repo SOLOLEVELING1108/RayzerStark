@@ -28,6 +28,7 @@ const TR = {
     "t.serverDown": "Servidor indisponível", "t.storeFail": "Falha ao carregar loja", "t.confirmDel": "Excluir permanentemente todos os arquivos deste PC?",
     "steam.ok": "● Steam encontrada", "steam.bad": "▲ Steam não encontrada", "deps.count": "dependência(s) instalada(s).", "deps.none": "Nenhuma dependência instalada ainda.",
     "load.starting": "Iniciando…", "load.games": "Carregando jogos…", "load.deps": "Instalando dependências…",
+    "update.checking": "Verificando atualizações…", "update.available": "Atualização encontrada…", "update.downloading": "Baixando atualização…", "update.installing": "Instalando atualização e reiniciando…",
   },
   en: {
     "nav.library": "Library", "nav.bypass": "Bypass", "nav.store": "Store", "nav.settings": "Settings",
@@ -49,6 +50,7 @@ const TR = {
     "t.serverDown": "Server unavailable", "t.storeFail": "Failed to load store", "t.confirmDel": "Permanently delete all files from this PC?",
     "steam.ok": "● Steam found", "steam.bad": "▲ Steam not found", "deps.count": "dependency(ies) installed.", "deps.none": "No dependencies installed yet.",
     "load.starting": "Starting…", "load.games": "Loading games…", "load.deps": "Installing dependencies…",
+    "update.checking": "Checking for updates…", "update.available": "Update found…", "update.downloading": "Downloading update…", "update.installing": "Installing update and restarting…",
   },
   es: {
     "nav.library": "Biblioteca", "nav.bypass": "Bypass", "nav.store": "Tienda", "nav.settings": "Ajustes",
@@ -70,6 +72,7 @@ const TR = {
     "t.serverDown": "Servidor no disponible", "t.storeFail": "Error al cargar la tienda", "t.confirmDel": "¿Eliminar permanentemente todos los archivos de este PC?",
     "steam.ok": "● Steam encontrada", "steam.bad": "▲ Steam no encontrada", "deps.count": "dependencia(s) instalada(s).", "deps.none": "Ninguna dependencia instalada aún.",
     "load.starting": "Iniciando…", "load.games": "Cargando juegos…", "load.deps": "Instalando dependencias…",
+    "update.checking": "Buscando actualizaciones…", "update.available": "Actualización encontrada…", "update.downloading": "Descargando actualización…", "update.installing": "Instalando actualización y reiniciando…",
   },
 };
 const LANGS = [{ code: "pt", label: "Português", flag: "🇧🇷" }, { code: "en", label: "English", flag: "🇺🇸" }, { code: "es", label: "Español", flag: "🇪🇸" }];

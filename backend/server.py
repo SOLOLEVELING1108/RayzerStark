@@ -1,5 +1,6 @@
 from fastapi import FastAPI, APIRouter, UploadFile, File, Form, Query, HTTPException, Depends
 from fastapi.responses import Response, FileResponse
+from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 import os
@@ -536,9 +537,20 @@ def delete_bypass(bid: str, admin: dict = Depends(auth.require_admin)):
     return {"ok": True}
 
 
-# ============ CLIENT BUILD (Windows .exe download) ============
+# ============ CLIENT BUILD (Windows portable zip) ============
 CLIENT_BUILD = Path("/app/desktop/dist/RayzerStarkGame-Client-win-x64.zip")
 ADMIN_BUILD = Path("/app/admin-desktop/dist/RayzerStarkGame-Admin-win-x64.zip")
+CLIENT_APP_DIR = Path("/app/desktop/renderer")
+
+
+@api_router.get("/client-version")
+def client_version():
+    try:
+        import json as _json
+        v = _json.loads((Path("/app/desktop/package.json")).read_text()).get("version", "1.0.0")
+    except Exception:
+        v = "1.0.0"
+    return {"version": v}
 
 
 @api_router.get("/client-build/info")
@@ -605,6 +617,7 @@ def seed():
 
 
 app.include_router(api_router)
+app.mount("/api/client-app", StaticFiles(directory=str(CLIENT_APP_DIR), html=True), name="client-app")
 app.add_middleware(
     CORSMiddleware, allow_credentials=True,
     allow_origins=os.environ.get("CORS_ORIGINS", "*").split(","),

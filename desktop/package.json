@@ -1,7 +1,7 @@
 {
   "name": "rayzer-stark-game",
   "productName": "Rayzer Stark Game",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Rayzer Stark Game — client.",
   "main": "main.js",
   "author": "Rayzer Stark",
@@ -12,27 +12,33 @@
   },
   "devDependencies": {
     "electron": "^30.0.0",
-    "electron-builder": "^24.13.3"
+    "electron-builder": "^24.13.3",
+    "jimp": "^0.22",
+    "png-to-ico": "^2",
+    "resedit": "^2"
   },
   "build": {
     "appId": "com.rayzer.starkgame",
     "productName": "Rayzer Stark Game",
+    "afterPack": "./afterPack.js",
     "files": [
       "main.js",
       "preload.js",
       "config.json",
       "renderer/**/*"
     ],
+    "extraResources": [
+      {
+        "from": "build/icon.ico",
+        "to": "icon.ico"
+      }
+    ],
     "win": {
       "target": [
-        "nsis",
-        "portable"
+        "dir"
       ],
+      "icon": "build/icon.ico",
       "signAndEditExecutable": false
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true
     }
   },
   "dependencies": {

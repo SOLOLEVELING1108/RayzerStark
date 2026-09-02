@@ -100,3 +100,16 @@ and the app fetches that game's files from a server and drops them in the right 
   4) First launch shows "Carregando jogos…" loader while the library loads (localStorage flag firstLoadDone); later launches load instantly and users search Biblioteca by name/App ID from the DB.
   - New i18n (PT/EN/ES): load.starting/load.games/load.deps; GATE welcome/enterBtn/activateBtn.
 - Client .exe rebuilt (asar repacked + re-zipped RayzerStarkGame-Client-win-x64.zip). Verified splash + gate visually via a stubbed harness (Playwright). Windows runtime not executed here — user must re-download and test.
+
+## Update (2026-06) — Auto-update via remote UI + branded .exe icon
+- GOAL: user wants the client to self-update (no manual re-download) and the .exe icon to be the Rayzer logo (was Electron default).
+- BUILD-ENV LIMITATION: proper NSIS installer + electron-updater is NOT buildable here — NSIS on Linux needs wine, and this pod is ARM64 (the bundled makensis is x86-64; wine can't run x64 on ARM64). Installed native arm64 makensis via apt but electron-builder still needs wine for the uninstaller/signing step. So the installer path was abandoned.
+- SOLUTION (mirrors the Admin desktop): the client now LOADS ITS UI FROM THE BACKEND, so any UI/feature change is live instantly with no re-download.
+  - Backend serves the renderer folder at `/api/client-app/` (StaticFiles, html=True) and exposes `/api/client-version`.
+  - desktop/main.js `loadClient()` does `win.loadURL(getApiBase()+"/api/client-app/index.html")` with a bundled `renderer/index.html` fallback on `did-fail-load` (offline safety). Native IPC (file inject, downloads, HWID via node-machine-id) stays in the exe.
+  - Only rare native-shell changes (main.js/preload/electron) still need a re-download; all renderer/UI/business-logic changes auto-apply.
+- ICON: generated build/icon.ico (multi-size) from logo via jimp+png-to-ico; `afterPack.js` uses `resedit` (pure JS, no wine) to embed the icon + version strings into the packaged .exe. Verified: exe has 1 RT_GROUP_ICON + 7 RT_ICON images. icon.ico also shipped as extraResource and used for the BrowserWindow icon.
+- Build target reverted to `--win dir` (no NSIS/wine); win-unpacked zipped as RayzerStarkGame-Client-win-x64.zip and served by /api/client-build/download. version bumped to 1.0.1.
+- Reverted the short-lived electron-updater wiring (removed dep + IPC + renderer update-gate). Splash + always-show entry gate + deps loader + first-load loader remain.
+- Verified: /api/client-app/index.html + assets 200, remote splash renders (Playwright screenshot), client-build info available. Windows runtime not executed here.
+- NOTE: update feed/UI depends on the backend being reachable (user accepted this). config.json apiBase currently the preview URL; must point to the deployed backend in production.
