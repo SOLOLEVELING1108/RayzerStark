@@ -49,7 +49,7 @@ def normalize_file_url(url: str):
         or re.search(r"[?&]id=([\w-]+)", u) if "drive.google" in u or "usercontent.google" in u else None
     if m:
         fid = m.group(1)
-        return (f"https://drive.usercontent.google.com/download?id={fid}&export=download&confirm=t", "bypass.zip")
+        return (f"https://drive.google.com/uc?export=download&id={fid}", "bypass.zip")
     # Dropbox: force direct download
     if "dropbox.com" in u:
         u = u.replace("?dl=0", "?dl=1").replace("&dl=0", "&dl=1")
