@@ -38,6 +38,25 @@ export default function GameManage() {
   const [uploading, setUploading] = useState(false);
   const [bypasses, setBypasses] = useState([]);
   const luaRef = useRef();
+  const bulkRef = useRef();
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkResult, setBulkResult] = useState(null);
+
+  const importBulk = async () => {
+    const files = Array.from(bulkRef.current?.files || []);
+    if (!files.length) return;
+    setBulkBusy(true); setBulkResult(null);
+    try {
+      const fd = new FormData();
+      files.forEach((f) => fd.append("files", f));
+      const { data } = await api.post("/games/bulk-lua", fd);
+      setBulkResult(data);
+      toast.success(`${data.count} ${t("game.bulkDone")}`);
+      if (bulkRef.current) bulkRef.current.value = "";
+    } catch (e) {
+      toast.error(e.response?.data?.detail || t("game.saveFail"));
+    } finally { setBulkBusy(false); }
+  };
 
   useEffect(() => { api.get("/bypasses").then(({ data }) => setBypasses(data)).catch(() => {}); }, []);
   const norm = (s) => (s == null ? "" : String(s)).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
@@ -151,6 +170,34 @@ export default function GameManage() {
       </button>
       <h1 className="font-display text-3xl font-black tracking-tight mb-6">{editing ? t("game.manage") : t("game.add")}</h1>
 
+      {!editing && (
+        <div data-testid="bulk-import-card" className="mb-8 rounded-2xl border border-cyan-500/25 bg-cyan-500/[0.04] p-5">
+          <div className="flex items-center gap-2 mb-1"><FileCode2 className="w-5 h-5 text-cyan-400" /><h2 className="font-display text-lg font-bold">{t("game.bulkTitle")}</h2></div>
+          <p className="text-xs text-slate-400 mb-4 leading-relaxed max-w-2xl">{t("game.bulkDesc")}</p>
+          <div className="flex flex-wrap items-center gap-3">
+            <label className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border border-cyan-500/40 text-sm font-semibold cursor-pointer transition-colors ${bulkBusy ? "opacity-60 pointer-events-none" : "text-cyan-300 hover:bg-cyan-500/10"}`}>
+              {bulkBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />} {t("game.bulkPick")}
+              <input ref={bulkRef} data-testid="bulk-lua-input" type="file" accept=".lua" multiple className="hidden" onChange={importBulk} />
+            </label>
+            <span className="text-[11px] text-slate-500">{t("game.bulkHint")}</span>
+          </div>
+          {bulkResult && (
+            <div className="mt-4 rounded-xl border border-white/10 bg-[#10131E] divide-y divide-white/5">
+              {bulkResult.created.map((g) => (
+                <div key={g.id} data-testid={`bulk-row-${g.app_id}`} className="flex items-center gap-3 px-4 py-2.5 text-sm">
+                  <span className="font-mono text-cyan-300">{g.app_id}</span>
+                  <span className="text-slate-600">→</span>
+                  <span className="truncate flex-1">{g.title}</span>
+                  <span className={`text-[11px] whitespace-nowrap ${g.resolved ? "text-emerald-400" : "text-amber-400"}`}>{g.resolved ? t("game.bulkResolved") : t("game.bulkManual")}</span>
+                  <button onClick={() => navigate(`/games/${g.id}`)} className="text-[11px] text-cyan-400 hover:underline whitespace-nowrap">{t("game.bulkEdit")}</button>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="mt-5 flex items-center gap-3 text-[10px] uppercase tracking-widest text-slate-600"><div className="h-px flex-1 bg-white/10" />{t("game.bulkOr")}<div className="h-px flex-1 bg-white/10" /></div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div>
           <label className={label}>{t("game.cover")}</label>
@@ -203,6 +250,7 @@ export default function GameManage() {
               <Upload className="w-3.5 h-3.5" /> {t("game.uploadFile")}
               <input ref={luaRef} data-testid="lua-file-input" type="file" accept=".lua,text/*" multiple className="hidden" onChange={uploadLua} />
             </label>
+            <p className="text-[11px] text-cyan-400/90 mt-2 leading-relaxed">{t("game.uploadMultiHint")}</p>
           </div>
           {uploading && <p className="text-xs text-cyan-400 mt-3 flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Uploading…</p>}
           <div className="mt-4 rounded-xl border border-white/10 bg-[#10131E] divide-y divide-white/5 max-w-2xl">

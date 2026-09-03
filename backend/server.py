@@ -172,6 +172,49 @@ def delete_game(game_id: str, admin: dict = Depends(auth.require_admin)):
     return {"ok": True}
 
 
+def resolve_steam_title(app_id: str):
+    try:
+        import urllib.request
+        import json as _json
+        url = f"https://store.steampowered.com/api/appdetails?appids={app_id}&filters=basic&l=english"
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=6) as r:
+            data = _json.loads(r.read().decode("utf-8"))
+        node = data.get(str(app_id)) or {}
+        if node.get("success") and node.get("data", {}).get("name"):
+            return node["data"]["name"]
+    except Exception:
+        pass
+    return None
+
+
+@api_router.post("/games/bulk-lua")
+async def bulk_lua(files: list[UploadFile] = File(...), admin: dict = Depends(auth.require_admin)):
+    created = []
+    for f in files:
+        stem = (f.filename or "").rsplit("/", 1)[-1].rsplit("\\", 1)[-1]
+        app_id = stem[:-4] if stem.lower().endswith(".lua") else (stem.rsplit(".", 1)[0] if "." in stem else stem)
+        app_id = app_id.strip()
+        if not app_id:
+            continue
+        title = resolve_steam_title(app_id) or app_id
+        gid = str(uuid.uuid4())
+        content = await f.read()
+        fid = str(uuid.uuid4())
+        lpath = f"lua/{gid}/{fid}.lua"
+        supa.upload(lpath, content, "text/plain")
+        lua_entry = {"id": fid, "filename": f.filename, "path": lpath, "size": len(content)}
+        row = {
+            "id": gid, "app_id": app_id, "title": title, "category": "Uncategorized",
+            "description": "", "cover_url": "", "lua_files": [lua_entry],
+            "in_store": False, "price": 0, "is_public": False,
+            "is_deleted": False, "created_at": now_iso(), "updated_at": now_iso(),
+        }
+        supa.t("games").insert(row).execute()
+        created.append({"id": gid, "app_id": app_id, "title": title, "resolved": bool(title != app_id)})
+    return {"created": created, "count": len(created)}
+
+
 @api_router.post("/games/{game_id}/lua")
 async def add_lua(game_id: str, file: UploadFile = File(...), admin: dict = Depends(auth.require_admin)):
     g = get_game(game_id)
