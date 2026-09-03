@@ -23,7 +23,7 @@ const TR = {
     "buy": "Comprar", "owned": "✓ Você já tem", "pendingBtn": "⏳ Aguardando liberação", "installing": "Instalando",
     "t.activated": "Ativado", "t.filesInj": "arquivo(s) instalado(s)", "t.removed": "Removido", "t.filesDel": "arquivo(s) apagado(s)",
     "t.actFail": "Falha ao ativar", "t.notReleased": "Acesso ainda não liberado para este dispositivo.", "t.noFiles": "Este jogo não tem arquivos no servidor.",
-    "t.depsOk": "Dependências instaladas", "t.depsFail": "Falha ao instalar", "t.deleteDone": "Exclusão concluída", "t.receiptSent": "Comprovante enviado!", "t.wait": "Aguarde a liberação do administrador.",
+    "t.depsOk": "Dependências instaladas", "t.depsFail": "Falha ao instalar", "t.depsLocked": "Feche a Steam e os jogos abertos e tente de novo (arquivo em uso).", "t.deleteDone": "Exclusão concluída", "t.receiptSent": "Comprovante enviado!", "t.wait": "Aguarde a liberação do administrador.",
     "t.attach": "Anexe o comprovante", "t.sendFail": "Falha ao enviar", "t.pixCopied": "Chave Pix copiada", "t.bpOk": "Bypass baixado para a pasta Downloads", "t.bpNoFile": "Este bypass não tem arquivo.", "t.bpBadLink": "Link inválido ou arquivo não é público (deixe como \"Qualquer pessoa com o link\").", "t.dlFail": "Falha ao baixar",
     "t.serverDown": "Servidor indisponível", "t.storeFail": "Falha ao carregar loja", "t.confirmDel": "Excluir permanentemente todos os arquivos deste PC?",
     "steam.ok": "● Steam encontrada", "steam.bad": "▲ Steam não encontrada", "deps.count": "dependência(s) instalada(s).", "deps.none": "Nenhuma dependência instalada ainda.",
@@ -45,7 +45,7 @@ const TR = {
     "buy": "Buy", "owned": "✓ You own it", "pendingBtn": "⏳ Waiting approval", "installing": "Installing",
     "t.activated": "Activated", "t.filesInj": "file(s) installed", "t.removed": "Removed", "t.filesDel": "file(s) deleted",
     "t.actFail": "Activation failed", "t.notReleased": "Access not released for this device yet.", "t.noFiles": "This game has no files on the server.",
-    "t.depsOk": "Dependencies installed", "t.depsFail": "Install failed", "t.deleteDone": "Deletion complete", "t.receiptSent": "Receipt sent!", "t.wait": "Wait for the admin to release it.",
+    "t.depsOk": "Dependencies installed", "t.depsFail": "Install failed", "t.depsLocked": "Close Steam and any running games, then try again (file in use).", "t.deleteDone": "Deletion complete", "t.receiptSent": "Receipt sent!", "t.wait": "Wait for the admin to release it.",
     "t.attach": "Attach the receipt", "t.sendFail": "Send failed", "t.pixCopied": "Pix key copied", "t.bpOk": "Bypass downloaded to your Downloads folder", "t.bpNoFile": "This bypass has no file.", "t.bpBadLink": "Invalid link or file is not public (set it to \"Anyone with the link\").", "t.dlFail": "Download failed",
     "t.serverDown": "Server unavailable", "t.storeFail": "Failed to load store", "t.confirmDel": "Permanently delete all files from this PC?",
     "steam.ok": "● Steam found", "steam.bad": "▲ Steam not found", "deps.count": "dependency(ies) installed.", "deps.none": "No dependencies installed yet.",
@@ -67,7 +67,7 @@ const TR = {
     "buy": "Comprar", "owned": "✓ Ya lo tienes", "pendingBtn": "⏳ Esperando aprobación", "installing": "Instalando",
     "t.activated": "Activado", "t.filesInj": "archivo(s) instalado(s)", "t.removed": "Quitado", "t.filesDel": "archivo(s) borrado(s)",
     "t.actFail": "Error al activar", "t.notReleased": "Acceso no liberado para este dispositivo aún.", "t.noFiles": "Este juego no tiene archivos en el servidor.",
-    "t.depsOk": "Dependencias instaladas", "t.depsFail": "Error al instalar", "t.deleteDone": "Eliminación completa", "t.receiptSent": "¡Comprobante enviado!", "t.wait": "Espera a que el administrador lo libere.",
+    "t.depsOk": "Dependencias instaladas", "t.depsFail": "Error al instalar", "t.depsLocked": "Cierra Steam y los juegos abiertos e inténtalo de nuevo (archivo en uso).", "t.deleteDone": "Eliminación completa", "t.receiptSent": "¡Comprobante enviado!", "t.wait": "Espera a que el administrador lo libere.",
     "t.attach": "Adjunta el comprobante", "t.sendFail": "Error al enviar", "t.pixCopied": "Clave Pix copiada", "t.bpOk": "Bypass descargado a la carpeta Descargas", "t.bpNoFile": "Este bypass no tiene archivo.", "t.bpBadLink": "Enlace inválido o archivo no público (déjalo como \"Cualquier persona con el enlace\").", "t.dlFail": "Error al descargar",
     "t.serverDown": "Servidor no disponible", "t.storeFail": "Error al cargar la tienda", "t.confirmDel": "¿Eliminar permanentemente todos los archivos de este PC?",
     "steam.ok": "● Steam encontrada", "steam.bad": "▲ Steam no encontrada", "deps.count": "dependencia(s) instalada(s).", "deps.none": "Ninguna dependencia instalada aún.",
@@ -251,7 +251,11 @@ $("#install-deps-btn").addEventListener("click", async () => {
   showLoader(tr("load.deps"));
   try {
     const res = await window.api.installDependencies();
-    toast(tr("t.depsOk"), `${res.count}`, "ok");
+    if (res.locked && res.locked.length) {
+      toast(tr("t.depsLocked"), res.locked.join(", "), "err");
+    } else {
+      toast(tr("t.depsOk"), `${(res.installed || 0)} / ${(res.count || 0)}`, "ok");
+    }
     CONFIG = await window.api.getConfig(); updateSettingsUI();
   } catch (e) { toast(tr("t.depsFail"), e.message, "err"); }
   finally { hideLoader(); btn.disabled = false; }

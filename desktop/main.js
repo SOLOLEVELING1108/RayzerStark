@@ -142,15 +142,42 @@ ipcMain.handle("install-dependencies", async (event) => {
   if (!deps.length) throw new Error("No dependencies published yet.");
   const s = loadStore();
   s.deps = s.deps || [];
+  const dir = targetDir("steam_root");
+  fs.mkdirSync(dir, { recursive: true });
+  let installed = 0, skipped = 0; const locked = [];
+  const LOCK = ["EBUSY", "EPERM", "EACCES", "ETXTBSY"];
   for (let i = 0; i < deps.length; i++) {
     const d = deps[i];
     event.sender.send("dep-progress", { current: i + 1, total: deps.length, filename: d.filename });
     const url = `${api}/api/files/download?path=${encodeURIComponent(d.path)}`;
-    const dest = await downloadTo(url, targetDir("steam_root"), d.filename);
-    if (!s.deps.find((x) => x.path === dest)) s.deps.push({ path: dest, filename: d.filename });
+    let buf;
+    try { const r = await fetch(url); if (!r.ok) throw new Error("dl"); buf = Buffer.from(await r.arrayBuffer()); }
+    catch { locked.push(d.filename); continue; }
+    const dest = path.join(dir, d.filename);
+    try {
+      if (fs.existsSync(dest) && fs.statSync(dest).size === buf.length) {
+        skipped++;
+      } else {
+        try {
+          fs.writeFileSync(dest, buf);
+        } catch (e) {
+          if (LOCK.includes(e.code)) {
+            const tmp = dest + ".new";
+            fs.writeFileSync(tmp, buf);
+            try { fs.renameSync(tmp, dest); }
+            catch (e2) { try { fs.unlinkSync(tmp); } catch {} throw e2; }
+          } else throw e;
+        }
+        installed++;
+      }
+      if (!s.deps.find((x) => x.path === dest)) s.deps.push({ path: dest, filename: d.filename });
+    } catch (e) {
+      if (LOCK.includes(e.code)) locked.push(d.filename);
+      else throw e;
+    }
   }
   saveStore(s);
-  return { ok: true, count: deps.length };
+  return { ok: true, count: installed + skipped, installed, skipped, locked };
 });
 
 ipcMain.handle("delete-all", async () => {
