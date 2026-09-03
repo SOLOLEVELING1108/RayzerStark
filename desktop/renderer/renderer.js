@@ -77,6 +77,7 @@ const TR = {
 };
 const LANGS = [{ code: "pt", label: "Português", flag: "🇧🇷" }, { code: "en", label: "English", flag: "🇺🇸" }, { code: "es", label: "Español", flag: "🇪🇸" }];
 const tr = (k) => (TR[LANG] && TR[LANG][k]) || TR.pt[k] || k;
+const norm = (s) => (s == null ? "" : String(s)).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
 
 const GATE = {
   pt: { enter: "Digite sua key de acesso para continuar", welcome: "Bem-vindo de volta! Clique em Entrar para continuar.", enterBtn: "Entrar", activateBtn: "Ativar", activate: "Ativar", invalid: "Key inválida.", other: "Esta key já está em uso em outro PC.", blocked: "Key inválida ou usada em outro computador. O aplicativo será fechado.", close: "Fechar", checking: "Verificando…" },
@@ -105,7 +106,7 @@ function libCardHtml(g) {
   const active = CONFIG.activations && CONFIG.activations[g.id];
   const busy = injecting[g.id];
   const cover = coverUrl(g.cover_url);
-  const bp = BYPASS.find((b) => String(b.app_id) === String(g.app_id) && b.file && b.file.filename);
+  const bp = BYPASS.find((b) => (b.file && (b.file.filename || b.file.url)) && (norm(b.title) === norm(g.title) || String(b.app_id) === String(g.app_id)));
   const tag = g.source === "public" ? `<span class="badge-active" style="background:rgba(16,185,129,.15);color:#10B981;border-color:rgba(16,185,129,.3)">${tr("free")}</span>` : "";
   return `<div class="gcard" data-card="${g.id}">
     <div class="cover">${cover ? `<img src="${cover}"/>` : ""}<span class="appid">APPID ${g.app_id}</span>

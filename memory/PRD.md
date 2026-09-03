@@ -113,3 +113,9 @@ and the app fetches that game's files from a server and drops them in the right 
 - Reverted the short-lived electron-updater wiring (removed dep + IPC + renderer update-gate). Splash + always-show entry gate + deps loader + first-load loader remain.
 - Verified: /api/client-app/index.html + assets 200, remote splash renders (Playwright screenshot), client-build info available. Windows runtime not executed here.
 - NOTE: update feed/UI depends on the backend being reachable (user accepted this). config.json apiBase currently the preview URL; must point to the deployed backend in production.
+
+## Update (2026-06) — Name-based bypass linking + multi-.lua upload
+- USER DECISIONS: (1) server → wants a PERMANENT deploy (Emergent Publish recommended; support_agent explained export-to-GitHub/other-host options too). config.json apiBase must be switched to the permanent URL after deploy. (2) link games↔bypasses by NAME. (3) keep one-game-at-a-time but upload many .lua at once.
+- NAME LINK (client renderer, served remotely → live, no re-download): added `norm()` (lowercase, strip accents/spaces/punct). Library now shows a bypass's download button when `norm(bypass.title)===norm(game.title)` OR app_id matches, and accepts bypass files by url or path. Works automatically for all ~500 name-based bypasses.
+- ADMIN GameManage: `.lua` input is now `multiple` — uploads all selected files sequentially to /games/{id}/lua with an aggregate toast. Added a live "Bypass vinculado por nome: <title>" indicator (fetches /bypasses, normalized-title/app_id match). i18n game.bypassLinked (pt/en/es). Verified via screenshot (Crimson Desert ↔ Crimson desert matched; multiple attr present).
+- No client rebuild needed for these (renderer is remote); Admin is the React web app (hot reload).

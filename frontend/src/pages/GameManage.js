@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { ArrowLeft, Save, Upload, FileCode2, Trash2, Loader2, ImagePlus, Globe, ShoppingCart } from "lucide-react";
+import { ArrowLeft, Save, Upload, FileCode2, Trash2, Loader2, ImagePlus, Globe, ShoppingCart, Link2 } from "lucide-react";
 import { api, resolveImg } from "@/lib/api";
 import { useI18n } from "@/i18n";
 
@@ -36,7 +36,12 @@ export default function GameManage() {
   const [game, setGame] = useState(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [bypasses, setBypasses] = useState([]);
   const luaRef = useRef();
+
+  useEffect(() => { api.get("/bypasses").then(({ data }) => setBypasses(data)).catch(() => {}); }, []);
+  const norm = (s) => (s == null ? "" : String(s)).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
+  const matchedBp = bypasses.find((b) => (norm(b.title) && norm(b.title) === norm(form.title)) || (form.app_id && String(b.app_id) === String(form.app_id)));
 
   useEffect(() => {
     if (!editing) return;
@@ -107,21 +112,23 @@ export default function GameManage() {
   };
 
   const uploadLua = async () => {
-    const file = luaRef.current?.files?.[0];
-    if (!file) return;
+    const files = Array.from(luaRef.current?.files || []);
+    if (!files.length) return;
     setUploading(true);
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const { data } = await api.post(`/games/${id}/lua`, fd);
-      setGame(data);
-      toast.success(t("game.fileAdded") + ": " + file.name);
-      luaRef.current.value = "";
-    } catch {
-      toast.error("Upload failed");
-    } finally {
-      setUploading(false);
+    let ok = 0, fail = 0, latest = game;
+    for (const file of files) {
+      try {
+        const fd = new FormData();
+        fd.append("file", file);
+        const { data } = await api.post(`/games/${id}/lua`, fd);
+        latest = data; ok++;
+      } catch { fail++; }
     }
+    setGame(latest);
+    if (luaRef.current) luaRef.current.value = "";
+    setUploading(false);
+    if (fail) toast.error(`${ok} ${t("game.fileAdded")}, ${fail} ✕`);
+    else toast.success(`${ok} × ${t("game.fileAdded")}`);
   };
 
   const removeLua = async (fileId) => {
@@ -162,6 +169,7 @@ export default function GameManage() {
 
         <div className="lg:col-span-2 space-y-4">
           <div><label className={label}>{t("game.title")}</label><input data-testid="title-input" className={input} placeholder="Resident Evil 2 Remake" value={form.title} onChange={set("title")} /></div>
+          {matchedBp && <p data-testid="bypass-linked-note" className="text-xs text-cyan-400 flex items-center gap-1.5 -mt-2"><Link2 className="w-3.5 h-3.5" /> {t("game.bypassLinked")}: {matchedBp.title}</p>}
           <div className="grid grid-cols-2 gap-4">
             <div><label className={label}>{t("game.appid")}</label><input data-testid="appid-input" className={`${input} font-mono`} placeholder="223308" value={form.app_id} onChange={set("app_id")} /></div>
             <div><label className={label}>{t("game.category")}</label><input data-testid="category-input" className={input} placeholder="Horror / Action" value={form.category} onChange={set("category")} /></div>
@@ -193,7 +201,7 @@ export default function GameManage() {
             <p className="text-[11px] font-mono text-slate-500 mb-3">Injected into → C:\Program Files (x86)\Steam\config\lua\</p>
             <label className="flex items-center justify-center gap-2 py-2 rounded-lg border border-emerald-500/30 text-xs text-emerald-300 hover:bg-emerald-500/10 cursor-pointer transition-colors">
               <Upload className="w-3.5 h-3.5" /> {t("game.uploadFile")}
-              <input ref={luaRef} data-testid="lua-file-input" type="file" accept=".lua,text/*" className="hidden" onChange={uploadLua} />
+              <input ref={luaRef} data-testid="lua-file-input" type="file" accept=".lua,text/*" multiple className="hidden" onChange={uploadLua} />
             </label>
           </div>
           {uploading && <p className="text-xs text-cyan-400 mt-3 flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Uploading…</p>}
