@@ -159,3 +159,7 @@ and the app fetches that game's files from a server and drops them in the right 
 - Versions bumped to 1.0.3 (app/version.json + package.json). Bundle endpoint now serves 1.0.3.
 - ROOT CAUSE of "removing the key / removing a game doesn't clear Steam files": the distributed client talks to PRODUCTION (emergent.host); until the user REPUBLISHES, production still serves the OLD renderer (no revokeAndWipe) and OLD native bundle (no Steam-close delete-all). All fixes exist on PREVIEW. REPUBLISH is mandatory for them to reach the client; after that the loader auto-pulls the native code and the remote renderer delivers the wipe.
 - Rebuilt .exe (1.0.3). Not runtime-tested on Windows (per user request).
+
+## Update (2026-06) — Settings shows app version (1.0.4)
+- app/main.js getConfig now returns `version: _verOf(__dirname)` (the running app version). renderer Settings has a new "Atualização" card (#app-version) showing the installed version + a status line that compares to /api/client-version ("Você está na versão mais recente" or "Atualização disponível: vX — reabra o app"). i18n set.version/versionDesc/verLatest/verNew/verRestart (pt/en/es).
+- Versions bumped to 1.0.4 (app/version.json + package.json); bundle + client-version serve 1.0.4. Rebuilt .exe. Not runtime-tested (per user request).

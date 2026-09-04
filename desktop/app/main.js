@@ -125,6 +125,7 @@ ipcMain.handle("get-config", () => {
   return {
     apiBase: getApiBase(), steamPath: getSteamPath(), deviceCode: getDeviceCode(),
     activations: s.activations || {}, depsInstalled: (s.deps || []).length,
+    version: _verOf(__dirname),
   };
 });
 

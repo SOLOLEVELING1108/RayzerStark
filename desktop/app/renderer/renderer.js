@@ -14,7 +14,7 @@ const TR = {
     "lib.title": "Biblioteca", "lib.subtitle": "Seus jogos liberados. Clique em Ativar.", "lib.empty": "Nenhum jogo liberado ainda. Vá até a Loja.", "lib.searchPh": "Buscar por título ou App ID…",
     "bp.title": "Bypass", "bp.subtitle": "Baixe o bypass do jogo direto para a pasta Downloads.", "bp.empty": "Nenhum bypass disponível.", "bp.searchPh": "Buscar bypass…", "bp.download": "⬇ Baixar", "bp.downloading": "Baixando…", "bp.noFile": "Sem arquivo",
     "store.title": "Loja", "store.subtitle": "Compre via Pix e envie o comprovante.", "store.empty": "Nenhum jogo à venda.",
-    "set.title": "Configurações", "set.lang": "Idioma", "set.langDesc": "Escolha o idioma do aplicativo.",
+    "set.title": "Configurações", "set.lang": "Idioma", "set.langDesc": "Escolha o idioma do aplicativo.", "set.version": "Atualização", "set.versionDesc": "Versão instalada. As atualizações vêm sozinhas ao abrir o app.", "set.verLatest": "✓ Você está na versão mais recente.", "set.verNew": "Atualização disponível:", "set.verRestart": "reabra o app para aplicar.",
     "set.deps": "Instalar dependências", "set.depsDesc": "Baixa e instala os arquivos necessários automaticamente.", "set.depsBtn": "Instalar dependências",
     "set.del": "Exclusões", "set.delDesc": "Remove permanentemente deste PC todos os arquivos dos jogos ativados.", "set.delBtn": "Excluir todos os jogos",
     "set.device": "Este dispositivo", "set.deviceDesc": "Envie este código junto do comprovante para liberar seu acesso:",
@@ -36,7 +36,7 @@ const TR = {
     "lib.title": "Library", "lib.subtitle": "Your released games. Click Activate.", "lib.empty": "No games yet. Visit the Store.", "lib.searchPh": "Search by title or App ID…",
     "bp.title": "Bypass", "bp.subtitle": "Download the game bypass straight to your Downloads folder.", "bp.empty": "No bypass available.", "bp.searchPh": "Search bypass…", "bp.download": "⬇ Download", "bp.downloading": "Downloading…", "bp.noFile": "No file",
     "store.title": "Store", "store.subtitle": "Buy with Pix and send the receipt.", "store.empty": "No games for sale.",
-    "set.title": "Settings", "set.lang": "Language", "set.langDesc": "Choose the app language.",
+    "set.title": "Settings", "set.lang": "Language", "set.langDesc": "Choose the app language.", "set.version": "Update", "set.versionDesc": "Installed version. Updates apply automatically when you open the app.", "set.verLatest": "✓ You are on the latest version.", "set.verNew": "Update available:", "set.verRestart": "reopen the app to apply.",
     "set.deps": "Install dependencies", "set.depsDesc": "Downloads and installs the required files automatically.", "set.depsBtn": "Install dependencies",
     "set.del": "Deletions", "set.delDesc": "Permanently removes from this PC all files of activated games.", "set.delBtn": "Delete all games",
     "set.device": "This device", "set.deviceDesc": "Send this code with your receipt to release your access:",
@@ -58,7 +58,7 @@ const TR = {
     "lib.title": "Biblioteca", "lib.subtitle": "Tus juegos liberados. Pulsa Activar.", "lib.empty": "Aún no hay juegos. Ve a la Tienda.", "lib.searchPh": "Buscar por título o App ID…",
     "bp.title": "Bypass", "bp.subtitle": "Descarga el bypass del juego directo a la carpeta Descargas.", "bp.empty": "No hay bypass disponible.", "bp.searchPh": "Buscar bypass…", "bp.download": "⬇ Descargar", "bp.downloading": "Descargando…", "bp.noFile": "Sin archivo",
     "store.title": "Tienda", "store.subtitle": "Compra con Pix y envía el comprobante.", "store.empty": "No hay juegos a la venta.",
-    "set.title": "Ajustes", "set.lang": "Idioma", "set.langDesc": "Elige el idioma de la app.",
+    "set.title": "Ajustes", "set.lang": "Idioma", "set.langDesc": "Elige el idioma de la app.", "set.version": "Actualización", "set.versionDesc": "Versión instalada. Las actualizaciones se aplican solas al abrir la app.", "set.verLatest": "✓ Estás en la versión más reciente.", "set.verNew": "Actualización disponible:", "set.verRestart": "reabre la app para aplicar.",
     "set.deps": "Instalar dependencias", "set.depsDesc": "Descarga e instala los archivos necesarios automáticamente.", "set.depsBtn": "Instalar dependencias",
     "set.del": "Eliminaciones", "set.delDesc": "Elimina permanentemente de este PC todos los archivos de los juegos activados.", "set.delBtn": "Eliminar todos los juegos",
     "set.device": "Este dispositivo", "set.deviceDesc": "Envía este código con tu comprobante para liberar tu acceso:",
@@ -313,6 +313,14 @@ function updateSettingsUI() {
   $("#deps-status").textContent = CONFIG.depsInstalled ? `${CONFIG.depsInstalled} ${tr("deps.count")}` : tr("deps.none");
   $("#device-code").textContent = CONFIG.deviceCode;
   $("#device-foot").textContent = CONFIG.deviceCode;
+  const v = CONFIG.version || "—";
+  $("#app-version").textContent = "v" + v;
+  apiGet(`/api/client-version`).then((r) => {
+    const latest = r.version || v;
+    const el = $("#app-version-status");
+    if (latest && latest !== v) el.textContent = `${tr("set.verNew")} v${latest} — ${tr("set.verRestart")}`;
+    else el.textContent = tr("set.verLatest");
+  }).catch(() => {});
 }
 async function updateSteamUI() {
   const chk = await window.api.checkSteamPath();
