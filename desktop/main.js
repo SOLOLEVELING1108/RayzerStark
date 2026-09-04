@@ -126,16 +126,27 @@ ipcMain.handle("deactivate-game", async (_e, gameId) => {
   const s = loadStore();
   const entry = (s.activations || {})[gameId];
   const removed = [];
+  let steamReopened = false;
   if (entry) {
-    for (const f of entry.files) { try { if (fs.existsSync(f.path)) { fs.unlinkSync(f.path); removed.push(f.filename); } } catch {} }
+    const steamWas = isSteamRunning();
+    if (steamWas) { closeSteam(); await sleep(2000); steamReopened = true; }
+    for (const f of entry.files) { if (await unlinkRobust(f.path)) removed.push(f.filename); }
     delete s.activations[gameId];
     saveStore(s);
+    if (steamWas) openSteam();
   }
-  return { ok: true, removed };
+  return { ok: true, removed, steamReopened };
 });
 
 const cp = require("child_process");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+async function unlinkRobust(p) {
+  for (let i = 0; i < 4; i++) {
+    try { if (!fs.existsSync(p)) return true; fs.unlinkSync(p); return true; }
+    catch (e) { if (["EBUSY", "EPERM", "EACCES", "ETXTBSY"].includes(e.code)) { await sleep(500); continue; } return false; }
+  }
+  return !fs.existsSync(p);
+}
 function isSteamRunning() {
   if (process.platform !== "win32") return false;
   try { return /steam\.exe/i.test(cp.execSync('tasklist /FI "IMAGENAME eq steam.exe" /NH', { encoding: "utf8", windowsHide: true })); }
@@ -210,14 +221,18 @@ ipcMain.handle("install-dependencies", async (event) => {
 ipcMain.handle("delete-all", async () => {
   const s = loadStore();
   let removed = 0;
+  const hasFiles = Object.keys(s.activations || {}).length > 0 || (s.deps || []).length > 0;
+  const steamWas = hasFiles && isSteamRunning();
+  if (steamWas) { closeSteam(); await sleep(2000); }
   for (const gid of Object.keys(s.activations || {})) {
-    for (const f of s.activations[gid].files) { try { if (fs.existsSync(f.path)) { fs.unlinkSync(f.path); removed++; } } catch {} }
+    for (const f of s.activations[gid].files) { if (await unlinkRobust(f.path)) removed++; }
   }
-  for (const d of s.deps || []) { try { if (fs.existsSync(d.path)) { fs.unlinkSync(d.path); removed++; } } catch {} }
+  for (const d of s.deps || []) { if (await unlinkRobust(d.path)) removed++; }
   s.activations = {};
   s.deps = [];
   saveStore(s);
-  return { ok: true, removed };
+  if (steamWas) openSteam();
+  return { ok: true, removed, steamReopened: steamWas };
 });
 
 ipcMain.handle("download-bypass", async (_e, bypass) => {
