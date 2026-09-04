@@ -1,9 +1,9 @@
 {
   "name": "rayzer-stark-game",
   "productName": "Rayzer Stark Game",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Rayzer Stark Game — client.",
-  "main": "main.js",
+  "main": "bootstrap.js",
   "author": "Rayzer Stark",
   "scripts": {
     "start": "electron .",
@@ -22,10 +22,9 @@
     "productName": "Rayzer Stark Game",
     "afterPack": "./afterPack.js",
     "files": [
-      "main.js",
-      "preload.js",
+      "bootstrap.js",
       "config.json",
-      "renderer/**/*"
+      "app/**/*"
     ],
     "extraResources": [
       {

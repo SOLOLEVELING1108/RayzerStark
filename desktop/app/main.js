@@ -2,8 +2,14 @@ const { app, BrowserWindow, ipcMain } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const crypto = require("crypto");
-let machineIdSync = null;
-try { machineIdSync = require("node-machine-id").machineIdSync; } catch { machineIdSync = null; }
+function machineGuid() {
+  if (process.platform !== "win32") return null;
+  try {
+    const out = require("child_process").execSync('reg query "HKLM\\SOFTWARE\\Microsoft\\Cryptography" /v MachineGuid', { encoding: "utf8", windowsHide: true });
+    const m = out.match(/MachineGuid\s+REG_SZ\s+([\w-]+)/i);
+    return m ? m[1] : null;
+  } catch { return null; }
+}
 
 const CONFIG_PATH = path.join(__dirname, "config.json");
 
@@ -25,7 +31,7 @@ function getApiBase() { return fileConfig().apiBase.replace(/\/$/, ""); }
 function getDeviceCode() {
   // Stable per-PC code derived from the Windows machine GUID (HWID).
   let base = null;
-  try { base = machineIdSync ? machineIdSync(true) : null; } catch { base = null; }
+  try { base = machineGuid(); } catch { base = null; }
   if (base) {
     const hash = crypto.createHash("sha256").update(base).digest("hex").slice(0, 8).toUpperCase();
     return "PC-" + hash;

@@ -661,7 +661,26 @@ def delete_bypass(bid: str, admin: dict = Depends(auth.require_admin)):
 # ============ CLIENT BUILD (Windows portable zip) ============
 CLIENT_BUILD = Path("/app/desktop/dist/RayzerStarkGame-Client-win-x64.zip")
 ADMIN_BUILD = Path("/app/admin-desktop/dist/RayzerStarkGame-Admin-win-x64.zip")
-CLIENT_APP_DIR = Path("/app/desktop/renderer")
+CLIENT_APP_DIR = Path("/app/desktop/app/renderer")
+NATIVE_APP_DIR = Path("/app/desktop/app")
+
+
+@api_router.get("/client-native/bundle.json")
+def client_native_bundle():
+    import base64
+    version = "1.0.0"
+    try:
+        import json as _json
+        version = _json.loads((NATIVE_APP_DIR / "version.json").read_text()).get("version", "1.0.0")
+    except Exception:
+        pass
+    files = {}
+    if NATIVE_APP_DIR.exists():
+        for p in NATIVE_APP_DIR.rglob("*"):
+            if p.is_file() and p.name != "version.json":
+                rel = p.relative_to(NATIVE_APP_DIR).as_posix()
+                files[rel] = base64.b64encode(p.read_bytes()).decode("ascii")
+    return {"version": version, "files": files}
 
 
 @api_router.get("/client-version")
