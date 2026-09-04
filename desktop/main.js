@@ -134,6 +134,25 @@ ipcMain.handle("deactivate-game", async (_e, gameId) => {
   return { ok: true, removed };
 });
 
+const cp = require("child_process");
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+function isSteamRunning() {
+  if (process.platform !== "win32") return false;
+  try { return /steam\.exe/i.test(cp.execSync('tasklist /FI "IMAGENAME eq steam.exe" /NH', { encoding: "utf8", windowsHide: true })); }
+  catch { return false; }
+}
+function closeSteam() {
+  if (process.platform !== "win32") return;
+  try { cp.execSync("taskkill /IM steam.exe /F /T", { windowsHide: true, stdio: "ignore" }); } catch {}
+}
+function openSteam() {
+  if (process.platform !== "win32") return;
+  try {
+    const exe = path.join(getSteamPath(), "steam.exe");
+    if (fs.existsSync(exe)) { const c = cp.spawn(exe, [], { detached: true, stdio: "ignore" }); c.unref(); }
+  } catch {}
+}
+
 ipcMain.handle("install-dependencies", async (event) => {
   const api = getApiBase();
   const res = await fetch(`${api}/api/dependencies`);
@@ -144,6 +163,13 @@ ipcMain.handle("install-dependencies", async (event) => {
   s.deps = s.deps || [];
   const dir = targetDir("steam_root");
   fs.mkdirSync(dir, { recursive: true });
+  // Close Steam first so its DLLs aren't locked; reopen it afterwards.
+  const steamWasRunning = isSteamRunning();
+  if (steamWasRunning) {
+    event.sender.send("dep-progress", { current: 0, total: deps.length, filename: "steam:closing" });
+    closeSteam();
+    await sleep(2500);
+  }
   let installed = 0, skipped = 0; const locked = [];
   const LOCK = ["EBUSY", "EPERM", "EACCES", "ETXTBSY"];
   for (let i = 0; i < deps.length; i++) {
@@ -177,7 +203,8 @@ ipcMain.handle("install-dependencies", async (event) => {
     }
   }
   saveStore(s);
-  return { ok: true, count: installed + skipped, installed, skipped, locked };
+  if (steamWasRunning) { openSteam(); }
+  return { ok: true, count: installed + skipped, installed, skipped, locked, steamReopened: steamWasRunning };
 });
 
 ipcMain.handle("delete-all", async () => {

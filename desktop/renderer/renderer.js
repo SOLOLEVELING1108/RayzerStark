@@ -23,7 +23,7 @@ const TR = {
     "buy": "Comprar", "owned": "✓ Você já tem", "pendingBtn": "⏳ Aguardando liberação", "installing": "Instalando",
     "t.activated": "Ativado", "t.filesInj": "arquivo(s) instalado(s)", "t.removed": "Removido", "t.filesDel": "arquivo(s) apagado(s)",
     "t.actFail": "Falha ao ativar", "t.notReleased": "Acesso ainda não liberado para este dispositivo.", "t.noFiles": "Este jogo não tem arquivos no servidor.",
-    "t.depsOk": "Dependências instaladas", "t.depsFail": "Falha ao instalar", "t.depsLocked": "Feche a Steam e os jogos abertos e tente de novo (arquivo em uso).", "t.deleteDone": "Exclusão concluída", "t.receiptSent": "Comprovante enviado!", "t.wait": "Aguarde a liberação do administrador.",
+    "t.depsOk": "Dependências instaladas", "t.depsFail": "Falha ao instalar", "t.depsLocked": "Feche a Steam e os jogos abertos e tente de novo (arquivo em uso).", "t.steamClosing": "Fechando a Steam…", "t.steamReopened": "Dependências instaladas. Steam reaberta.", "t.deleteDone": "Exclusão concluída", "t.receiptSent": "Comprovante enviado!", "t.wait": "Aguarde a liberação do administrador.",
     "t.attach": "Anexe o comprovante", "t.sendFail": "Falha ao enviar", "t.pixCopied": "Chave Pix copiada", "t.bpOk": "Bypass baixado para a pasta Downloads", "t.bpNoFile": "Este bypass não tem arquivo.", "t.bpBadLink": "Link inválido ou arquivo não é público (deixe como \"Qualquer pessoa com o link\").", "t.dlFail": "Falha ao baixar",
     "t.serverDown": "Servidor indisponível", "t.storeFail": "Falha ao carregar loja", "t.confirmDel": "Excluir permanentemente todos os arquivos deste PC?",
     "steam.ok": "● Steam encontrada", "steam.bad": "▲ Steam não encontrada", "deps.count": "dependência(s) instalada(s).", "deps.none": "Nenhuma dependência instalada ainda.",
@@ -45,7 +45,7 @@ const TR = {
     "buy": "Buy", "owned": "✓ You own it", "pendingBtn": "⏳ Waiting approval", "installing": "Installing",
     "t.activated": "Activated", "t.filesInj": "file(s) installed", "t.removed": "Removed", "t.filesDel": "file(s) deleted",
     "t.actFail": "Activation failed", "t.notReleased": "Access not released for this device yet.", "t.noFiles": "This game has no files on the server.",
-    "t.depsOk": "Dependencies installed", "t.depsFail": "Install failed", "t.depsLocked": "Close Steam and any running games, then try again (file in use).", "t.deleteDone": "Deletion complete", "t.receiptSent": "Receipt sent!", "t.wait": "Wait for the admin to release it.",
+    "t.depsOk": "Dependencies installed", "t.depsFail": "Install failed", "t.depsLocked": "Close Steam and any running games, then try again (file in use).", "t.steamClosing": "Closing Steam…", "t.steamReopened": "Dependencies installed. Steam reopened.", "t.deleteDone": "Deletion complete", "t.receiptSent": "Receipt sent!", "t.wait": "Wait for the admin to release it.",
     "t.attach": "Attach the receipt", "t.sendFail": "Send failed", "t.pixCopied": "Pix key copied", "t.bpOk": "Bypass downloaded to your Downloads folder", "t.bpNoFile": "This bypass has no file.", "t.bpBadLink": "Invalid link or file is not public (set it to \"Anyone with the link\").", "t.dlFail": "Download failed",
     "t.serverDown": "Server unavailable", "t.storeFail": "Failed to load store", "t.confirmDel": "Permanently delete all files from this PC?",
     "steam.ok": "● Steam found", "steam.bad": "▲ Steam not found", "deps.count": "dependency(ies) installed.", "deps.none": "No dependencies installed yet.",
@@ -67,7 +67,7 @@ const TR = {
     "buy": "Comprar", "owned": "✓ Ya lo tienes", "pendingBtn": "⏳ Esperando aprobación", "installing": "Instalando",
     "t.activated": "Activado", "t.filesInj": "archivo(s) instalado(s)", "t.removed": "Quitado", "t.filesDel": "archivo(s) borrado(s)",
     "t.actFail": "Error al activar", "t.notReleased": "Acceso no liberado para este dispositivo aún.", "t.noFiles": "Este juego no tiene archivos en el servidor.",
-    "t.depsOk": "Dependencias instaladas", "t.depsFail": "Error al instalar", "t.depsLocked": "Cierra Steam y los juegos abiertos e inténtalo de nuevo (archivo en uso).", "t.deleteDone": "Eliminación completa", "t.receiptSent": "¡Comprobante enviado!", "t.wait": "Espera a que el administrador lo libere.",
+    "t.depsOk": "Dependencias instaladas", "t.depsFail": "Error al instalar", "t.depsLocked": "Cierra Steam y los juegos abiertos e inténtalo de nuevo (archivo en uso).", "t.steamClosing": "Cerrando Steam…", "t.steamReopened": "Dependencias instaladas. Steam reabierta.", "t.deleteDone": "Eliminación completa", "t.receiptSent": "¡Comprobante enviado!", "t.wait": "Espera a que el administrador lo libere.",
     "t.attach": "Adjunta el comprobante", "t.sendFail": "Error al enviar", "t.pixCopied": "Clave Pix copiada", "t.bpOk": "Bypass descargado a la carpeta Descargas", "t.bpNoFile": "Este bypass no tiene archivo.", "t.bpBadLink": "Enlace inválido o archivo no público (déjalo como \"Cualquier persona con el enlace\").", "t.dlFail": "Error al descargar",
     "t.serverDown": "Servidor no disponible", "t.storeFail": "Error al cargar la tienda", "t.confirmDel": "¿Eliminar permanentemente todos los archivos de este PC?",
     "steam.ok": "● Steam encontrada", "steam.bad": "▲ Steam no encontrada", "deps.count": "dependencia(s) instalada(s).", "deps.none": "Ninguna dependencia instalada aún.",
@@ -80,9 +80,9 @@ const tr = (k) => (TR[LANG] && TR[LANG][k]) || TR.pt[k] || k;
 const norm = (s) => (s == null ? "" : String(s)).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
 
 const GATE = {
-  pt: { enter: "Digite sua key de acesso para continuar", welcome: "Bem-vindo de volta! Clique em Entrar para continuar.", enterBtn: "Entrar", activateBtn: "Ativar", activate: "Ativar", invalid: "Key inválida.", other: "Esta key já está em uso em outro PC.", blocked: "Key inválida ou usada em outro computador. O aplicativo será fechado.", close: "Fechar", checking: "Verificando…" },
-  en: { enter: "Enter your access key to continue", welcome: "Welcome back! Click Enter to continue.", enterBtn: "Enter", activateBtn: "Activate", activate: "Activate", invalid: "Invalid key.", other: "This key is already used on another PC.", blocked: "Invalid key or used on another computer. The app will close.", close: "Close", checking: "Checking…" },
-  es: { enter: "Ingresa tu clave de acceso para continuar", welcome: "¡Bienvenido de nuevo! Pulsa Entrar para continuar.", enterBtn: "Entrar", activateBtn: "Activar", activate: "Activar", invalid: "Clave inválida.", other: "Esta clave ya se usa en otro PC.", blocked: "Clave inválida o usada en otro equipo. La app se cerrará.", close: "Cerrar", checking: "Verificando…" },
+  pt: { enter: "Digite sua key de acesso para continuar", welcome: "Bem-vindo de volta! Clique em Entrar para continuar.", enterBtn: "Entrar", activateBtn: "Ativar", activate: "Ativar", invalid: "Key inválida.", other: "Esta key já está em uso em outro PC.", blocked: "Key inválida ou usada em outro computador. O aplicativo será fechado.", revoked: "Sua key foi removida pelo administrador. Todos os jogos e dependências instalados foram apagados e o acesso foi encerrado.", close: "Fechar", checking: "Verificando…" },
+  en: { enter: "Enter your access key to continue", welcome: "Welcome back! Click Enter to continue.", enterBtn: "Enter", activateBtn: "Activate", activate: "Activate", invalid: "Invalid key.", other: "This key is already used on another PC.", blocked: "Invalid key or used on another computer. The app will close.", revoked: "Your key was removed by the administrator. All installed games and dependencies were deleted and access was revoked.", close: "Close", checking: "Checking…" },
+  es: { enter: "Ingresa tu clave de acceso para continuar", welcome: "¡Bienvenido de nuevo! Pulsa Entrar para continuar.", enterBtn: "Entrar", activateBtn: "Activar", activate: "Activar", invalid: "Clave inválida.", other: "Esta clave ya se usa en otro PC.", blocked: "Clave inválida o usada en otro equipo. La app se cerrará.", revoked: "Tu clave fue eliminada por el administrador. Todos los juegos y dependencias instalados fueron borrados y se revocó el acceso.", close: "Cerrar", checking: "Verificando…" },
 };
 const gt = (k) => (GATE[LANG] && GATE[LANG][k]) || GATE.pt[k];
 
@@ -255,15 +255,17 @@ $("#install-deps-btn").addEventListener("click", async () => {
     if (res.locked && res.locked.length) {
       toast(tr("t.depsLocked"), res.locked.join(", "), "err");
     } else {
-      toast(tr("t.depsOk"), `${(res.installed || 0)} / ${(res.count || 0)}`, "ok");
+      toast(tr("t.depsOk"), res.steamReopened ? tr("t.steamReopened") : `${(res.installed || 0)} / ${(res.count || 0)}`, "ok");
     }
     CONFIG = await window.api.getConfig(); updateSettingsUI();
   } catch (e) { toast(tr("t.depsFail"), e.message, "err"); }
   finally { hideLoader(); btn.disabled = false; }
 });
 window.api.onDepProgress((d) => {
-  $("#deps-progress-label").textContent = `${tr("installing")} (${d.current}/${d.total})`;
-  const el = $("#app-loader-text"); if (el) el.textContent = `${tr("load.deps")} (${d.current}/${d.total})`;
+  const steamMsg = d.filename === "steam:closing";
+  const label = steamMsg ? tr("t.steamClosing") : `${tr("load.deps")} (${d.current}/${d.total})`;
+  $("#deps-progress-label").textContent = steamMsg ? tr("t.steamClosing") : `${tr("installing")} (${d.current}/${d.total})`;
+  const el = $("#app-loader-text"); if (el) el.textContent = label;
 });
 $("#delete-all-btn").addEventListener("click", async () => {
   if (!confirm(tr("t.confirmDel"))) return;
@@ -385,6 +387,7 @@ $("#key-submit").addEventListener("click", async () => {
     await window.api.setKey(key);
     $("#key-gate").classList.add("hidden");
     applyLang();
+    startKeyWatch(key);
     await enterApp();
   } else {
     $("#key-gate-msg").textContent = res.reason === "other_device" ? gt("other") : gt("invalid");
@@ -392,11 +395,32 @@ $("#key-submit").addEventListener("click", async () => {
 });
 $("#key-quit").addEventListener("click", () => window.api.quitApp());
 
+// Wipe everything this client installed (deps + injected game files) and block access.
+async function revokeAndWipe() {
+  try { await window.api.deleteAll(); } catch {}
+  try { await window.api.setKey(""); } catch {}
+  showGate(gt("revoked"), true);
+}
+
 // Always show the entry screen; a saved key is pre-filled so the client just clicks Enter.
+// If the stored key was deleted/revoked by the admin, auto-wipe and block.
 async function gate() {
   const stored = await window.api.getKey();
-  if (stored) showGate(gt("welcome"), false, stored, gt("enterBtn"));
-  else showGate(gt("enter"), false, "", gt("activateBtn"));
+  if (!stored) { showGate(gt("enter"), false, "", gt("activateBtn")); return; }
+  showGate(gt("welcome"), false, stored, gt("enterBtn"));
+  const res = await validateKey(stored);
+  if (!res.valid && res.reason !== "network") { await revokeAndWipe(); }
+  else if (res.valid) { startKeyWatch(stored); }
+}
+
+// While the app is open, re-check the key every 5 min; wipe + block if it was removed.
+let keyWatch = null;
+function startKeyWatch(key) {
+  if (keyWatch) clearInterval(keyWatch);
+  keyWatch = setInterval(async () => {
+    const res = await validateKey(key);
+    if (!res.valid && res.reason !== "network") { clearInterval(keyWatch); await revokeAndWipe(); }
+  }, 5 * 60 * 1000);
 }
 
 // After a successful key confirmation: first launch shows a loading screen while the
