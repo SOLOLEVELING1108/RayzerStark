@@ -28,6 +28,28 @@ def create_token(email: str) -> str:
     return jwt.encode(payload, os.environ["JWT_SECRET"], algorithm=JWT_ALGO)
 
 
+def create_affiliate_token(affiliate_id: str, name: str) -> str:
+    payload = {
+        "sub": f"affiliate:{affiliate_id}", "role": "affiliate",
+        "affiliate_id": str(affiliate_id), "name": name, "type": "access",
+        "exp": datetime.now(timezone.utc) + timedelta(hours=12),
+    }
+    return jwt.encode(payload, os.environ["JWT_SECRET"], algorithm=JWT_ALGO)
+
+
+def decode_token(request: Request) -> dict:
+    header = request.headers.get("Authorization", "")
+    token = header[7:] if header.startswith("Bearer ") else None
+    if not token:
+        raise HTTPException(status_code=401, detail="Não autenticado")
+    try:
+        return jwt.decode(token, os.environ["JWT_SECRET"], algorithms=[JWT_ALGO])
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Sessão expirada")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Token inválido")
+
+
 def require_admin(request: Request):
     header = request.headers.get("Authorization", "")
     token = header[7:] if header.startswith("Bearer ") else None

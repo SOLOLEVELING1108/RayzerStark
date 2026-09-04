@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, UploadFile, File, Form, Query, HTTPException, Depends
+from fastapi import FastAPI, APIRouter, UploadFile, File, Form, Query, HTTPException, Depends, Request
 from fastapi.responses import Response, FileResponse
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
@@ -85,18 +85,71 @@ def root():
 
 
 # ============ AUTH (single admin) ============
+def current_principal(request: Request):
+    p = auth.decode_token(request)
+    role = p.get("role")
+    if role == "admin":
+        return {"role": "admin", "affiliate_id": None, "email": p.get("sub"), "name": "Admin"}
+    if role == "affiliate" and p.get("affiliate_id"):
+        aff = one(supa.t("affiliates").select("*").eq("id", p["affiliate_id"]).eq("active", True).execute())
+        if not aff:
+            raise HTTPException(401, "Afiliado inválido ou desativado")
+        return {"role": "affiliate", "affiliate_id": aff["id"], "name": aff.get("name")}
+    raise HTTPException(401, "Token inválido")
+
+
+def _gen_aff_key():
+    alpha = string.ascii_uppercase + string.digits
+    grp = lambda: "".join(secrets.choice(alpha) for _ in range(4))
+    return f"AFF-{grp()}-{grp()}-{grp()}"
+
+
+@api_router.get("/affiliates")
+def list_affiliates(admin: dict = Depends(auth.require_admin)):
+    return rows(supa.t("affiliates").select("*").order("created_at", desc=True).execute())
+
+
+@api_router.post("/affiliates")
+def create_affiliate(payload: dict = None, admin: dict = Depends(auth.require_admin)):
+    name = ((payload or {}).get("name") or "").strip()
+    if not name:
+        raise HTTPException(400, "Informe o nome do afiliado.")
+    for _ in range(5):
+        key = _gen_aff_key()
+        if not rows(supa.t("affiliates").select("id").eq("key", key).execute()):
+            break
+    row = {"id": str(uuid.uuid4()), "name": name, "key": key, "active": True, "created_at": now_iso()}
+    supa.t("affiliates").insert(row).execute()
+    return row
+
+
+@api_router.delete("/affiliates/{aid}")
+def delete_affiliate(aid: str, admin: dict = Depends(auth.require_admin)):
+    supa.t("affiliates").delete().eq("id", aid).execute()
+    return {"ok": True}
+
+
 @api_router.post("/auth/login")
 def login(payload: dict):
-    email = payload.get("email", "")
-    password = payload.get("password", "")
+    p = payload or {}
+    key = (p.get("affiliate_key") or "").strip().upper()
+    if not key and not p.get("password") and (p.get("email") or "").strip().upper().startswith("AFF-"):
+        key = (p.get("email") or "").strip().upper()
+    if key:
+        aff = one(supa.t("affiliates").select("*").eq("key", key).eq("active", True).execute())
+        if not aff:
+            raise HTTPException(401, "Key de afiliado inválida")
+        return {"token": auth.create_affiliate_token(aff["id"], aff["name"]), "role": "affiliate", "name": aff["name"], "affiliate_id": aff["id"]}
+    email = p.get("email", "")
+    password = p.get("password", "")
     if not auth.verify_credentials(email, password):
         raise HTTPException(401, "E-mail ou senha inválidos")
     return {"token": auth.create_token(auth.ADMIN_EMAIL), "email": auth.ADMIN_EMAIL, "role": "admin"}
 
 
 @api_router.get("/auth/me")
-def me(admin=Depends(auth.require_admin)):
-    return admin
+def me(principal=Depends(current_principal)):
+    return principal
 
 
 @api_router.get("/games")
@@ -417,7 +470,7 @@ def _gen_key():
 
 
 @api_router.post("/keys")
-def create_key(payload: dict = None, admin: dict = Depends(auth.require_admin)):
+def create_key(payload: dict = None, principal: dict = Depends(current_principal)):
     p = payload or {}
     full_name = (p.get("full_name") or "").strip()
     email = (p.get("email") or "").strip()
@@ -428,26 +481,51 @@ def create_key(payload: dict = None, admin: dict = Depends(auth.require_admin)):
         key = _gen_key()
         if not rows(supa.t("access_keys").select("id").eq("key", key).execute()):
             break
+    if principal["role"] == "affiliate":
+        aff_id, aff_name = principal["affiliate_id"], principal.get("name") or ""
+    else:
+        aff_id = p.get("affiliate_id") or None
+        aff_name = ""
+        if aff_id:
+            a = one(supa.t("affiliates").select("name").eq("id", aff_id).execute())
+            aff_name = a["name"] if a else ""
     row = {"id": str(uuid.uuid4()), "key": key, "hwid": None,
            "full_name": full_name, "email": email, "phone": phone, "label": p.get("label", ""),
+           "affiliate_id": aff_id, "affiliate_name": aff_name,
            "status": "active", "created_at": now_iso(), "activated_at": None}
     supa.t("access_keys").insert(row).execute()
     return row
 
 
 @api_router.get("/keys")
-def list_keys(admin: dict = Depends(auth.require_admin)):
-    return rows(supa.t("access_keys").select("*").order("created_at", desc=True).execute())
+def list_keys(affiliate_id: str | None = None, principal: dict = Depends(current_principal)):
+    q = supa.t("access_keys").select("*").order("created_at", desc=True)
+    if principal["role"] == "affiliate":
+        q = q.eq("affiliate_id", principal["affiliate_id"])
+    elif affiliate_id:
+        q = q.eq("affiliate_id", affiliate_id)
+    return rows(q.execute())
+
+
+def _owns_key(principal, kid):
+    if principal["role"] == "admin":
+        return True
+    k = one(supa.t("access_keys").select("id,affiliate_id").eq("id", kid).execute())
+    return bool(k and k.get("affiliate_id") == principal["affiliate_id"])
 
 
 @api_router.delete("/keys/{kid}")
-def delete_key(kid: str, admin: dict = Depends(auth.require_admin)):
+def delete_key(kid: str, principal: dict = Depends(current_principal)):
+    if not _owns_key(principal, kid):
+        raise HTTPException(404, "Key não encontrada")
     supa.t("access_keys").delete().eq("id", kid).execute()
     return {"ok": True}
 
 
 @api_router.post("/keys/{kid}/reset")
-def reset_key(kid: str, admin: dict = Depends(auth.require_admin)):
+def reset_key(kid: str, principal: dict = Depends(current_principal)):
+    if not _owns_key(principal, kid):
+        raise HTTPException(404, "Key não encontrada")
     supa.t("access_keys").update({"hwid": None, "activated_at": None, "status": "active"}).eq("id", kid).execute()
     return {"ok": True}
 

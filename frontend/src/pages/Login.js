@@ -16,16 +16,21 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     try {
-      const { data } = await api.post("/auth/login", { email, password });
+      const isAff = email.trim().toUpperCase().startsWith("AFF-");
+      const body = isAff ? { affiliate_key: email.trim().toUpperCase() } : { email, password };
+      const { data } = await api.post("/auth/login", body);
       localStorage.setItem("admin_token", data.token);
+      localStorage.setItem("role", data.role || "admin");
+      localStorage.setItem("principal_name", data.name || "Admin");
       toast.success(t("login.welcome"));
-      navigate("/");
+      navigate(data.role === "affiliate" ? "/keys" : "/");
     } catch (err) {
       toast.error(err.response?.data?.detail || t("login.fail"));
     } finally {
       setLoading(false);
     }
   };
+  const affMode = email.trim().toUpperCase().startsWith("AFF-");
 
   return (
     <div className="min-h-screen bg-[#08090E] bg-grid flex items-center justify-center p-6">
@@ -42,19 +47,24 @@ export default function Login() {
           <h1 className="font-display text-2xl font-black mb-1">{t("login.title")}</h1>
           <p className="text-slate-400 text-sm mb-6">{t("login.subtitle")}</p>
 
-          <label className="text-xs font-mono uppercase tracking-widest text-slate-400 mb-1.5 block">{t("login.email")}</label>
+          <label className="text-xs font-mono uppercase tracking-widest text-slate-400 mb-1.5 block">{t("login.email")} / KEY</label>
           <div className="relative mb-4">
             <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-            <input data-testid="login-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-[#0b0d14] border border-white/10 rounded-lg pl-9 pr-3 py-2.5 text-sm outline-none focus:border-cyan-500/50 text-slate-100" placeholder="voce@email.com" required />
+            <input data-testid="login-email" type="text" value={email} onChange={(e) => setEmail(e.target.value)}
+              className="w-full bg-[#0b0d14] border border-white/10 rounded-lg pl-9 pr-3 py-2.5 text-sm outline-none focus:border-cyan-500/50 text-slate-100" placeholder="voce@email.com  ·  AFF-XXXX-XXXX-XXXX" required />
           </div>
 
+          {!affMode && (
+          <>
           <label className="text-xs font-mono uppercase tracking-widest text-slate-400 mb-1.5 block">{t("login.password")}</label>
           <div className="relative mb-6">
             <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
             <input data-testid="login-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-[#0b0d14] border border-white/10 rounded-lg pl-9 pr-3 py-2.5 text-sm outline-none focus:border-cyan-500/50 text-slate-100" placeholder="••••••••" required />
+              className="w-full bg-[#0b0d14] border border-white/10 rounded-lg pl-9 pr-3 py-2.5 text-sm outline-none focus:border-cyan-500/50 text-slate-100" placeholder="••••••••" />
           </div>
+          </>
+          )}
+          {affMode && <p className="text-[12px] text-cyan-400 mb-6 -mt-1">{t("login.affHint")}</p>}
 
           <button data-testid="login-submit" type="submit" disabled={loading}
             className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-cyan-500 text-black font-semibold text-sm hover:bg-cyan-400 disabled:opacity-60 transition-colors">

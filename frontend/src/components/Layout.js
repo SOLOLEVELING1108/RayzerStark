@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { LibraryBig, PlusCircle, Settings, Gamepad2, Boxes, Inbox, LogOut, ShieldCheck, KeyRound } from "lucide-react";
 import { api } from "@/lib/api";
@@ -6,17 +6,24 @@ import { useI18n } from "@/i18n";
 
 export default function Layout() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { t } = useI18n();
   const [pending, setPending] = useState(0);
+  const role = localStorage.getItem("role") || "admin";
+  const isAff = role === "affiliate";
+  const principalName = localStorage.getItem("principal_name") || "";
 
   useEffect(() => {
+    if (isAff) { if (location.pathname !== "/keys") navigate("/keys"); return; }
     const load = () => api.get("/purchases/count").then(({ data }) => setPending(data.pending)).catch(() => {});
     load();
     const iv = setInterval(load, 12000);
     return () => clearInterval(iv);
-  }, []);
+  }, [isAff, location.pathname, navigate]);
 
-  const navItems = [
+  const navItems = isAff
+    ? [{ to: "/keys", label: t("nav.keys"), icon: KeyRound, testid: "nav-keys", end: true }]
+    : [
     { to: "/", label: t("nav.library"), icon: LibraryBig, testid: "nav-library", end: true },
     { to: "/games/new", label: t("nav.addGame"), icon: PlusCircle, testid: "nav-add-game" },
     { to: "/bypass", label: t("nav.bypass"), icon: ShieldCheck, testid: "nav-bypass" },
@@ -65,11 +72,11 @@ export default function Layout() {
 
         <div className="p-3">
           <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-4 mb-2">
-            <p className="text-xs text-slate-400 leading-relaxed">{t("nav.clientNote")}</p>
+            <p className="text-xs text-slate-400 leading-relaxed">{isAff ? `${t("nav.affArea")} · ${principalName}` : t("nav.clientNote")}</p>
           </div>
           <button
             data-testid="logout-btn"
-            onClick={() => { localStorage.removeItem("admin_token"); navigate("/login"); }}
+            onClick={() => { localStorage.removeItem("admin_token"); localStorage.removeItem("role"); localStorage.removeItem("principal_name"); navigate("/login"); }}
             className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-red-300 hover:bg-red-500/10 border border-white/10 hover:border-red-500/30 transition-colors"
           >
             <LogOut className="w-4 h-4" /> {t("nav.logout")}
