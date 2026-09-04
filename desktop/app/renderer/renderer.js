@@ -448,6 +448,8 @@ function runSplash() {
 async function init() {
   CONFIG = await window.api.getConfig();
   applyLang();
+  showLoader(tr("update.checking"));
+  try { if (window.api.checkNativeUpdate) await window.api.checkNativeUpdate(); } catch {}
   await runSplash();
   await gate();
 }

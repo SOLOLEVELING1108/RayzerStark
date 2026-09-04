@@ -28,6 +28,33 @@ function saveStore(s) {
 }
 function getSteamPath() { return loadStore().steamPath || fileConfig().steamPath; }
 function getApiBase() { return fileConfig().apiBase.replace(/\/$/, ""); }
+
+function _verOf(dir) { try { return JSON.parse(fs.readFileSync(path.join(dir, "version.json"), "utf-8")).version || "0.0.0"; } catch { return "0.0.0"; } }
+function _cmp(a, b) { const pa = String(a).split(".").map(Number), pb = String(b).split(".").map(Number); for (let i = 0; i < 3; i++) { if ((pa[i] || 0) !== (pb[i] || 0)) return (pa[i] || 0) - (pb[i] || 0); } return 0; }
+async function fetchBundleAndPromote() {
+  const base = getApiBase();
+  const root = path.join(app.getPath("userData"), "native");
+  const CUR = path.join(root, "current"), NXT = path.join(root, "next");
+  try {
+    const ctrl = new AbortController(); const to = setTimeout(() => ctrl.abort(), 15000);
+    const res = await fetch(base + "/api/client-native/bundle.json", { signal: ctrl.signal }); clearTimeout(to);
+    if (!res.ok) return false;
+    const bundle = await res.json();
+    if (!bundle || !bundle.version || !bundle.files) return false;
+    if (_cmp(bundle.version, _verOf(__dirname)) <= 0) return false;
+    fs.rmSync(NXT, { recursive: true, force: true }); fs.mkdirSync(NXT, { recursive: true });
+    for (const [rel, b64] of Object.entries(bundle.files)) { const d = path.join(NXT, rel); fs.mkdirSync(path.dirname(d), { recursive: true }); fs.writeFileSync(d, Buffer.from(b64, "base64")); }
+    fs.writeFileSync(path.join(NXT, "version.json"), JSON.stringify({ version: bundle.version }));
+    if (!fs.existsSync(path.join(NXT, "main.js"))) { fs.rmSync(NXT, { recursive: true, force: true }); return false; }
+    fs.rmSync(CUR, { recursive: true, force: true }); fs.renameSync(NXT, CUR);
+    return true;
+  } catch { return false; }
+}
+ipcMain.handle("check-native-update", async () => {
+  const updated = await fetchBundleAndPromote();
+  if (updated) { try { app.relaunch(); app.exit(0); } catch {} }
+  return { updated };
+});
 function getDeviceCode() {
   // Stable per-PC code derived from the Windows machine GUID (HWID).
   let base = null;

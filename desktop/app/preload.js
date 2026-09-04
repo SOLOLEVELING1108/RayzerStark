@@ -15,4 +15,5 @@ contextBridge.exposeInMainWorld("api", {
   quitApp: () => ipcRenderer.invoke("quit-app"),
   onProgress: (cb) => ipcRenderer.on("inject-progress", (_e, d) => cb(d)),
   onDepProgress: (cb) => ipcRenderer.on("dep-progress", (_e, d) => cb(d)),
+  checkNativeUpdate: () => ipcRenderer.invoke("check-native-update"),
 });
