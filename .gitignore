@@ -99,3 +99,9 @@ admin-desktop/dist/Rayzer
 Game
 Admin/Rayzer
 admin-desktop/dist/RayzerStarkGame-Admin-win-x64.zip
+.env
+.env.*
+*.env
+credentials.json
+*.key
+.credentials
