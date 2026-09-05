@@ -6,7 +6,8 @@ function adminUrl() {
   try {
     return JSON.parse(fs.readFileSync(path.join(__dirname, "config.json"), "utf-8")).adminUrl;
   } catch {
-    return "https://game-config-patcher.preview.emergentagent.com";
+    // 👇 AQUI ESTÁ A MUDANÇA: Link atualizado para a Vercel!
+    return "https://rayzer-stark.vercel.app";
   }
 }
 
