@@ -15,7 +15,10 @@ const CONFIG_PATH = path.join(__dirname, "config.json");
 
 function fileConfig() {
   try { return JSON.parse(fs.readFileSync(CONFIG_PATH, "utf-8")); }
-  catch { return { apiBase: "http://localhost:8001", steamPath: "C:\\Program Files (x86)\\Steam" }; }
+  catch { 
+    // 👇 AQUI ESTÁ A MUDANÇA: Link atualizado para a Vercel!
+    return { apiBase: "https://rayzer-stark.vercel.app", steamPath: "C:\\Program Files (x86)\\Steam" }; 
+  }
 }
 function storePath() { return path.join(app.getPath("userData"), "store.json"); }
 function loadStore() {
