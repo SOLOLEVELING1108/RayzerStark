@@ -42,5 +42,8 @@
   },
   "dependencies": {
     "node-machine-id": "^1.1.12"
+  },
+  "allowScripts": {
+    "electron@30.5.1": true
   }
 }

@@ -761,7 +761,7 @@ def seed():
 
 
 app.include_router(api_router)
-# app.mount("/api/client-app", StaticFiles(directory=str(CLIENT_APP_DIR), html=True), name="client-app")
+app.mount("/api/client-app", StaticFiles(directory=str(CLIENT_APP_DIR), html=True), name="client-app")
 app.add_middleware(
     CORSMiddleware, allow_credentials=True,
     allow_origins=os.environ.get("CORS_ORIGINS", "*").split(","),
