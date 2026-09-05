@@ -91,8 +91,9 @@ function windowIcon() {
 }
 // The UI is served by our backend so it auto-updates with no re-download.
 // Falls back to the bundled renderer if the server can't be reached.
+// O frontend agora é servido direto da raiz da Vercel
 function loadClient() {
-  const remote = getApiBase() + "/api/client-app/index.html";
+  const remote = getApiBase(); // 👇 MUDANÇA AQUI: Tiramos o "/api/client-app/index.html"
   const bundled = path.join(__dirname, "renderer", "index.html");
   let usedFallback = false;
   win.webContents.on("did-fail-load", (_e, _code, _desc, _url, isMainFrame) => {
