@@ -16,10 +16,18 @@
   "build": {
     "appId": "com.rayzer.starkgameadmin",
     "productName": "Rayzer Stark Game Admin",
-    "files": ["main.js", "config.json"],
+    "files": [
+      "main.js",
+      "config.json"
+    ],
     "win": {
-      "target": ["dir"],
+      "target": [
+        "dir"
+      ],
       "signAndEditExecutable": false
     }
+  },
+  "allowScripts": {
+    "electron@30.5.1": true
   }
 }

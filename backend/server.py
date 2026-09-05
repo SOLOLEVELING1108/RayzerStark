@@ -1,5 +1,5 @@
 from fastapi import FastAPI, APIRouter, UploadFile, File, Form, Query, HTTPException, Depends, Request
-from fastapi.responses import Response, FileResponse
+from fastapi.responses import Response, FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -449,17 +449,23 @@ def package(game_id: str, device_code: str | None = None):
     return {"game_id": g["id"], "app_id": g["app_id"], "title": g["title"], "files": files}
 
 
-# ============ FILES ============
+# ============ FILES (OTIMIZADO) ============
 @api_router.get("/files/download")
 def download_file(path: str = Query(...)):
     if not path or ".." in path:
         raise HTTPException(400, "Invalid path")
-    try:
-        data = supa.download(path)
-    except Exception as e:
-        raise HTTPException(404, f"File not found: {e}")
-    ext = ext_of(path, "bin")
-    return Response(content=data, media_type=MIME.get(ext, "application/octet-stream"))
+    
+    # 1. Pega a URL do seu Supabase
+    supa_url = os.environ.get("SUPABASE_URL", "https://ujebdsehpowamayseitf.supabase.co").rstrip("/")
+    
+    # 2. Acha o nome da pasta (bucket)
+    bucket = getattr(supa, "BUCKET", getattr(supa, "BUCKET_NAME", "data"))
+    
+    # 3. Cria o link direto ultra-rápido do Supabase
+    direct_url = f"{supa_url}/storage/v1/object/public/{bucket}/{path}"
+    
+    # 4. Redireciona o aplicativo instantaneamente!
+    return RedirectResponse(url=direct_url)
 
 
 # ============ ACCESS KEYS ============
