@@ -34,10 +34,15 @@
     ],
     "win": {
       "target": [
-        "dir"
+        "nsis"
       ],
       "icon": "build/icon.ico",
-      "signAndEditExecutable": false
+      "signAndEditExecuteable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
     }
   },
   "dependencies": {
