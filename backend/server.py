@@ -665,7 +665,7 @@ def delete_bypass(bid: str, admin: dict = Depends(auth.require_admin)):
 # ============ CLIENT BUILD (Windows portable zip) ============
 CLIENT_BUILD = Path("/app/desktop/dist/RayzerStarkGame-Client-win-x64.zip")
 ADMIN_BUILD = Path("/app/admin-desktop/dist/RayzerStarkGame-Admin-win-x64.zip")
-CLIENT_APP_DIR = Path("/app/desktop/app/renderer")
+CLIENT_APP_DIR = ROOT_DIR / "app" / "renderer"      # <--- CAMINHO CORRIGIDO!
 NATIVE_APP_DIR = ROOT_DIR / "app"
 
 
@@ -761,7 +761,7 @@ def seed():
 
 
 app.include_router(api_router)
-# app.mount("/api/client-app", StaticFiles(directory=str(CLIENT_APP_DIR), html=True), name="client-app")
+ app.mount("/api/client-app", StaticFiles(directory=str(CLIENT_APP_DIR), html=True), name="client-app")
 app.add_middleware(
     CORSMiddleware, allow_credentials=True,
     allow_origins=os.environ.get("CORS_ORIGINS", "*").split(","),
