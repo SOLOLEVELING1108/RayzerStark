@@ -10,50 +10,26 @@
   <style>
     /* 🔴 ESTILOS DOS NOVOS BOTÕES DE CONTROLE DA JANELA 🔴 */
     .window-controls {
-      position: absolute;
-      top: 0;
-      right: 0;
-      display: flex;
-      z-index: 9999;
-      /* Esse comando permite arrastar a janela clicando no espaço vazio no topo */
-      -webkit-app-region: drag; 
-      width: 100%;
-      justify-content: flex-end;
+      position: absolute; top: 0; right: 0; display: flex; z-index: 9999;
+      -webkit-app-region: drag; width: 100%; justify-content: flex-end;
     }
     
     .window-btn {
-      /* Esse comando diz para o Electron que o botão em si é clicável, não arrastável */
-      -webkit-app-region: no-drag;
-      background: transparent;
-      border: none;
-      color: #8892b0;
-      width: 46px;
-      height: 32px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      font-size: 14px;
-      transition: all 0.2s ease;
+      -webkit-app-region: no-drag; background: transparent; border: none;
+      color: #8892b0; width: 46px; height: 32px; display: flex;
+      align-items: center; justify-content: center; cursor: pointer;
+      font-size: 14px; transition: all 0.2s ease;
     }
     
-    .window-btn:hover {
-      background: rgba(255, 255, 255, 0.1);
-      color: #ffffff;
-    }
-    
-    .window-btn.close:hover {
-      background: #e81123;
-      color: #ffffff;
-    }
+    .window-btn:hover { background: rgba(255, 255, 255, 0.1); color: #ffffff; }
+    .window-btn.close:hover { background: #e81123; color: #ffffff; }
     
     /* 🔴 EFEITO 3D CYBERPUNK NO FUNDO 🔴 */
     .animated-bg {
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-      z-index: -1; /* Fica atrás de tudo */
+      z-index: -1; 
       background: radial-gradient(circle at 50% 0%, #151b2e 0%, #08090E 50%);
-      overflow: hidden;
-      perspective: 800px; /* Cria a profundidade 3D */
+      overflow: hidden; perspective: 800px; 
     }
     
     .grid-3d {
@@ -61,10 +37,9 @@
       background-image: 
         linear-gradient(rgba(0, 255, 255, 0.1) 2px, transparent 2px),
         linear-gradient(90deg, rgba(0, 255, 255, 0.1) 2px, transparent 2px);
-      background-size: 60px 60px; /* Tamanho dos quadrados */
-      transform: rotateX(75deg); /* Deita a grade em 3D */
-      animation: moveGrid 3s linear infinite; /* Animação infinita */
-      /* Faz a grade sumir na escuridão do fundo */
+      background-size: 60px 60px; 
+      transform: rotateX(75deg); 
+      animation: moveGrid 3s linear infinite; 
       mask-image: linear-gradient(to top, rgba(0,0,0,1) 10%, rgba(0,0,0,0) 60%);
       -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1) 10%, rgba(0,0,0,0) 60%);
     }
@@ -73,16 +48,34 @@
       0% { transform: rotateX(75deg) translateY(0); }
       100% { transform: rotateX(75deg) translateY(60px); }
     }
+
+    /* 🔴 OBRIGA O LOGIN E SPLASH A SEREM TRANSPARENTES PARA VER O 3D 🔴 */
+    .key-gate, .lang-overlay, .modal-overlay {
+      background: rgba(8, 9, 14, 0.35) !important; 
+      backdrop-filter: blur(8px) !important;
+      -webkit-backdrop-filter: blur(8px) !important;
+    }
+
+    /* 🔴 ESTILOS DA BARRINHA DE CARREGAMENTO FAKE 🔴 */
+    .smart-loader-bar-bg {
+      width: 320px; height: 6px; background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px; overflow: hidden; margin: 0 auto;
+    }
+    .smart-loader-bar-fill {
+      width: 0%; height: 100%; background: #00ffff;
+      box-shadow: 0 0 10px #00ffff;
+      transition: width 12s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
   </style>
 </head>
 <body>
 
-  <!-- 🔴 FUNDO 3D ANIMADO COLOCADO NO LUGAR CERTO 🔴 -->
+  <!-- FUNDO 3D ANIMADO -->
   <div class="animated-bg">
     <div class="grid-3d"></div>
   </div>
 
-  <!-- 🟢 BARRA SUPERIOR CUSTOMIZADA (BORDLESS) 🟢 -->
+  <!-- BARRA SUPERIOR CUSTOMIZADA (BORDLESS) -->
   <div class="window-controls">
     <button class="window-btn" id="btn-minimize" title="Minimizar">
       <svg width="10" height="1" viewBox="0 0 10 1"><path fill="currentColor" d="M0 0h10v1H0z"/></svg>
@@ -234,28 +227,69 @@
     <div class="lang-text" id="app-loader-text">Iniciando…</div>
     <div class="lang-bar"><div id="app-loader-bar" class="indet"></div></div>
   </div>
+  
+  <!-- 🔴 TELA DE CARREGAMENTO INTELIGENTE (12 SEGUNDOS) 🔴 -->
+  <div id="smart-loader" class="key-gate hidden" style="z-index: 9998; text-align: center;">
+    <img src="logo.png" class="lang-logo splash-logo" alt="" />
+    <div class="brand-title splash-brand">RAYZER STARK GAME</div>
+    <div class="lang-text" style="color: #00ffff; font-size: 16px; margin: 20px 0 10px 0;">Inicializando sistema...</div>
+    <div class="smart-loader-bar-bg">
+      <div id="smart-loader-bar" class="smart-loader-bar-fill"></div>
+    </div>
+  </div>
 
   <div id="toast-wrap"></div>
   
-  <!-- 🟢 SCRIPT DOS BOTÕES DE CONTROLE DA JANELA 🟢 -->
+  <!-- SCRIPT DOS BOTÕES DA JANELA E DO CARREGAMENTO FAKE -->
   <script>
     document.addEventListener("DOMContentLoaded", () => {
+      // 1. Controles da Janela
       const btnMinimize = document.getElementById("btn-minimize");
       const btnClose = document.getElementById("btn-close");
       
       if(btnMinimize) {
         btnMinimize.addEventListener("click", () => {
-          if (window.api && window.api.minimizeApp) {
-            window.api.minimizeApp();
-          }
+          if (window.api && window.api.minimizeApp) window.api.minimizeApp();
         });
       }
       
       if(btnClose) {
         btnClose.addEventListener("click", () => {
-          if (window.api && window.api.quitApp) {
-            window.api.quitApp();
-          }
+          if (window.api && window.api.quitApp) window.api.quitApp();
+        });
+      }
+
+      // 2. Lógica do Carregamento Inteligente de 12 segundos
+      const btnSubmit = document.getElementById("key-submit");
+      const keyGate = document.getElementById("key-gate");
+      const smartLoader = document.getElementById("smart-loader");
+      const smartLoaderBar = document.getElementById("smart-loader-bar");
+
+      if (btnSubmit && keyGate && smartLoader) {
+        btnSubmit.addEventListener("click", () => {
+          // Quando o usuário clica em "Ativar", a gente fica checando (a cada 0.5s) 
+          // se o sistema aceitou a Key e fechou a tela de login.
+          const checkLogin = setInterval(() => {
+            if (keyGate.classList.contains("hidden")) {
+              clearInterval(checkLogin); // Parou de checar
+              
+              // Joga a tela de carregamento na cara do usuário!
+              smartLoader.classList.remove("hidden");
+              
+              // Começa a encher a barrinha
+              setTimeout(() => {
+                smartLoaderBar.style.width = "100%";
+              }, 100);
+              
+              // Depois de 12 segundos, esconde o carregamento e revela a tela principal
+              setTimeout(() => {
+                smartLoader.classList.add("hidden");
+              }, 12000);
+            }
+          }, 500);
+
+          // Se passar 10 segundos e a tela de key não fechar (Key errada), ele desiste de checar
+          setTimeout(() => clearInterval(checkLogin), 10000);
         });
       }
     });
