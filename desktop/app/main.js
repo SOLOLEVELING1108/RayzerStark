@@ -17,7 +17,7 @@ function fileConfig() {
   try { return JSON.parse(fs.readFileSync(CONFIG_PATH, "utf-8")); }
   catch { 
     // 👇 AQUI ESTÁ A MUDANÇA: Link atualizado para a Vercel!
-    return { apiBase: "https://rayzerstark.onrender.com", steamPath: "C:\\Program Files (x86)\\Steam" }; 
+    return { apiBase: "https://rayzer-stark.vercel.app", steamPath: "C:\\Program Files (x86)\\Steam" }; 
   }
 }
 function storePath() { return path.join(app.getPath("userData"), "store.json"); }

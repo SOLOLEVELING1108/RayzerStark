@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rayzer Stark Game</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <img src="logo.png" class="brand-img" alt="Rayzer" />
+        <div><div class="brand-title">RAYZER STARK</div><div class="brand-sub">GAME</div></div>
+      </div>
+      <nav>
+        <button class="nav-item active" data-view="library" data-i18n="nav.library">Biblioteca</button>
+        <button class="nav-item" data-view="bypass" data-i18n="nav.bypass">Bypass</button>
+        <button class="nav-item" data-view="store" data-i18n="nav.store">Loja</button>
+        <button class="nav-item" data-view="settings" data-i18n="nav.settings">Configurações</button>
+      </nav>
+      <div class="sidebar-foot">
+        <div id="steam-status" class="steam-status">…</div>
+        <div class="device mono" id="device-foot"></div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <span class="topbar-title" id="view-title">Biblioteca</span>
+      </header>
+
+      <!-- LIBRARY -->
+      <section id="view-library" class="view">
+        <div class="page-head">
+          <div><h1 data-i18n="lib.title">Biblioteca</h1><p class="muted" data-i18n="lib.subtitle">Seus jogos liberados. Clique em Ativar.</p></div>
+          <button id="refresh-lib" class="btn-ghost" data-i18n="common.refresh">↻ Atualizar</button>
+        </div>
+        <input id="search" class="input" />
+        <div id="grid" class="grid" style="margin-top:18px"></div>
+        <div id="empty-lib" class="empty hidden" data-i18n="lib.empty">Nenhum jogo liberado ainda.</div>
+      </section>
+
+      <!-- BYPASS -->
+      <section id="view-bypass" class="view hidden">
+        <div class="page-head">
+          <div><h1 data-i18n="bp.title">Bypass</h1><p class="muted" data-i18n="bp.subtitle">Baixe o bypass do jogo direto para a pasta Downloads.</p></div>
+          <button id="refresh-bypass" class="btn-ghost" data-i18n="common.refresh">↻ Atualizar</button>
+        </div>
+        <input id="search-bypass" class="input" />
+        <div id="bypass-grid" class="grid" style="margin-top:18px"></div>
+        <div id="empty-bypass" class="empty hidden" data-i18n="bp.empty">Nenhum bypass disponível.</div>
+      </section>
+
+      <!-- STORE -->
+      <section id="view-store" class="view hidden">
+        <div class="page-head">
+          <div><h1 data-i18n="store.title">Loja</h1><p class="muted" data-i18n="store.subtitle">Compre via Pix e envie o comprovante.</p></div>
+          <button id="refresh-store" class="btn-ghost" data-i18n="common.refresh">↻ Atualizar</button>
+        </div>
+        <div id="store-grid" class="grid"></div>
+        <div id="empty-store" class="empty hidden" data-i18n="store.empty">Nenhum jogo à venda.</div>
+      </section>
+
+      <!-- SETTINGS -->
+      <section id="view-settings" class="view hidden">
+        <div class="page-head"><div><h1 data-i18n="set.title">Configurações</h1></div></div>
+
+        <div class="card">
+          <div class="card-title" data-i18n="set.lang">Idioma</div>
+          <p class="muted" data-i18n="set.langDesc">Escolha o idioma do aplicativo.</p>
+          <div class="lang-row" id="lang-row"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title" data-i18n="set.deps">Instalar dependências</div>
+          <p class="muted" data-i18n="set.depsDesc">Baixa e instala os arquivos necessários automaticamente.</p>
+          <button id="install-deps-btn" class="btn" style="margin-top:12px" data-i18n="set.depsBtn">Instalar dependências</button>
+          <div id="deps-progress-label" class="progress-label"></div>
+          <div class="muted small" id="deps-status" style="margin-top:8px"></div>
+        </div>
+
+        <div class="card danger-card">
+          <div class="card-title" style="color:var(--red)" data-i18n="set.del">Exclusões</div>
+          <p class="muted" data-i18n="set.delDesc">Remove permanentemente deste PC todos os arquivos dos jogos ativados.</p>
+          <button id="delete-all-btn" class="btn danger" style="margin-top:12px" data-i18n="set.delBtn">Excluir todos os jogos</button>
+          <div class="muted small" id="delete-status" style="margin-top:8px"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title" data-i18n="set.device">Este dispositivo</div>
+          <p class="muted" data-i18n="set.deviceDesc">Envie este código junto do comprovante para liberar seu acesso:</p>
+          <div class="device-box mono" id="device-code"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title" data-i18n="set.version">Atualização</div>
+          <p class="muted" data-i18n="set.versionDesc">Versão instalada do aplicativo. As atualizações são aplicadas sozinhas ao abrir.</p>
+          <div class="device-box mono" id="app-version">—</div>
+          <div class="muted small" id="app-version-status" style="margin-top:8px"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- PURCHASE MODAL -->
+  <div id="modal" class="modal-overlay hidden">
+    <div class="modal">
+      <button id="modal-close" class="modal-close">✕</button>
+      <h2 id="modal-title">—</h2>
+      <p class="muted" id="modal-price"></p>
+      <div class="pix-box">
+        <div class="pix-row"><span class="lbl" data-i18n="pix.type">Tipo</span><span id="pix-type" class="mono"></span></div>
+        <div class="pix-row"><span class="lbl" data-i18n="pix.key">Chave Pix</span><span id="pix-key" class="mono copyable"></span></div>
+        <div class="pix-row"><span class="lbl" data-i18n="pix.holder">Titular</span><span id="pix-holder"></span></div>
+      </div>
+      <label class="lbl" style="margin-top:14px" data-i18n="pix.receipt">Comprovante (imagem)</label>
+      <input id="receipt-input" type="file" accept="image/*" class="input" />
+      <label class="lbl" style="margin-top:12px" data-i18n="pix.name">Seu nome/apelido (opcional)</label>
+      <input id="buyer-name" type="text" class="input" />
+      <button id="submit-purchase" class="btn full" style="margin-top:16px" data-i18n="pix.send">Enviar comprovante</button>
+      <p class="muted small" id="modal-device" style="margin-top:10px"></p>
+    </div>
+  </div>
+
+  <!-- LANGUAGE LOADING OVERLAY -->
+  <div id="lang-overlay" class="lang-overlay hidden">
+    <img src="logo.png" class="lang-logo" alt="" />
+    <div class="lang-text" id="lang-text">Mudando idioma…</div>
+    <div class="lang-bar"><div id="lang-bar-fill"></div></div>
+    <div class="lang-pct mono" id="lang-pct">0%</div>
+  </div>
+
+  <!-- KEY GATE -->
+  <div id="key-gate" class="key-gate hidden">
+    <img src="logo.png" class="lang-logo" alt="" />
+    <div class="brand-title" style="font-size:24px;letter-spacing:.04em">RAYZER STARK GAME</div>
+    <div id="key-gate-msg" class="muted" style="max-width:360px;text-align:center"></div>
+    <input id="key-input" class="input mono" placeholder="RZR-XXXX-XXXX-XXXX" style="width:320px;text-align:center;text-transform:uppercase" />
+    <button id="key-submit" class="btn" style="width:320px">Ativar</button>
+    <button id="key-quit" class="btn-ghost hidden">Fechar</button>
+    <div class="device mono" id="key-device"></div>
+  </div>
+
+  <!-- APP LOADER / SPLASH -->
+  <div id="app-loader" class="lang-overlay">
+    <img src="logo.png" class="lang-logo splash-logo" alt="" />
+    <div class="brand-title splash-brand">RAYZER STARK GAME</div>
+    <div class="lang-text" id="app-loader-text">Iniciando…</div>
+    <div class="lang-bar"><div id="app-loader-bar" class="indet"></div></div>
+  </div>
+
+
+  <div id="toast-wrap"></div>
+  <script src="renderer.js"></script>
+</body>
+</html>
