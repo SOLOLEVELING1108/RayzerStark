@@ -46,9 +46,41 @@
       background: #e81123;
       color: #ffffff;
     }
+    
+    /* 🔴 EFEITO 3D CYBERPUNK NO FUNDO 🔴 */
+    .animated-bg {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      z-index: -1; /* Fica atrás de tudo */
+      background: radial-gradient(circle at 50% 0%, #151b2e 0%, #08090E 50%);
+      overflow: hidden;
+      perspective: 800px; /* Cria a profundidade 3D */
+    }
+    
+    .grid-3d {
+      position: absolute; bottom: -50%; left: -50%; width: 200%; height: 200%;
+      background-image: 
+        linear-gradient(rgba(0, 255, 255, 0.1) 2px, transparent 2px),
+        linear-gradient(90deg, rgba(0, 255, 255, 0.1) 2px, transparent 2px);
+      background-size: 60px 60px; /* Tamanho dos quadrados */
+      transform: rotateX(75deg); /* Deita a grade em 3D */
+      animation: moveGrid 3s linear infinite; /* Animação infinita */
+      /* Faz a grade sumir na escuridão do fundo */
+      mask-image: linear-gradient(to top, rgba(0,0,0,1) 10%, rgba(0,0,0,0) 60%);
+      -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1) 10%, rgba(0,0,0,0) 60%);
+    }
+
+    @keyframes moveGrid {
+      0% { transform: rotateX(75deg) translateY(0); }
+      100% { transform: rotateX(75deg) translateY(60px); }
+    }
   </style>
 </head>
 <body>
+
+  <!-- 🔴 FUNDO 3D ANIMADO COLOCADO NO LUGAR CERTO 🔴 -->
+  <div class="animated-bg">
+    <div class="grid-3d"></div>
+  </div>
 
   <!-- 🟢 BARRA SUPERIOR CUSTOMIZADA (BORDLESS) 🟢 -->
   <div class="window-controls">
@@ -202,7 +234,6 @@
     <div class="lang-text" id="app-loader-text">Iniciando…</div>
     <div class="lang-bar"><div id="app-loader-bar" class="indet"></div></div>
   </div>
-
 
   <div id="toast-wrap"></div>
   
