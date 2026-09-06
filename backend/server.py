@@ -177,6 +177,10 @@ def get_game(game_id: str):
         raise HTTPException(404, "Game not found")
     return g
 
+def get_steam_cover(app_id: str):
+    # Puxa a capa oficial do servidor da Steam usando o ID
+    app_id_clean = str(app_id).strip()
+    return f"https://cdn.cloudflare.steamstatic.com/steam/apps/{app_id_clean}/header.jpg"
 
 @api_router.post("/games")
 async def create_game(
@@ -192,7 +196,7 @@ async def create_game(
     admin: dict = Depends(auth.require_admin),
 ):
     gid = str(uuid.uuid4())
-    final_cover = cover_url
+    final_cover = cover_url if cover_url else get_steam_cover(app_id)
     if cover is not None:
         ext = ext_of(cover.filename, "png")
         path = f"covers/{gid}.{ext}"
@@ -259,7 +263,7 @@ async def bulk_lua(files: list[UploadFile] = File(...), admin: dict = Depends(au
         lua_entry = {"id": fid, "filename": f.filename, "path": lpath, "size": len(content)}
         row = {
             "id": gid, "app_id": app_id, "title": title, "category": "Uncategorized",
-            "description": "", "cover_url": "", "lua_files": [lua_entry],
+            "description": "", "cover_url": get_steam_cover(app_id), "lua_files": [lua_entry],
             "in_store": False, "price": 0, "is_public": False,
             "is_deleted": False, "created_at": now_iso(), "updated_at": now_iso(),
         }

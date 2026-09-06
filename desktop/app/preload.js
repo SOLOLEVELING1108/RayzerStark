@@ -13,6 +13,7 @@ contextBridge.exposeInMainWorld("api", {
   getKey: () => ipcRenderer.invoke("get-key"),
   setKey: (k) => ipcRenderer.invoke("set-key", k),
   quitApp: () => ipcRenderer.invoke("quit-app"),
+  minimizeApp: () => ipcRenderer.invoke("minimize-app"), // 👈 COMANDO NOVO ADICIONADO AQUI!
   onProgress: (cb) => ipcRenderer.on("inject-progress", (_e, d) => cb(d)),
   onDepProgress: (cb) => ipcRenderer.on("dep-progress", (_e, d) => cb(d)),
   checkNativeUpdate: () => ipcRenderer.invoke("check-native-update"),

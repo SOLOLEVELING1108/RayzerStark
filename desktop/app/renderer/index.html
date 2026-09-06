@@ -6,8 +6,60 @@
   <title>Rayzer Stark Game</title>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
+  
+  <style>
+    /* 🔴 ESTILOS DOS NOVOS BOTÕES DE CONTROLE DA JANELA 🔴 */
+    .window-controls {
+      position: absolute;
+      top: 0;
+      right: 0;
+      display: flex;
+      z-index: 9999;
+      /* Esse comando permite arrastar a janela clicando no espaço vazio no topo */
+      -webkit-app-region: drag; 
+      width: 100%;
+      justify-content: flex-end;
+    }
+    
+    .window-btn {
+      /* Esse comando diz para o Electron que o botão em si é clicável, não arrastável */
+      -webkit-app-region: no-drag;
+      background: transparent;
+      border: none;
+      color: #8892b0;
+      width: 46px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s ease;
+    }
+    
+    .window-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #ffffff;
+    }
+    
+    .window-btn.close:hover {
+      background: #e81123;
+      color: #ffffff;
+    }
+  </style>
 </head>
 <body>
+
+  <!-- 🟢 BARRA SUPERIOR CUSTOMIZADA (BORDLESS) 🟢 -->
+  <div class="window-controls">
+    <button class="window-btn" id="btn-minimize" title="Minimizar">
+      <svg width="10" height="1" viewBox="0 0 10 1"><path fill="currentColor" d="M0 0h10v1H0z"/></svg>
+    </button>
+    <button class="window-btn close" id="btn-close" title="Fechar">
+      <svg width="10" height="10" viewBox="0 0 10 10"><path fill="currentColor" d="M10.2.7L9.5 0 5 4.5.5 0 0 .7 4.5 5 0 9.5.7 10.2 5 5.5l4.5 4.7.7-.7L5.5 5z"/></svg>
+    </button>
+  </div>
+
   <div class="app">
     <aside class="sidebar">
       <div class="brand">
@@ -153,6 +205,31 @@
 
 
   <div id="toast-wrap"></div>
+  
+  <!-- 🟢 SCRIPT DOS BOTÕES DE CONTROLE DA JANELA 🟢 -->
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const btnMinimize = document.getElementById("btn-minimize");
+      const btnClose = document.getElementById("btn-close");
+      
+      if(btnMinimize) {
+        btnMinimize.addEventListener("click", () => {
+          if (window.api && window.api.minimizeApp) {
+            window.api.minimizeApp();
+          }
+        });
+      }
+      
+      if(btnClose) {
+        btnClose.addEventListener("click", () => {
+          if (window.api && window.api.quitApp) {
+            window.api.quitApp();
+          }
+        });
+      }
+    });
+  </script>
+  
   <script src="renderer.js"></script>
 </body>
 </html>

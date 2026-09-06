@@ -93,21 +93,21 @@ function windowIcon() {
 // Falls back to the bundled renderer if the server can't be reached.
 // O frontend agora é servido direto da raiz da Vercel
 function loadClient() {
-  const remote = getApiBase(); // 👇 MUDANÇA AQUI: Tiramos o "/api/client-app/index.html"
   const bundled = path.join(__dirname, "renderer", "index.html");
-  let usedFallback = false;
-  win.webContents.on("did-fail-load", (_e, _code, _desc, _url, isMainFrame) => {
-    if (isMainFrame && !usedFallback) { usedFallback = true; win.loadFile(bundled); }
-  });
-  win.loadURL(remote).catch(() => { if (!usedFallback) { usedFallback = true; win.loadFile(bundled); } });
+  win.loadFile(bundled);
 }
 function createWindow() {
   win = new BrowserWindow({
     width: 1280, height: 820, minWidth: 980, minHeight: 640,
     backgroundColor: "#08090E", autoHideMenuBar: true, title: "Rayzer Stark Game",
     icon: windowIcon(),
+    fullscreen: true, // 👈 FORÇA A TELA CHEIA IMERSIVA
+    frame: false,     // 👈 ARRANCA A BORDA DO WINDOWS
     webPreferences: { preload: path.join(__dirname, "preload.js"), contextIsolation: true, nodeIntegration: false },
   });
+
+  win.maximize(); // 👈 ADICIONE ESSA LINHA AQUI!
+
   loadClient();
 }
 app.whenReady().then(() => { getDeviceCode(); createWindow(); });
@@ -339,3 +339,4 @@ ipcMain.handle("download-bypass", async (_e, bypass) => {
 ipcMain.handle("get-key", () => (loadStore().accessKey || ""));
 ipcMain.handle("set-key", (_e, k) => { const s = loadStore(); s.accessKey = k; saveStore(s); return true; });
 ipcMain.handle("quit-app", () => { app.quit(); });
+ipcMain.handle("minimize-app", () => { if (win) win.minimize(); });
