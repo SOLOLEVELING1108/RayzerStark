@@ -177,60 +177,59 @@ def get_game(game_id: str):
         raise HTTPException(404, "Game not found")
     return g
 
+
 def get_steam_cover(app_id: str):
-    # Puxa a capa oficial do servidor da Steam usando o ID
     app_id_clean = str(app_id).strip()
     return f"https://cdn.cloudflare.steamstatic.com/steam/apps/{app_id_clean}/header.jpg"
 
+
 def normalize_str(text):
-    """Limpa a string deixando apenas letras minúsculas e números para o Match perfeito"""
     if not text: return ""
     return re.sub(r'[^a-z0-9]', '', str(text).lower())
 
+
 def auto_link_bypass(app_id: str, game_title: str):
     """
-    TINDER DOS BYPASSES: Procura um bypass órfão com nome ou ID parecido 
-    e atualiza ele para casar perfeitamente com o Jogo injetado.
+    Procura um bypass correspondente NO SUPABASE e RETORNA os dados
+    para o jogo poder puxar a Capa e o Título reais.
     """
     try:
         id_clean = str(app_id).strip()
         title_clean = normalize_str(game_title)
-        if not id_clean: return
+        if not id_clean: return None
 
-        all_bypasses = rows(supa.t("bypasses").select("id, app_id, title, cover_url").eq("is_deleted", False).execute())
+        all_bypasses = rows(supa.t("bypasses").select("id, app_id, title, cover_url, category").eq("is_deleted", False).execute())
 
         for b in all_bypasses:
             b_app_id = str(b.get("app_id") or "").strip()
             b_title_clean = normalize_str(b.get("title") or "")
 
             is_match = False
-            # Deu match pelo ID exato?
             if b_app_id == id_clean:
                 is_match = True
-            # Deu match porque o nome está contido um no outro?
             elif title_clean and b_title_clean and len(title_clean) > 3:
                 if title_clean in b_title_clean or b_title_clean in title_clean:
                     is_match = True
 
             if is_match:
                 updates = {}
-                # Se o Bypass estava com ID errado/vazio, corrige agora
                 if b_app_id != id_clean:
                     updates["app_id"] = id_clean
                 
-                # Se o Bypass estiver sem capa (ou com capa padrão vazia), injeta a capa da Steam automática
                 current_cover = str(b.get("cover_url") or "")
                 if not current_cover or current_cover == "EMPTY" or "http" not in current_cover:
                     updates["cover_url"] = get_steam_cover(id_clean)
+                    b["cover_url"] = updates["cover_url"]
 
-                # Salva o casamento no Supabase
                 if updates:
                     updates["updated_at"] = now_iso()
                     supa.t("bypasses").update(updates).eq("id", b["id"]).execute()
                     
-                break # Já casou, pode parar de procurar!
+                return b # RETORNA OS DADOS DO SUPABASE PARA O JOGO USAR!
     except Exception as e:
         logger.error(f"Erro no Match de Bypass: {e}")
+    return None
+
 
 @api_router.post("/games")
 async def create_game(
@@ -246,6 +245,10 @@ async def create_game(
     admin: dict = Depends(auth.require_admin),
 ):
     gid = str(uuid.uuid4())
+    
+    # 1. Puxa os dados reais lá do Supabase primeiro
+    matched_bypass = auto_link_bypass(app_id, title)
+    
     final_cover = cover_url if cover_url else get_steam_cover(app_id)
     if cover is not None:
         ext = ext_of(cover.filename, "png")
@@ -253,8 +256,12 @@ async def create_game(
         supa.upload(path, await cover.read(), MIME.get(ext, "image/png"))
         final_cover = f"/api/files/download?path={path}"
         
-    # Chama a Inteligência Artificial pra tentar linkar o Bypass automaticamente!
-    auto_link_bypass(app_id, title)
+    # 2. Se achou no Supabase, substitui com os dados originais
+    if matched_bypass:
+        title = matched_bypass.get("title") or title
+        category = matched_bypass.get("category") or category
+        if matched_bypass.get("cover_url") and matched_bypass.get("cover_url") != "EMPTY" and cover is None:
+            final_cover = matched_bypass.get("cover_url")
     
     row = {
         "id": gid, "app_id": app_id, "title": title, "category": category,
@@ -308,7 +315,20 @@ async def bulk_lua(files: list[UploadFile] = File(...), admin: dict = Depends(au
         app_id = app_id.strip()
         if not app_id:
             continue
+            
         title = resolve_steam_title(app_id) or app_id
+        final_category = "Uncategorized"
+        final_cover = get_steam_cover(app_id)
+        
+        # 1. PUXA OS DADOS REAIS DO SUPABASE!
+        matched_bypass = auto_link_bypass(app_id, title)
+        
+        if matched_bypass:
+            title = matched_bypass.get("title") or title
+            final_category = matched_bypass.get("category") or final_category
+            if matched_bypass.get("cover_url") and matched_bypass.get("cover_url") != "EMPTY":
+                final_cover = matched_bypass.get("cover_url")
+
         gid = str(uuid.uuid4())
         content = await f.read()
         fid = str(uuid.uuid4())
@@ -316,12 +336,9 @@ async def bulk_lua(files: list[UploadFile] = File(...), admin: dict = Depends(au
         supa.upload(lpath, content, "text/plain")
         lua_entry = {"id": fid, "filename": f.filename, "path": lpath, "size": len(content)}
         
-        # Chama a Inteligência Artificial pra tentar linkar o Bypass automaticamente!
-        auto_link_bypass(app_id, title)
-        
         row = {
-            "id": gid, "app_id": app_id, "title": title, "category": "Uncategorized",
-            "description": "", "cover_url": get_steam_cover(app_id), "lua_files": [lua_entry],
+            "id": gid, "app_id": app_id, "title": title, "category": final_category,
+            "description": "", "cover_url": final_cover, "lua_files": [lua_entry],
             "in_store": False, "price": 0, "is_public": False,
             "is_deleted": False, "created_at": now_iso(), "updated_at": now_iso(),
         }
@@ -788,38 +805,10 @@ def admin_build_download():
 
 
 # ============ SEED ============
-SEED = [
-    {"app_id": "223308", "title": "Resident Evil 2 Remake", "category": "Horror / Action",
-     "is_public": True, "in_store": False, "price": 0,
-     "cover_url": "https://images.unsplash.com/photo-1582339980338-c4adc193bd12?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MDV8MHwxfHNlYXJjaHwyfHx2aWRlbyUyMGdhbWUlMjBwb3N0ZXIlMjBjb3ZlciUyMGN5YmVycHVuayUyMGZhbnRhc3klMjBnYW1pbmclMjBhcnR3b3JrfGVufDB8fHx8MTc4ODI5MDA5NHww&ixlib=rb-4.1.0&q=85"},
-    {"app_id": "1091500", "title": "Cyberpunk 2077", "category": "Sci-Fi RPG",
-     "is_public": False, "in_store": True, "price": 15,
-     "cover_url": "https://images.unsplash.com/photo-1661715328971-83cd2179df82?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MDV8MHwxfHNlYXJjaHw0fHx2aWRlbyUyMGdhbWUlMjBwb3N0ZXIlMjBjb3ZlciUyMGN5YmVycHVuayUyMGZhbnRhc3klMjBnYW1pbmclMjBhcnR3b3JrfGVufDB8fHx8MTc4ODI5MDA5NHww&ixlib=rb-4.1.0&q=85"},
-    {"app_id": "844910", "title": "Neon Syndicate", "category": "Action / Cyberpunk",
-     "is_public": False, "in_store": True, "price": 10,
-     "cover_url": "https://images.unsplash.com/photo-1705510144116-cc4d88838b14?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MDV8MHwxfHNlYXJjaHwxfHx2aWRlbyUyMGdhbWUlMjBwb3N0ZXIlMjBjb3ZlciUyMGN5YmVycHVuayUyMGZhbnRhc3klMjBnYW1pbmclMjBhcnR3b3JrfGVufDB8fHx8MTc4ODI5MDA5NHww&ixlib=rb-4.1.0&q=85"},
-]
-
-
 def seed():
-    try:
-        existing = rows(supa.t("games").select("id").limit(1).execute())
-        if existing:
-            return
-        logger.info("Seeding sample games...")
-        for s in SEED:
-            gid = str(uuid.uuid4())
-            lua_content = f"-- {s['title']}\naddappid({s['app_id']})\n".encode()
-            fid = str(uuid.uuid4())
-            path = f"lua/{gid}/{fid}.lua"
-            supa.upload(path, lua_content, "text/plain")
-            row = {"id": gid, **s, "description": "", "is_deleted": False,
-                   "lua_files": [{"id": fid, "filename": f"{s['app_id']}.lua", "path": path, "size": len(lua_content)}],
-                   "created_at": now_iso(), "updated_at": now_iso()}
-            supa.t("games").insert(row).execute()
-        logger.info("Seeding complete.")
-    except Exception as e:
-        logger.error(f"Seed skipped: {e}")
+    # Desativei essa fábrica de jogos falsos. 
+    # Agora o aplicativo só vai mostrar o que realmente existe no Supabase!
+    pass
 
 
 app.include_router(api_router)
