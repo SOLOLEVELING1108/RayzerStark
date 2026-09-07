@@ -6,6 +6,7 @@ from starlette.middleware.cors import CORSMiddleware
 import os
 import uuid
 import logging
+import re
 from pathlib import Path
 from datetime import datetime, timezone
 
@@ -40,7 +41,6 @@ def ext_of(name, default="bin"):
 def normalize_file_url(url: str):
     """Convert share links (Google Drive, Dropbox) into direct-download URLs.
     Returns (direct_url, suggested_filename)."""
-    import re
     u = (url or "").strip()
     if not u:
         return u, "bypass.zip"
@@ -182,6 +182,56 @@ def get_steam_cover(app_id: str):
     app_id_clean = str(app_id).strip()
     return f"https://cdn.cloudflare.steamstatic.com/steam/apps/{app_id_clean}/header.jpg"
 
+def normalize_str(text):
+    """Limpa a string deixando apenas letras minúsculas e números para o Match perfeito"""
+    if not text: return ""
+    return re.sub(r'[^a-z0-9]', '', str(text).lower())
+
+def auto_link_bypass(app_id: str, game_title: str):
+    """
+    TINDER DOS BYPASSES: Procura um bypass órfão com nome ou ID parecido 
+    e atualiza ele para casar perfeitamente com o Jogo injetado.
+    """
+    try:
+        id_clean = str(app_id).strip()
+        title_clean = normalize_str(game_title)
+        if not id_clean: return
+
+        all_bypasses = rows(supa.t("bypasses").select("id, app_id, title, cover_url").eq("is_deleted", False).execute())
+
+        for b in all_bypasses:
+            b_app_id = str(b.get("app_id") or "").strip()
+            b_title_clean = normalize_str(b.get("title") or "")
+
+            is_match = False
+            # Deu match pelo ID exato?
+            if b_app_id == id_clean:
+                is_match = True
+            # Deu match porque o nome está contido um no outro?
+            elif title_clean and b_title_clean and len(title_clean) > 3:
+                if title_clean in b_title_clean or b_title_clean in title_clean:
+                    is_match = True
+
+            if is_match:
+                updates = {}
+                # Se o Bypass estava com ID errado/vazio, corrige agora
+                if b_app_id != id_clean:
+                    updates["app_id"] = id_clean
+                
+                # Se o Bypass estiver sem capa (ou com capa padrão vazia), injeta a capa da Steam automática
+                current_cover = str(b.get("cover_url") or "")
+                if not current_cover or current_cover == "EMPTY" or "http" not in current_cover:
+                    updates["cover_url"] = get_steam_cover(id_clean)
+
+                # Salva o casamento no Supabase
+                if updates:
+                    updates["updated_at"] = now_iso()
+                    supa.t("bypasses").update(updates).eq("id", b["id"]).execute()
+                    
+                break # Já casou, pode parar de procurar!
+    except Exception as e:
+        logger.error(f"Erro no Match de Bypass: {e}")
+
 @api_router.post("/games")
 async def create_game(
     title: str = Form(...),
@@ -202,6 +252,10 @@ async def create_game(
         path = f"covers/{gid}.{ext}"
         supa.upload(path, await cover.read(), MIME.get(ext, "image/png"))
         final_cover = f"/api/files/download?path={path}"
+        
+    # Chama a Inteligência Artificial pra tentar linkar o Bypass automaticamente!
+    auto_link_bypass(app_id, title)
+    
     row = {
         "id": gid, "app_id": app_id, "title": title, "category": category,
         "description": description, "cover_url": final_cover, "lua_files": [],
@@ -261,6 +315,10 @@ async def bulk_lua(files: list[UploadFile] = File(...), admin: dict = Depends(au
         lpath = f"lua/{gid}/{fid}.lua"
         supa.upload(lpath, content, "text/plain")
         lua_entry = {"id": fid, "filename": f.filename, "path": lpath, "size": len(content)}
+        
+        # Chama a Inteligência Artificial pra tentar linkar o Bypass automaticamente!
+        auto_link_bypass(app_id, title)
+        
         row = {
             "id": gid, "app_id": app_id, "title": title, "category": "Uncategorized",
             "description": "", "cover_url": get_steam_cover(app_id), "lua_files": [lua_entry],
@@ -669,7 +727,7 @@ def delete_bypass(bid: str, admin: dict = Depends(auth.require_admin)):
 # ============ CLIENT BUILD (Windows portable zip) ============
 CLIENT_BUILD = Path("/app/desktop/dist/RayzerStarkGame-Client-win-x64.zip")
 ADMIN_BUILD = Path("/app/admin-desktop/dist/RayzerStarkGame-Admin-win-x64.zip")
-CLIENT_APP_DIR = ROOT_DIR / "app" / "renderer"      # <--- CAMINHO CORRIGIDO!
+CLIENT_APP_DIR = ROOT_DIR / "app" / "renderer"
 NATIVE_APP_DIR = ROOT_DIR / "app"
 
 

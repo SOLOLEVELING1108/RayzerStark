@@ -2,6 +2,12 @@ const { app, BrowserWindow, ipcMain } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const crypto = require("crypto");
+const { autoUpdater } = require("electron-updater");
+
+// Configura o radar para baixar silenciosamente
+autoUpdater.autoDownload = true;
+autoUpdater.autoInstallOnAppQuit = true;
+
 function machineGuid() {
   if (process.platform !== "win32") return null;
   try {
@@ -16,7 +22,7 @@ const CONFIG_PATH = path.join(__dirname, "config.json");
 function fileConfig() {
   try { return JSON.parse(fs.readFileSync(CONFIG_PATH, "utf-8")); }
   catch { 
-    // 👇 AQUI ESTÁ A MUDANÇA: Link atualizado para a Vercel!
+    // 👇 Link atualizado para a Vercel!
     return { apiBase: "https://rayzer-stark.vercel.app", steamPath: "C:\\Program Files (x86)\\Steam" }; 
   }
 }
@@ -110,7 +116,14 @@ function createWindow() {
 
   loadClient();
 }
-app.whenReady().then(() => { getDeviceCode(); createWindow(); });
+
+app.whenReady().then(() => { 
+  getDeviceCode(); 
+  createWindow(); 
+  // Pede pro radar procurar versão nova assim que abrir
+  autoUpdater.checkForUpdatesAndNotify(); 
+});
+
 app.on("window-all-closed", () => { if (process.platform !== "darwin") app.quit(); });
 
 async function downloadTo(url, dir, filename) {
