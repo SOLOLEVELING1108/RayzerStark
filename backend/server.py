@@ -39,19 +39,15 @@ def ext_of(name, default="bin"):
 
 
 def normalize_file_url(url: str):
-    """Convert share links (Google Drive, Dropbox) into direct-download URLs.
-    Returns (direct_url, suggested_filename)."""
     u = (url or "").strip()
     if not u:
         return u, "bypass.zip"
-    # Google Drive: extract the file id from any of its share link shapes
     m = re.search(r"drive\.google\.com/file/d/([\w-]+)", u) \
         or re.search(r"drive\.google\.com/open\?id=([\w-]+)", u) \
         or re.search(r"[?&]id=([\w-]+)", u) if "drive.google" in u or "usercontent.google" in u else None
     if m:
         fid = m.group(1)
         return (f"https://drive.google.com/uc?export=download&id={fid}", "bypass.zip")
-    # Dropbox: force direct download
     if "dropbox.com" in u:
         u = u.replace("?dl=0", "?dl=1").replace("&dl=0", "&dl=1")
         if "dl=1" not in u:
@@ -188,17 +184,44 @@ def normalize_str(text):
     return re.sub(r'[^a-z0-9]', '', str(text).lower())
 
 
-def auto_link_bypass(app_id: str, game_title: str):
+def fetch_github_bypass_url(app_id: str):
     """
-    Procura um bypass correspondente NO SUPABASE e RETORNA os dados
-    para o jogo poder puxar a Capa e o Título reais.
+    Vai no GitHub e procura se tem um arquivo zipado com o ID do jogo.
+    Ex: Procura por "1941540.zip" nas releases do repositório.
+    """
+    GITHUB_OWNER = "SOLOLEVELING1108"
+    GITHUB_REPO = "RayzerStark"
+    
+    try:
+        import urllib.request
+        import json as _json
+        url = f"https://api.github.com/repos/{GITHUB_OWNER}/{GITHUB_REPO}/releases"
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=6) as r:
+            releases = _json.loads(r.read().decode("utf-8"))
+            
+        target_filename = f"{str(app_id).strip()}.zip"
+        
+        # Vasculha todas as releases atrás do arquivo
+        for rel in releases:
+            for asset in rel.get("assets", []):
+                if asset.get("name") == target_filename:
+                    return asset.get("browser_download_url")
+    except Exception as e:
+        logger.error(f"Erro ao buscar no GitHub: {e}")
+    return None
+
+
+def ensure_bypass_exists(app_id: str, game_title: str):
+    """
+    AUTOMAÇÃO TOTAL: Verifica se existe no Supabase. Se não, cria e já puxa do GitHub!
     """
     try:
         id_clean = str(app_id).strip()
         title_clean = normalize_str(game_title)
         if not id_clean: return None
 
-        all_bypasses = rows(supa.t("bypasses").select("id, app_id, title, cover_url, category").eq("is_deleted", False).execute())
+        all_bypasses = rows(supa.t("bypasses").select("id, app_id, title, cover_url, category, file").eq("is_deleted", False).execute())
 
         for b in all_bypasses:
             b_app_id = str(b.get("app_id") or "").strip()
@@ -220,14 +243,50 @@ def auto_link_bypass(app_id: str, game_title: str):
                 if not current_cover or current_cover == "EMPTY" or "http" not in current_cover:
                     updates["cover_url"] = get_steam_cover(id_clean)
                     b["cover_url"] = updates["cover_url"]
+                    
+                # Se achou no banco, mas tá sem arquivo, tenta puxar do GitHub!
+                current_file = b.get("file") or {}
+                if not current_file.get("url") and not current_file.get("path"):
+                    gh_url = fetch_github_bypass_url(id_clean)
+                    if gh_url:
+                        direct, name = normalize_file_url(gh_url)
+                        updates["file"] = {"filename": name, "url": direct, "size": 0}
 
                 if updates:
                     updates["updated_at"] = now_iso()
                     supa.t("bypasses").update(updates).eq("id", b["id"]).execute()
                     
-                return b # RETORNA OS DADOS DO SUPABASE PARA O JOGO USAR!
+                return b 
+                
+        # 🚀 SE NÃO EXISTE, CRIA UM NOVO E BUSCA NO GITHUB!
+        bid = str(uuid.uuid4())
+        steam_cover = get_steam_cover(id_clean)
+        
+        # Tenta pegar o link direto
+        github_url = fetch_github_bypass_url(id_clean)
+        file_meta = {}
+        if github_url:
+            direct, name = normalize_file_url(github_url)
+            file_meta = {"filename": name, "url": direct, "size": 0}
+        
+        new_bypass = {
+            "id": bid,
+            "app_id": id_clean,
+            "title": game_title,
+            "category": "Uncategorized",
+            "description": "Bypass importado automaticamente do GitHub.",
+            "cover_url": steam_cover,
+            "file": file_meta,
+            "is_deleted": False,
+            "created_at": now_iso(),
+            "updated_at": now_iso()
+        }
+        
+        supa.t("bypasses").insert(new_bypass).execute()
+        return new_bypass
+
     except Exception as e:
-        logger.error(f"Erro no Match de Bypass: {e}")
+        logger.error(f"Erro na criação automática do Bypass: {e}")
     return None
 
 
@@ -246,8 +305,8 @@ async def create_game(
 ):
     gid = str(uuid.uuid4())
     
-    # 1. Puxa os dados reais lá do Supabase primeiro
-    matched_bypass = auto_link_bypass(app_id, title)
+    # 1. Garante que o Bypass seja criado/atualizado na Aba de Bypass
+    matched_bypass = ensure_bypass_exists(app_id, title)
     
     final_cover = cover_url if cover_url else get_steam_cover(app_id)
     if cover is not None:
@@ -256,7 +315,7 @@ async def create_game(
         supa.upload(path, await cover.read(), MIME.get(ext, "image/png"))
         final_cover = f"/api/files/download?path={path}"
         
-    # 2. Se achou no Supabase, substitui com os dados originais
+    # 2. Sincroniza as informações
     if matched_bypass:
         title = matched_bypass.get("title") or title
         category = matched_bypass.get("category") or category
@@ -320,8 +379,8 @@ async def bulk_lua(files: list[UploadFile] = File(...), admin: dict = Depends(au
         final_category = "Uncategorized"
         final_cover = get_steam_cover(app_id)
         
-        # 1. PUXA OS DADOS REAIS DO SUPABASE!
-        matched_bypass = auto_link_bypass(app_id, title)
+        # 1. MÁGICA ACONTECENDO: Cria o Bypass e busca o link no GitHub!
+        matched_bypass = ensure_bypass_exists(app_id, title)
         
         if matched_bypass:
             title = matched_bypass.get("title") or title
@@ -715,7 +774,7 @@ async def set_bypass_file(bid: str, file: UploadFile = File(...), admin: dict = 
     try:
         supa.upload(path, data, MIME.get(ext, "application/octet-stream"))
     except Exception:
-        raise HTTPException(400, "Falha ao enviar o arquivo (talvez maior que o limite de ~50MB do Storage). Use um link externo (URL).")
+        raise HTTPException(400, "Falha ao enviar o arquivo. Use um link externo (URL).")
     file_meta = {"filename": file.filename, "path": path, "size": len(data)}
     supa.t("bypasses").update({"file": file_meta, "updated_at": now_iso()}).eq("id", bid).execute()
     return get_bypass(bid)
@@ -806,8 +865,6 @@ def admin_build_download():
 
 # ============ SEED ============
 def seed():
-    # Desativei essa fábrica de jogos falsos. 
-    # Agora o aplicativo só vai mostrar o que realmente existe no Supabase!
     pass
 
 
