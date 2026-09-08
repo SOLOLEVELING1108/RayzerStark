@@ -857,9 +857,19 @@ def client_native_bundle():
 def client_version():
     try:
         import json as _json
-        v = _json.loads((Path("/app/desktop/package.json")).read_text()).get("version", "1.0.0")
+        # Caminho inteligente: procura o package.json não importa onde o server.py esteja
+        caminho_1 = ROOT_DIR / "desktop" / "package.json"
+        caminho_2 = ROOT_DIR.parent / "desktop" / "package.json"
+        
+        if caminho_1.exists():
+            v = _json.loads(caminho_1.read_text()).get("version", "1.0.5")
+        elif caminho_2.exists():
+            v = _json.loads(caminho_2.read_text()).get("version", "1.0.5")
+        else:
+            v = "1.0.5" # Se ele não achar o arquivo, força a leitura da versão 1.0.5
     except Exception:
-        v = "1.0.0"
+        v = "1.0.5"
+        
     return {"version": v}
 
 
