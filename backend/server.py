@@ -1,5 +1,5 @@
 from fastapi import FastAPI, APIRouter, UploadFile, File, Form, Query, HTTPException, Depends, Request
-from fastapi.responses import Response, FileResponse
+from fastapi.responses import Response, FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -865,16 +865,14 @@ def client_version():
 
 @api_router.get("/client-build/info")
 def client_build_info():
-    if CLIENT_BUILD.exists():
-        return {"available": True, "size": CLIENT_BUILD.stat().st_size, "filename": CLIENT_BUILD.name}
-    return {"available": False}
+    return {"available": True, "size": 102000000, "filename": "RayzerStarkGame-Client-Update.zip"}
 
 
 @api_router.get("/client-build/download")
 def client_build_download():
-    if not CLIENT_BUILD.exists():
-        raise HTTPException(404, "Client build not available")
-    return FileResponse(str(CLIENT_BUILD), media_type="application/zip", filename=CLIENT_BUILD.name)
+    # MUDE AQUI: Cole dentro das aspas aquele link de download direto que voce copiou do GitHub Releases!
+    github_link = "COLE_O_SEU_LINK_AQUI"
+    return RedirectResponse(url=github_link)
 
 
 @api_router.get("/admin-build/info")
