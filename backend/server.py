@@ -175,8 +175,25 @@ def get_game(game_id: str):
 
 
 def get_steam_cover(app_id: str):
+    """
+    Tenta buscar a capa na Steam. Se a Steam disser que não existe (Erro 404),
+    retorna uma capa Gamer genérica de altíssima qualidade.
+    """
     app_id_clean = str(app_id).strip()
-    return f"https://cdn.cloudflare.steamstatic.com/steam/apps/{app_id_clean}/header.jpg"
+    url = f"https://cdn.cloudflare.steamstatic.com/steam/apps/{app_id_clean}/header.jpg"
+    
+    try:
+        import urllib.request
+        # Faz um teste rápido para ver se a imagem existe sem baixar ela inteira
+        req = urllib.request.Request(url, method="HEAD", headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=3) as r:
+            if r.status == 200:
+                return url
+    except Exception:
+        pass
+        
+    # Capa de emergência estilosa caso o jogo não tenha foto oficial (Painel não quebra mais!)
+    return "https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=800&auto=format&fit=crop"
 
 
 def normalize_str(text):
