@@ -7,6 +7,7 @@ import os
 import uuid
 import logging
 import re
+import time
 from pathlib import Path
 from datetime import datetime, timezone
 
@@ -28,6 +29,10 @@ MIME = {
     "txt": "text/plain", "pdf": "application/pdf",
     "zip": "application/zip", "rar": "application/vnd.rar", "7z": "application/x-7z-compressed",
 }
+
+# --- CACHE DO GITHUB PRA EVITAR BLOQUEIO DE SPAM NO ENVIO EM MASSA ---
+GITHUB_CACHE = []
+GITHUB_CACHE_TIME = 0
 
 
 def now_iso():
@@ -175,24 +180,16 @@ def get_game(game_id: str):
 
 
 def get_steam_cover(app_id: str):
-    """
-    Tenta buscar a capa na Steam. Se a Steam disser que não existe (Erro 404),
-    retorna uma capa Gamer genérica de altíssima qualidade.
-    """
     app_id_clean = str(app_id).strip()
     url = f"https://cdn.cloudflare.steamstatic.com/steam/apps/{app_id_clean}/header.jpg"
-    
     try:
         import urllib.request
-        # Faz um teste rápido para ver se a imagem existe sem baixar ela inteira
         req = urllib.request.Request(url, method="HEAD", headers={"User-Agent": "Mozilla/5.0"})
         with urllib.request.urlopen(req, timeout=3) as r:
             if r.status == 200:
                 return url
     except Exception:
         pass
-        
-    # Capa de emergência estilosa caso o jogo não tenha foto oficial (Painel não quebra mais!)
     return "https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=800&auto=format&fit=crop"
 
 
@@ -203,24 +200,26 @@ def normalize_str(text):
 
 def fetch_github_bypass_url(app_id: str):
     """
-    Vai no GitHub e procura se tem um arquivo zipado com o ID do jogo.
-    Ex: Procura por "1941540.zip" nas releases do repositório.
+    Busca o ZIP no GitHub. Usa um cache de 5 minutos pra aguentar o Envio em Massa!
     """
+    global GITHUB_CACHE, GITHUB_CACHE_TIME
     GITHUB_OWNER = "SOLOLEVELING1108"
     GITHUB_REPO = "RayzerStark"
     
     try:
-        import urllib.request
-        import json as _json
-        url = f"https://api.github.com/repos/{GITHUB_OWNER}/{GITHUB_REPO}/releases"
-        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-        with urllib.request.urlopen(req, timeout=6) as r:
-            releases = _json.loads(r.read().decode("utf-8"))
-            
+        # Só bate no GitHub de novo se passaram 5 minutos (300 segundos). Isso salva a gente do Anti-Spam!
+        if not GITHUB_CACHE or (time.time() - GITHUB_CACHE_TIME > 300):
+            import urllib.request
+            import json as _json
+            url = f"https://api.github.com/repos/{GITHUB_OWNER}/{GITHUB_REPO}/releases"
+            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=10) as r:
+                GITHUB_CACHE = _json.loads(r.read().decode("utf-8"))
+                GITHUB_CACHE_TIME = time.time()
+                
         target_filename = f"{str(app_id).strip()}.zip"
         
-        # Vasculha todas as releases atrás do arquivo
-        for rel in releases:
+        for rel in GITHUB_CACHE:
             for asset in rel.get("assets", []):
                 if asset.get("name") == target_filename:
                     return asset.get("browser_download_url")
@@ -231,7 +230,7 @@ def fetch_github_bypass_url(app_id: str):
 
 def ensure_bypass_exists(app_id: str, game_title: str):
     """
-    AUTOMAÇÃO TOTAL: Verifica se existe no Supabase. Se não, cria e já puxa do GitHub!
+    Verifica se o Bypass existe. Força a verificação do Código do Jogo (app_id).
     """
     try:
         id_clean = str(app_id).strip()
@@ -245,6 +244,7 @@ def ensure_bypass_exists(app_id: str, game_title: str):
             b_title_clean = normalize_str(b.get("title") or "")
 
             is_match = False
+            # PRIORIDADE MÁXIMA: Bater pelo número (ID do jogo)
             if b_app_id == id_clean:
                 is_match = True
             elif title_clean and b_title_clean and len(title_clean) > 3:
@@ -261,7 +261,6 @@ def ensure_bypass_exists(app_id: str, game_title: str):
                     updates["cover_url"] = get_steam_cover(id_clean)
                     b["cover_url"] = updates["cover_url"]
                     
-                # Se achou no banco, mas tá sem arquivo, tenta puxar do GitHub!
                 current_file = b.get("file") or {}
                 if not current_file.get("url") and not current_file.get("path"):
                     gh_url = fetch_github_bypass_url(id_clean)
@@ -275,11 +274,10 @@ def ensure_bypass_exists(app_id: str, game_title: str):
                     
                 return b 
                 
-        # 🚀 SE NÃO EXISTE, CRIA UM NOVO E BUSCA NO GITHUB!
+        # Se não achou, cria um novo
         bid = str(uuid.uuid4())
         steam_cover = get_steam_cover(id_clean)
         
-        # Tenta pegar o link direto
         github_url = fetch_github_bypass_url(id_clean)
         file_meta = {}
         if github_url:
@@ -307,6 +305,24 @@ def ensure_bypass_exists(app_id: str, game_title: str):
     return None
 
 
+# ============ ROTA DE REATUALIZAÇÃO DE EMERGÊNCIA (SYNC) ============
+@api_router.get("/system/force-sync")
+def force_sync_bypasses():
+    """
+    Varrer todos os jogos do banco e re-checar no GitHub se existe Bypass.
+    Dá pra acessar direto colando a URL no navegador!
+    """
+    all_games = rows(supa.t("games").select("app_id, title").eq("is_deleted", False).execute())
+    count = 0
+    for g in all_games:
+        ensure_bypass_exists(g["app_id"], g["title"])
+        count += 1
+    return {
+        "status": "SUCESSO",
+        "message": f"Sincronização forçada rodou perfeitamente! {count} jogos foram verificados e reatualizados com o GitHub."
+    }
+
+
 @api_router.post("/games")
 async def create_game(
     title: str = Form(...),
@@ -321,10 +337,7 @@ async def create_game(
     admin: dict = Depends(auth.require_admin),
 ):
     gid = str(uuid.uuid4())
-    
-    # 1. Garante que o Bypass seja criado/atualizado na Aba de Bypass
     matched_bypass = ensure_bypass_exists(app_id, title)
-    
     final_cover = cover_url if cover_url else get_steam_cover(app_id)
     if cover is not None:
         ext = ext_of(cover.filename, "png")
@@ -332,7 +345,6 @@ async def create_game(
         supa.upload(path, await cover.read(), MIME.get(ext, "image/png"))
         final_cover = f"/api/files/download?path={path}"
         
-    # 2. Sincroniza as informações
     if matched_bypass:
         title = matched_bypass.get("title") or title
         category = matched_bypass.get("category") or category
@@ -396,7 +408,6 @@ async def bulk_lua(files: list[UploadFile] = File(...), admin: dict = Depends(au
         final_category = "Uncategorized"
         final_cover = get_steam_cover(app_id)
         
-        # 1. MÁGICA ACONTECENDO: Cria o Bypass e busca o link no GitHub!
         matched_bypass = ensure_bypass_exists(app_id, title)
         
         if matched_bypass:
