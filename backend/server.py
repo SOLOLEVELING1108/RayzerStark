@@ -880,22 +880,12 @@ def client_build_info():
 
 @api_router.get("/client-build/download")
 def client_build_download():
-    from fastapi.responses import StreamingResponse
-    import urllib.request
+    from fastapi.responses import RedirectResponse
     
-    # ATENÇÃO: Confirme se esse link termina com ".zip" (Link direto do arquivo)
-    github_link = "https://github.com/SOLOLEVELING1108/RayzerStark/releases/download/v1.0.5/Rayzer.Stark.Game-1.0.5-win.zip"
+    # Link cravado na versão 1.0.6 e com "%20" no lugar dos espaços para não dar erro 404!
+    github_link = "https://github.com/SOLOLEVELING1108/RayzerStark/releases/download/v1.0.6/Rayzer%20Stark%20Game-1.0.6-win.zip"
     
-    def baixar_e_repassar():
-        # O Render vai até o GitHub, baixa o arquivo em pedaços e entrega pro app
-        req = urllib.request.Request(github_link, headers={"User-Agent": "Mozilla/5.0"})
-        with urllib.request.urlopen(req) as response:
-            while chunk := response.read(8192 * 4):
-                yield chunk
-                
-    return StreamingResponse(baixar_e_repassar(), media_type="application/zip", headers={
-        "Content-Disposition": 'attachment; filename="update.zip"'
-    })
+    return RedirectResponse(url=github_link)
 
 
 @api_router.get("/admin-build/info")
