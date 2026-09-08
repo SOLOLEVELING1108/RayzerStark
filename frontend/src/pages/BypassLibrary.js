@@ -1,7 +1,7 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Search, Plus, Settings2, Trash2, ShieldCheck, FileArchive, RefreshCw } from "lucide-react";
+import { Search, Plus, Settings2, Trash2, ShieldCheck, FileArchive, RefreshCw, ChevronDown } from "lucide-react";
 import { api, resolveImg } from "@/lib/api";
 import { useI18n } from "@/i18n";
 
@@ -12,6 +12,9 @@ export default function BypassLibrary() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  
+  // NOVA REGRA: Começa mostrando apenas 30 na tela
+  const [visibleCount, setVisibleCount] = useState(30);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -30,6 +33,11 @@ export default function BypassLibrary() {
     return () => clearTimeout(tm);
   }, [load]);
 
+  // Se o usuário pesquisar algo, reseta para mostrar os primeiros 30 resultados da pesquisa
+  useEffect(() => {
+    setVisibleCount(30);
+  }, [search]);
+
   const del = async (b) => {
     if (!window.confirm(`${t("common.delete")} "${b.title}"?`)) return;
     try {
@@ -47,13 +55,18 @@ export default function BypassLibrary() {
     try {
       const { data } = await api.get("/system/force-sync");
       toast.success(data.message || "Sincronização concluída com sucesso!", { id: "sync-toast" });
-      load(); // Recarrega a tela com os novos bypasses!
+      load(); // Recarrega a tela com os novos bypasses
     } catch (error) {
       toast.error("Erro ao sincronizar os Bypasses.", { id: "sync-toast" });
     } finally {
       setSyncing(false);
     }
   };
+
+  // Separa apenas a quantidade de itens que devem ser desenhados na tela
+  const visibleItems = useMemo(() => {
+    return items.slice(0, visibleCount);
+  }, [items, visibleCount]);
 
   return (
     <div>
@@ -64,7 +77,7 @@ export default function BypassLibrary() {
         </div>
         
         <div className="flex items-center gap-3">
-          {/* BOTÃO MÁGICO DE SINCRONIZAÇÃO */}
+          {/* BOTÃO DE SINCRONIZAÇÃO */}
           <button 
             onClick={handleSync} 
             disabled={syncing}
@@ -97,28 +110,43 @@ export default function BypassLibrary() {
           <button onClick={() => navigate("/bypass/new")} className="mt-4 text-cyan-400 text-sm font-semibold hover:underline">{t("bypass.addFirst")}</button>
         </div>
       ) : (
-        <div data-testid="bypass-grid" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-          {items.map((b) => (
-            <div key={b.id} data-testid={`bypass-card-${b.app_id}`} className="group rounded-2xl overflow-hidden border border-white/10 bg-[#10131E] card-glow transition-shadow animate-fade-up">
-              <div className="relative aspect-[16/10] overflow-hidden bg-[#0b0d14]">
-                {b.cover_url ? <img src={resolveImg(b.cover_url)} alt={b.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" /> : <div className="w-full h-full grid place-items-center text-slate-700"><ShieldCheck className="w-12 h-12" /></div>}
-                <div className="absolute inset-0 bg-gradient-to-t from-[#10131E] via-transparent to-transparent" />
-                <span className="absolute top-3 left-3 font-mono text-[11px] px-2 py-0.5 rounded bg-cyan-950/80 text-cyan-300 border border-cyan-500/30 backdrop-blur">APPID {b.app_id}</span>
-              </div>
-              <div className="p-4">
-                <h3 className="font-display font-bold text-[15px] truncate">{b.title}</h3>
-                <p className="text-[11px] font-mono uppercase tracking-wider text-slate-500 mt-0.5">{b.category}</p>
-                <div className="flex items-center gap-2 mt-3 text-[11px] font-mono">
-                  {b.file && b.file.filename ? <span className="flex items-center gap-1 text-cyan-400"><FileArchive className="w-3.5 h-3.5" />{b.file.filename}</span> : <span className="text-amber-400">{t("bypass.noFile")}</span>}
+        <>
+          <div data-testid="bypass-grid" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            {visibleItems.map((b) => (
+              <div key={b.id} data-testid={`bypass-card-${b.app_id}`} className="group rounded-2xl overflow-hidden border border-white/10 bg-[#10131E] card-glow transition-shadow animate-fade-up">
+                <div className="relative aspect-[16/10] overflow-hidden bg-[#0b0d14]">
+                  {b.cover_url ? <img src={resolveImg(b.cover_url)} alt={b.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" /> : <div className="w-full h-full grid place-items-center text-slate-700"><ShieldCheck className="w-12 h-12" /></div>}
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#10131E] via-transparent to-transparent" />
+                  <span className="absolute top-3 left-3 font-mono text-[11px] px-2 py-0.5 rounded bg-cyan-950/80 text-cyan-300 border border-cyan-500/30 backdrop-blur">APPID {b.app_id}</span>
                 </div>
-                <div className="flex items-center gap-2 mt-4">
-                  <button data-testid={`bypass-manage-${b.app_id}`} onClick={() => navigate(`/bypass/${b.id}`)} className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg bg-cyan-500 text-black text-sm font-semibold hover:bg-cyan-400 transition-colors"><Settings2 className="w-4 h-4" /> {t("common.manage")}</button>
-                  <button data-testid={`bypass-delete-${b.app_id}`} onClick={() => del(b)} className="p-2 rounded-lg border border-white/10 text-slate-300 hover:text-red-400 hover:border-red-500/40 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                <div className="p-4">
+                  <h3 className="font-display font-bold text-[15px] truncate">{b.title}</h3>
+                  <p className="text-[11px] font-mono uppercase tracking-wider text-slate-500 mt-0.5">{b.category}</p>
+                  <div className="flex items-center gap-2 mt-3 text-[11px] font-mono">
+                    {b.file && b.file.filename ? <span className="flex items-center gap-1 text-cyan-400"><FileArchive className="w-3.5 h-3.5" />{b.file.filename}</span> : <span className="text-amber-400">{t("bypass.noFile")}</span>}
+                  </div>
+                  <div className="flex items-center gap-2 mt-4">
+                    <button data-testid={`bypass-manage-${b.app_id}`} onClick={() => navigate(`/bypass/${b.id}`)} className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg bg-cyan-500 text-black text-sm font-semibold hover:bg-cyan-400 transition-colors"><Settings2 className="w-4 h-4" /> {t("common.manage")}</button>
+                    <button data-testid={`bypass-delete-${b.app_id}`} onClick={() => del(b)} className="p-2 rounded-lg border border-white/10 text-slate-300 hover:text-red-400 hover:border-red-500/40 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                  </div>
                 </div>
               </div>
+            ))}
+          </div>
+          
+          {/* BOTÃO DE CARREGAR MAIS (SÓ APARECE SE TIVER MAIS PARA MOSTRAR) */}
+          {visibleCount < items.length && (
+            <div className="mt-10 mb-6 flex justify-center">
+              <button 
+                onClick={() => setVisibleCount(prev => prev + 30)}
+                className="flex items-center gap-2 px-6 py-3 rounded-full bg-[#10131E] border border-cyan-500/30 text-cyan-400 font-semibold text-sm hover:bg-cyan-500/10 hover:border-cyan-400 transition-all shadow-[0_0_15px_rgba(6,182,212,0.15)]"
+              >
+                <ChevronDown className="w-5 h-5 animate-bounce" />
+                Mostrar mais 30 Bypasses (Faltam {items.length - visibleCount})
+              </button>
             </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
     </div>
   );
