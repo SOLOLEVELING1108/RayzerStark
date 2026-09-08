@@ -883,7 +883,7 @@ def client_build_download():
     from fastapi.responses import RedirectResponse
     
     # Link cravado na versão 1.0.6 e com "%20" no lugar dos espaços para não dar erro 404!
-    github_link = "https://github.com/SOLOLEVELING1108/RayzerStark/releases/download/v1.0.6/Rayzer%20Stark%20Game-1.0.6-win.zip"
+    github_link = "https://github.com/SOLOLEVELING1108/RayzerStark/releases/download/v1.0.5/Rayzer%20Stark%20Game-1.0.5-win.zip"
     
     return RedirectResponse(url=github_link)
 
