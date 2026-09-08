@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Search, Plus, Settings2, Trash2, ShieldCheck, FileArchive } from "lucide-react";
+import { Search, Plus, Settings2, Trash2, ShieldCheck, FileArchive, RefreshCw } from "lucide-react";
 import { api, resolveImg } from "@/lib/api";
 import { useI18n } from "@/i18n";
 
@@ -11,6 +11,7 @@ export default function BypassLibrary() {
   const [items, setItems] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -40,6 +41,20 @@ export default function BypassLibrary() {
     }
   };
 
+  const handleSync = async () => {
+    setSyncing(true);
+    toast.loading("Sincronizando com o GitHub...", { id: "sync-toast" });
+    try {
+      const { data } = await api.get("/system/force-sync");
+      toast.success(data.message || "Sincronização concluída com sucesso!", { id: "sync-toast" });
+      load(); // Recarrega a tela com os novos bypasses!
+    } catch (error) {
+      toast.error("Erro ao sincronizar os Bypasses.", { id: "sync-toast" });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   return (
     <div>
       <div className="flex items-end justify-between gap-4 mb-6">
@@ -47,9 +62,22 @@ export default function BypassLibrary() {
           <h1 className="font-display text-4xl font-black tracking-tight">{t("bypass.title")}</h1>
           <p className="text-slate-400 mt-1 text-sm">{t("bypass.subtitle")}</p>
         </div>
-        <button data-testid="add-bypass-btn" onClick={() => navigate("/bypass/new")} className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-cyan-500 text-black font-semibold text-sm hover:bg-cyan-400 transition-colors">
-          <Plus className="w-4 h-4" /> {t("bypass.add")}
-        </button>
+        
+        <div className="flex items-center gap-3">
+          {/* BOTÃO MÁGICO DE SINCRONIZAÇÃO */}
+          <button 
+            onClick={handleSync} 
+            disabled={syncing}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-cyan-500/50 text-cyan-400 font-semibold text-sm hover:bg-cyan-500/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <RefreshCw className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`} /> 
+            {syncing ? "Sincronizando..." : "Sincronizar Bypasses"}
+          </button>
+
+          <button data-testid="add-bypass-btn" onClick={() => navigate("/bypass/new")} className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-cyan-500 text-black font-semibold text-sm hover:bg-cyan-400 transition-colors">
+            <Plus className="w-4 h-4" /> {t("bypass.add")}
+          </button>
+        </div>
       </div>
 
       <div className="glass border border-white/10 rounded-xl p-3 mb-6 flex items-center gap-3">
