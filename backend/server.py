@@ -873,41 +873,47 @@ def client_version():
     return {"version": v}
 
 
+# Link EXATO com os espaços substituídos por "%20" para o GitHub não bugar
+LINK_GITHUB_106 = "https://github.com/SOLOLEVELING1108/RayzerStark/releases/download/v1.0.6/Rayzer%20Stark%20Game-1.0.6-win.zip"
+
 @api_router.get("/client-build/info")
 def client_build_info():
-    # Retorna rápido para não bugar a tela inicial
-    return {"available": True, "size": 102000000, "filename": "update.zip"}
+    import urllib.request
+    try:
+        # Pesa o arquivo no GitHub para a segurança do App aprovar o download
+        req = urllib.request.Request(LINK_GITHUB_106, method="HEAD", headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req) as r:
+            tamanho_exato = int(r.headers.get('Content-Length', 106991616))
+        return {"available": True, "size": tamanho_exato, "filename": "update.zip"}
+    except:
+        # Fallback de segurança se o GitHub demorar a responder
+        return {"available": True, "size": 106991616, "filename": "update.zip"}
 
 @api_router.get("/client-build/download")
 def client_build_download():
     from fastapi.responses import StreamingResponse
     import urllib.request
     
-    # O link perfeito e validado!
-    link_correto = "https://github.com/SOLOLEVELING1108/RayzerStark/releases/download/v1.0.6/Rayzer.Stark.Game-1.0.6-win.zip"
-    
-    # Descobre o peso exato do arquivo para a barra de loading do app não bugar
     try:
-        req_head = urllib.request.Request(link_correto, method="HEAD", headers={"User-Agent": "Mozilla/5.0"})
+        req_head = urllib.request.Request(LINK_GITHUB_106, method="HEAD", headers={"User-Agent": "Mozilla/5.0"})
         with urllib.request.urlopen(req_head) as r:
-            tamanho = r.headers.get('Content-Length', '102000000')
+            tamanho = r.headers.get('Content-Length', '106991616')
     except:
-        tamanho = '102000000'
+        tamanho = '106991616'
 
     def baixar_e_repassar():
-        # O Render vai no GitHub e entrega os bytes DIRETAMENTE pro seu app!
-        req = urllib.request.Request(link_correto, headers={"User-Agent": "Mozilla/5.0"})
+        # O Render faz o download perfeitamente e jorra pro aplicativo
+        req = urllib.request.Request(LINK_GITHUB_106, headers={"User-Agent": "Mozilla/5.0"})
         with urllib.request.urlopen(req) as response:
             while chunk := response.read(65536):
                 yield chunk
                 
-    # O aplicativo vai achar que o arquivo está no Render, sem redirecionamentos.
     return StreamingResponse(
         baixar_e_repassar(), 
         media_type="application/zip",
         headers={
             "Content-Disposition": 'attachment; filename="update.zip"',
-            "Content-Length": str(tamanho) # Trava o app na tela até baixar esses bytes todos
+            "Content-Length": str(tamanho) # Trava o App na tela de atualização
         }
     )
 
