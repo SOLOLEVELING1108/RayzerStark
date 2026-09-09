@@ -2,16 +2,12 @@ const { app, BrowserWindow, ipcMain } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const crypto = require("crypto");
-const { autoUpdater } = require("electron-updater");
-
-// Configura o radar para baixar silenciosamente
-autoUpdater.autoDownload = true;
-autoUpdater.autoInstallOnAppQuit = true;
+const cp = require("child_process");
 
 function machineGuid() {
   if (process.platform !== "win32") return null;
   try {
-    const out = require("child_process").execSync('reg query "HKLM\\SOFTWARE\\Microsoft\\Cryptography" /v MachineGuid', { encoding: "utf8", windowsHide: true });
+    const out = cp.execSync('reg query "HKLM\\SOFTWARE\\Microsoft\\Cryptography" /v MachineGuid', { encoding: "utf8", windowsHide: true });
     const m = out.match(/MachineGuid\s+REG_SZ\s+([\w-]+)/i);
     return m ? m[1] : null;
   } catch { return null; }
@@ -22,7 +18,6 @@ const CONFIG_PATH = path.join(__dirname, "config.json");
 function fileConfig() {
   try { return JSON.parse(fs.readFileSync(CONFIG_PATH, "utf-8")); }
   catch { 
-    // 👇 Link atualizado para a Vercel!
     return { apiBase: "https://rayzer-stark.vercel.app", steamPath: "C:\\Program Files (x86)\\Steam" }; 
   }
 }
@@ -40,39 +35,54 @@ function getApiBase() { return fileConfig().apiBase.replace(/\/$/, ""); }
 
 function _verOf(dir) { try { return JSON.parse(fs.readFileSync(path.join(dir, "version.json"), "utf-8")).version || "0.0.0"; } catch { return "0.0.0"; } }
 function _cmp(a, b) { const pa = String(a).split(".").map(Number), pb = String(b).split(".").map(Number); for (let i = 0; i < 3; i++) { if ((pa[i] || 0) !== (pb[i] || 0)) return (pa[i] || 0) - (pb[i] || 0); } return 0; }
-async function fetchBundleAndPromote() {
+
+// 🔴 O NOVO ATUALIZADOR INVISÍVEL VIA .EXE 🔴
+async function fetchAndInstallExe() {
   const base = getApiBase();
-  const root = path.join(app.getPath("userData"), "native");
-  const CUR = path.join(root, "current"), NXT = path.join(root, "next");
   try {
-    const ctrl = new AbortController(); const to = setTimeout(() => ctrl.abort(), 15000);
-    const res = await fetch(base + "/api/client-native/bundle.json", { signal: ctrl.signal }); clearTimeout(to);
-    if (!res.ok) return false;
-    const bundle = await res.json();
-    if (!bundle || !bundle.version || !bundle.files) return false;
-    if (_cmp(bundle.version, _verOf(__dirname)) <= 0) return false;
-    fs.rmSync(NXT, { recursive: true, force: true }); fs.mkdirSync(NXT, { recursive: true });
-    for (const [rel, b64] of Object.entries(bundle.files)) { const d = path.join(NXT, rel); fs.mkdirSync(path.dirname(d), { recursive: true }); fs.writeFileSync(d, Buffer.from(b64, "base64")); }
-    fs.writeFileSync(path.join(NXT, "version.json"), JSON.stringify({ version: bundle.version }));
-    if (!fs.existsSync(path.join(NXT, "main.js"))) { fs.rmSync(NXT, { recursive: true, force: true }); return false; }
-    fs.rmSync(CUR, { recursive: true, force: true }); fs.renameSync(NXT, CUR);
-    return true;
-  } catch { return false; }
+    // 1. Pergunta pro servidor qual é a versão mais nova
+    const infoRes = await fetch(base + "/client-build/info");
+    if (!infoRes.ok) return false;
+    const info = await infoRes.json();
+    
+    // Se a versão for menor ou igual a que está no version.json, ignora e abre normal
+    if (!info.available || !info.version || _cmp(info.version, _verOf(__dirname)) <= 0) return false;
+
+    // 2. É versão nova! Prepara pra baixar o EXE
+    const tempDir = app.getPath("temp");
+    const exeDest = path.join(tempDir, "RayzerStark_Update.exe");
+    
+    // Baixa o EXE bruto
+    const dlRes = await fetch(base + "/client-build/download");
+    if (!dlRes.ok) return false;
+    
+    const buf = Buffer.from(await dlRes.arrayBuffer());
+    fs.writeFileSync(exeDest, buf);
+    
+    // 3. Roda o instalador por cima silenciosamente e fecha o app velho!
+    const child = cp.spawn(exeDest, ["/SILENT"], { detached: true, stdio: 'ignore' });
+    child.unref();
+    
+    app.quit(); // Mata o app pra não bugar a instalação
+    return true; // Essa linha nunca vai rodar, porque o app fechou
+  } catch (e) {
+    console.error("Erro na atualização silenciosa:", e);
+    return false;
+  }
 }
+
 ipcMain.handle("check-native-update", async () => {
-  const updated = await fetchBundleAndPromote();
-  if (updated) { try { app.relaunch(); app.exit(0); } catch {} }
+  const updated = await fetchAndInstallExe();
   return { updated };
 });
+
 function getDeviceCode() {
-  // Stable per-PC code derived from the Windows machine GUID (HWID).
   let base = null;
   try { base = machineGuid(); } catch { base = null; }
   if (base) {
     const hash = crypto.createHash("sha256").update(base).digest("hex").slice(0, 8).toUpperCase();
     return "PC-" + hash;
   }
-  // Fallback: persist a random code if HWID is unavailable.
   const s = loadStore();
   if (!s.deviceCode) {
     s.deviceCode = "PC-" + crypto.randomBytes(4).toString("hex").toUpperCase();
@@ -95,35 +105,26 @@ function windowIcon() {
   ];
   return candidates.find((p) => { try { return fs.existsSync(p); } catch { return false; } });
 }
-// The UI is served by our backend so it auto-updates with no re-download.
-// Falls back to the bundled renderer if the server can't be reached.
-// O frontend agora é servido direto da raiz da Vercel
+
 function loadClient() {
   const bundled = path.join(__dirname, "renderer", "index.html");
   win.loadFile(bundled);
 }
+
 function createWindow() {
   win = new BrowserWindow({
     width: 1280, height: 820, minWidth: 980, minHeight: 640,
     backgroundColor: "#08090E", autoHideMenuBar: true, title: "Rayzer Stark Game",
     icon: windowIcon(),
-    fullscreen: true, // 👈 FORÇA A TELA CHEIA IMERSIVA
-    frame: false,     // 👈 ARRANCA A BORDA DO WINDOWS
+    fullscreen: true,
+    frame: false,
     webPreferences: { preload: path.join(__dirname, "preload.js"), contextIsolation: true, nodeIntegration: false },
   });
-
-  win.maximize(); // 👈 ADICIONE ESSA LINHA AQUI!
-
+  win.maximize();
   loadClient();
 }
 
-app.whenReady().then(() => { 
-  getDeviceCode(); 
-  createWindow(); 
-  // Pede pro radar procurar versão nova assim que abrir
-  autoUpdater.checkForUpdatesAndNotify(); 
-});
-
+app.whenReady().then(() => { getDeviceCode(); createWindow(); });
 app.on("window-all-closed", () => { if (process.platform !== "darwin") app.quit(); });
 
 async function downloadTo(url, dir, filename) {
@@ -145,11 +146,9 @@ ipcMain.handle("get-config", () => {
     version: _verOf(__dirname),
   };
 });
-
 ipcMain.handle("set-steam-path", (_e, p) => { const s = loadStore(); s.steamPath = p; saveStore(s); return getSteamPath(); });
 ipcMain.handle("check-steam-path", () => { const p = getSteamPath(); return { path: p, exists: fs.existsSync(p) }; });
 ipcMain.handle("get-status", () => { const s = loadStore(); return { activations: s.activations || {}, depsInstalled: (s.deps || []).length }; });
-
 ipcMain.handle("activate-game", async (event, game) => {
   const api = getApiBase();
   const code = getDeviceCode();
@@ -189,7 +188,6 @@ ipcMain.handle("deactivate-game", async (_e, gameId) => {
   return { ok: true, removed, steamReopened };
 });
 
-const cp = require("child_process");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 async function unlinkRobust(p) {
   for (let i = 0; i < 4; i++) {
@@ -225,7 +223,6 @@ ipcMain.handle("install-dependencies", async (event) => {
   s.deps = s.deps || [];
   const dir = targetDir("steam_root");
   fs.mkdirSync(dir, { recursive: true });
-  // Close Steam first so its DLLs aren't locked; reopen it afterwards.
   const steamWasRunning = isSteamRunning();
   if (steamWasRunning) {
     event.sender.send("dep-progress", { current: 0, total: deps.length, filename: "steam:closing" });
@@ -243,12 +240,10 @@ ipcMain.handle("install-dependencies", async (event) => {
     catch { locked.push(d.filename); continue; }
     const dest = path.join(dir, d.filename);
     try {
-      if (fs.existsSync(dest) && fs.statSync(dest).size === buf.length) {
-        skipped++;
-      } else {
-        try {
-          fs.writeFileSync(dest, buf);
-        } catch (e) {
+      if (fs.existsSync(dest) && fs.statSync(dest).size === buf.length) { skipped++; } 
+      else {
+        try { fs.writeFileSync(dest, buf); } 
+        catch (e) {
           if (LOCK.includes(e.code)) {
             const tmp = dest + ".new";
             fs.writeFileSync(tmp, buf);
@@ -291,7 +286,6 @@ ipcMain.handle("download-bypass", async (_e, bypass) => {
   const file = bypass && bypass.file;
   if (!file || (!file.path && !file.url)) throw new Error("no-file");
   let url = file.url ? file.url : `${api}/api/files/download?path=${encodeURIComponent(file.path)}`;
-
   const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36";
   let cookies = "";
   const grabCookies = (res) => {
@@ -303,16 +297,12 @@ ipcMain.handle("download-bypass", async (_e, bypass) => {
     cookies = Object.entries(jar).map(([k, v]) => `${k}=${v}`).join("; ");
   };
   const doFetch = (u) => fetch(u, { redirect: "follow", headers: { "User-Agent": UA, ...(cookies ? { Cookie: cookies } : {}) } });
-
   let res = await doFetch(url);
   grabCookies(res);
   let ct = (res.headers.get("content-type") || "").toLowerCase();
-
-  // Google Drive interstitial (large files / virus-scan): an HTML page with a confirm <form>
   const isGoogle = /google\.com/.test(url);
   if (isGoogle && ct.includes("text/html")) {
     const html = await res.text();
-    // Try the modern <form ...action="...download"> with hidden inputs (id, export, confirm, uuid)
     const action = (html.match(/action="([^"]+)"/i) || [])[1];
     let target = null;
     if (action) {
@@ -322,26 +312,21 @@ ipcMain.handle("download-bypass", async (_e, bypass) => {
       target = action.replace(/&amp;/g, "&") + (qs ? (action.includes("?") ? "&" : "?") + qs : "");
     }
     if (!target) {
-      // Legacy confirm token form
       const tok = (html.match(/confirm=([\w-]+)/) || [])[1];
       const idm = url.match(/[?&]id=([\w-]+)/);
       if (idm) target = `https://drive.usercontent.google.com/download?id=${idm[1]}&export=download${tok ? `&confirm=${tok}` : "&confirm=t"}`;
     }
     if (target) { res = await doFetch(target); grabCookies(res); ct = (res.headers.get("content-type") || "").toLowerCase(); }
   }
-
   if (!res.ok) throw new Error(`Download failed (${res.status})`);
   if (ct.includes("text/html")) throw new Error("bad-link");
-
   const buf = Buffer.from(await res.arrayBuffer());
   if (buf.length < 4096 && buf.slice(0, 200).toString("utf8").toLowerCase().includes("<html")) throw new Error("bad-link");
-
   let filename = file.filename || "bypass.zip";
   const cd = res.headers.get("content-disposition") || "";
   const fm = cd.match(/filename\*?=(?:UTF-8''|")?([^";]+)/i);
   if (fm) filename = decodeURIComponent(fm[1].replace(/"/g, ""));
   if (!/\.[a-z0-9]{2,4}$/i.test(filename)) filename = (bypass.title || "bypass").replace(/[^\w.-]+/g, "_") + ".zip";
-
   const dir = app.getPath("downloads");
   fs.mkdirSync(dir, { recursive: true });
   const dest = path.join(dir, filename);

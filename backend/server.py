@@ -862,32 +862,33 @@ def client_version():
         caminho_2 = ROOT_DIR.parent / "desktop" / "package.json"
         
         if caminho_1.exists():
-            v = _json.loads(caminho_1.read_text()).get("version", "1.0.5")
+            v = _json.loads(caminho_1.read_text()).get("version", "1.0.6")
         elif caminho_2.exists():
-            v = _json.loads(caminho_2.read_text()).get("version", "1.0.5")
+            v = _json.loads(caminho_2.read_text()).get("version", "1.0.6")
         else:
-            v = "1.0.5" # Se ele não achar o arquivo, força a leitura da versão 1.0.5
+            v = "1.0.6" # Se ele não achar o arquivo, força a leitura da versão 1.0.6
     except Exception:
-        v = "1.0.5"
+        v = "1.0.6"
         
     return {"version": v}
 
 
-# Link EXATO com os espaços substituídos por "%20" para o GitHub não bugar
-LINK_GITHUB_106 = "https://github.com/SOLOLEVELING1108/RayzerStark/releases/download/v1.0.6/Rayzer%20Stark%20Game-1.0.6-win.zip"
+# Link EXATO apontando para o arquivo .exe que você vai subir no GitHub!
+LINK_GITHUB_107_EXE = "https://github.com/SOLOLEVELING1108/RayzerStark/releases/download/v1.0.7/Rayzer.Stark.Game.Setup.1.0.7.exe"
 
 @api_router.get("/client-build/info")
 def client_build_info():
     import urllib.request
     try:
-        # Pesa o arquivo no GitHub para a segurança do App aprovar o download
-        req = urllib.request.Request(LINK_GITHUB_106, method="HEAD", headers={"User-Agent": "Mozilla/5.0"})
+        # Descobre o peso exato do .exe para a balança de segurança
+        req = urllib.request.Request(LINK_GITHUB_107_EXE, method="HEAD", headers={"User-Agent": "Mozilla/5.0"})
         with urllib.request.urlopen(req) as r:
-            tamanho_exato = int(r.headers.get('Content-Length', 106991616))
-        return {"available": True, "size": tamanho_exato, "filename": "update.zip"}
+            tamanho = int(r.headers.get('Content-Length', 80000000))
+        
+        # A MÁGICA: O servidor avisa que a versão 1.0.7 tá online!
+        return {"available": True, "version": "1.0.7", "size": tamanho, "filename": "update.exe"}
     except:
-        # Fallback de segurança se o GitHub demorar a responder
-        return {"available": True, "size": 106991616, "filename": "update.zip"}
+        return {"available": False}
 
 @api_router.get("/client-build/download")
 def client_build_download():
@@ -895,25 +896,24 @@ def client_build_download():
     import urllib.request
     
     try:
-        req_head = urllib.request.Request(LINK_GITHUB_106, method="HEAD", headers={"User-Agent": "Mozilla/5.0"})
+        req_head = urllib.request.Request(LINK_GITHUB_107_EXE, method="HEAD", headers={"User-Agent": "Mozilla/5.0"})
         with urllib.request.urlopen(req_head) as r:
-            tamanho = r.headers.get('Content-Length', '106991616')
+            tamanho = r.headers.get('Content-Length', '80000000')
     except:
-        tamanho = '106991616'
+        tamanho = '80000000'
 
-    def baixar_e_repassar():
-        # O Render faz o download perfeitamente e jorra pro aplicativo
-        req = urllib.request.Request(LINK_GITHUB_106, headers={"User-Agent": "Mozilla/5.0"})
+    def baixar_exe_direto():
+        req = urllib.request.Request(LINK_GITHUB_107_EXE, headers={"User-Agent": "Mozilla/5.0"})
         with urllib.request.urlopen(req) as response:
             while chunk := response.read(65536):
                 yield chunk
                 
     return StreamingResponse(
-        baixar_e_repassar(), 
-        media_type="application/zip",
+        baixar_exe_direto(), 
+        media_type="application/octet-stream",
         headers={
-            "Content-Disposition": 'attachment; filename="update.zip"',
-            "Content-Length": str(tamanho) # Trava o App na tela de atualização
+            "Content-Disposition": 'attachment; filename="update.exe"',
+            "Content-Length": str(tamanho)
         }
     )
 

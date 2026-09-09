@@ -49,14 +49,48 @@
       100% { transform: rotateX(75deg) translateY(60px); }
     }
 
-    /* 🔴 OBRIGA O LOGIN E SPLASH A SEREM TRANSPARENTES PARA VER O 3D 🔴 */
+    /* 🔴 EFEITO PREMIUM NO NOME (VIDRO / LUZ) 🔴 */
+    .premium-brand {
+      margin-left: 20px;
+      font-family: 'Outfit', sans-serif;
+      font-size: 24px;
+      font-weight: 900;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      
+      background: linear-gradient(
+        110deg,
+        #4f5b7d 0%,
+        #ffffff 40%,
+        #00ffff 50%,
+        #ffffff 60%,
+        #4f5b7d 100%
+      );
+      background-size: 200% auto;
+      color: transparent;
+      -webkit-background-clip: text;
+      background-clip: text;
+      
+      animation: shine-sweep 3s linear infinite;
+      filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.4));
+    }
+
+    .premium-brand span {
+      font-weight: 400;
+      opacity: 0.8;
+    }
+
+    @keyframes shine-sweep {
+      0% { background-position: 200% center; }
+      100% { background-position: -200% center; }
+    }
+
     .key-gate, .lang-overlay, .modal-overlay {
       background: rgba(8, 9, 14, 0.35) !important; 
       backdrop-filter: blur(8px) !important;
       -webkit-backdrop-filter: blur(8px) !important;
     }
 
-    /* 🔴 ESTILOS DA BARRINHA DE CARREGAMENTO FAKE 🔴 */
     .smart-loader-bar-bg {
       width: 320px; height: 6px; background: rgba(255, 255, 255, 0.1);
       border-radius: 4px; overflow: hidden; margin: 0 auto;
@@ -87,9 +121,9 @@
 
   <div class="app">
     <aside class="sidebar">
+      <!-- 🔴 A LOGO AGORA FICA SOZINHA NA LATERAL 🔴 -->
       <div class="brand">
-        <img src="logo.png" class="brand-img" alt="Rayzer" />
-        <div><div class="brand-title">RAYZER STARK</div><div class="brand-sub">GAME</div></div>
+        <img src="logo.png" class="brand-img" alt="Rayzer" style="width: 48px; height: 48px; margin: 0 auto; display: block;" />
       </div>
       <nav>
         <button class="nav-item active" data-view="library" data-i18n="nav.library">Biblioteca</button>
@@ -104,8 +138,10 @@
     </aside>
 
     <main class="main">
-      <header class="topbar">
-        <span class="topbar-title" id="view-title">Biblioteca</span>
+      <!-- 🔴 O CABEÇALHO COM O NOME PREMIUM DE LUZ 🔴 -->
+      <header class="topbar" style="display: flex; align-items: center;">
+        <span class="topbar-title" id="view-title" style="min-width: 150px;">Biblioteca</span>
+        <div class="premium-brand">RAYZER STARK <span>GAME</span></div>
       </header>
 
       <!-- LIBRARY -->
@@ -117,7 +153,6 @@
         <input id="search" class="input" />
         <div id="grid" class="grid" style="margin-top:18px"></div>
         
-        <!-- 🔴 NOVO: BOTÃO VER MAIS (BIBLIOTECA) 🔴 -->
         <div style="text-align: center; margin-top: 25px;">
           <button id="btn-ver-mais-lib" class="btn" style="display: none; width: 220px; margin: 0 auto;">Ver mais</button>
         </div>
@@ -134,7 +169,6 @@
         <input id="search-bypass" class="input" />
         <div id="bypass-grid" class="grid" style="margin-top:18px"></div>
 
-        <!-- 🔴 NOVO: BOTÃO VER MAIS (BYPASS) 🔴 -->
         <div style="text-align: center; margin-top: 25px;">
           <button id="btn-ver-mais-bypass" class="btn" style="display: none; width: 220px; margin: 0 auto;">Ver mais</button>
         </div>
@@ -240,7 +274,6 @@
     <div class="lang-bar"><div id="app-loader-bar" class="indet"></div></div>
   </div>
   
-  <!-- 🔴 TELA DE CARREGAMENTO INTELIGENTE (12 SEGUNDOS) 🔴 -->
   <div id="smart-loader" class="key-gate hidden" style="z-index: 9998; text-align: center;">
     <img src="logo.png" class="lang-logo splash-logo" alt="" />
     <div class="brand-title splash-brand">RAYZER STARK GAME</div>
@@ -252,10 +285,8 @@
 
   <div id="toast-wrap"></div>
   
-  <!-- SCRIPT DOS BOTÕES DA JANELA E DO CARREGAMENTO FAKE -->
   <script>
     document.addEventListener("DOMContentLoaded", () => {
-      // 1. Controles da Janela
       const btnMinimize = document.getElementById("btn-minimize");
       const btnClose = document.getElementById("btn-close");
       
@@ -271,7 +302,6 @@
         });
       }
 
-      // 2. Lógica do Carregamento Inteligente de 12 segundos
       const btnSubmit = document.getElementById("key-submit");
       const keyGate = document.getElementById("key-gate");
       const smartLoader = document.getElementById("smart-loader");
@@ -279,28 +309,14 @@
 
       if (btnSubmit && keyGate && smartLoader) {
         btnSubmit.addEventListener("click", () => {
-          // Quando o usuário clica em "Ativar", a gente fica checando (a cada 0.5s) 
-          // se o sistema aceitou a Key e fechou a tela de login.
           const checkLogin = setInterval(() => {
             if (keyGate.classList.contains("hidden")) {
-              clearInterval(checkLogin); // Parou de checar
-              
-              // Joga a tela de carregamento na cara do usuário!
+              clearInterval(checkLogin);
               smartLoader.classList.remove("hidden");
-              
-              // Começa a encher a barrinha
-              setTimeout(() => {
-                smartLoaderBar.style.width = "100%";
-              }, 100);
-              
-              // Depois de 12 segundos, esconde o carregamento e revela a tela principal
-              setTimeout(() => {
-                smartLoader.classList.add("hidden");
-              }, 12000);
+              setTimeout(() => { smartLoaderBar.style.width = "100%"; }, 100);
+              setTimeout(() => { smartLoader.classList.add("hidden"); }, 12000);
             }
           }, 500);
-
-          // Se passar 10 segundos e a tela de key não fechar (Key errada), ele desiste de checar
           setTimeout(() => clearInterval(checkLogin), 10000);
         });
       }
