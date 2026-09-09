@@ -884,7 +884,7 @@ def client_build_download():
     import urllib.request
     
     # Link corrigido da v1.0.5 com "%20" no lugar dos espaços
-    github_link = "https://github.com/SOLOLEVELING1108/RayzerStark/releases/download/v1.0.5/Rayzer%20Stark%20Game-1.0.5-win.zip"
+    github_link = "https://github.com/SOLOLEVELING1108/RayzerStark/releases/download/v1.0.5/Rayzer.Stark.Game-1.0.5-win.zip"
     
     def baixar_e_repassar():
         # O Render (Motoboy) vai no GitHub, baixa o arquivo de forma invisível e entrega pro app antigo
