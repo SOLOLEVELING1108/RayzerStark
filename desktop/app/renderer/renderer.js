@@ -2,6 +2,11 @@ let CONFIG = { apiBase: "", steamPath: "", deviceCode: "" };
 let SETTINGS = { pix_type: "", pix_key: "", pix_holder: "" };
 let LIB = [], STORE = [], BYPASS = [];
 let searchTerm = "", bypassSearch = "";
+
+// 🔴 VARIÁVEIS DE CONTROLE DO VER MAIS (20 em 20) 🔴
+let libVisibleCount = 20;
+let bypassVisibleCount = 20;
+
 const injecting = {}, downloading = {};
 let buyGame = null;
 let LANG = localStorage.getItem("lang") || "pt";
@@ -24,7 +29,7 @@ const TR = {
     "t.activated": "Ativado", "t.filesInj": "arquivo(s) instalado(s)", "t.removed": "Removido", "t.filesDel": "arquivo(s) apagado(s)",
     "t.actFail": "Falha ao ativar", "t.notReleased": "Acesso ainda não liberado para este dispositivo.", "t.noFiles": "Este jogo não tem arquivos no servidor.",
     "t.depsOk": "Dependências instaladas", "t.depsFail": "Falha ao instalar", "t.depsLocked": "Feche a Steam e os jogos abertos e tente de novo (arquivo em uso).", "t.steamClosing": "Fechando a Steam…", "t.steamReopened": "Dependências instaladas. Steam reaberta.", "t.deleteDone": "Exclusão concluída", "t.receiptSent": "Comprovante enviado!", "t.wait": "Aguarde a liberação do administrador.",
-    "t.attach": "Anexe o comprovante", "t.sendFail": "Falha ao enviar", "t.pixCopied": "Chave Pix copiada", "t.bpOk": "Bypass baixado para a pasta Downloads", "t.bpNoFile": "Este bypass não tem arquivo.", "t.bpBadLink": "Link inválido ou arquivo não é público (deixe como \"Qualquer pessoa com o link\").", "t.dlFail": "Falha ao baixar",
+    "t.attach": "Anexe o comprovante", "t.sendFail": "Falha ao enviar", "t.pixCopied": "Chave Pix copiada", "t.bpOk": "Bypass baixado para a pasta Downloads", "t.bpNoFile": "Este bypass não tem arquivo.", "t.bpBadLink": "Link inválido ou arquivo não es público (deixe como \"Qualquer pessoa com o link\").", "t.dlFail": "Falha ao baixar",
     "t.serverDown": "Servidor indisponível", "t.storeFail": "Falha ao carregar loja", "t.confirmDel": "Excluir permanentemente todos os arquivos deste PC?",
     "steam.ok": "● Steam encontrada", "steam.bad": "▲ Steam não encontrada", "deps.count": "dependência(s) instalada(s).", "deps.none": "Nenhuma dependência instalada ainda.",
     "load.starting": "Iniciando…", "load.games": "Carregando jogos…", "load.deps": "Instalando dependências…",
@@ -123,11 +128,24 @@ function libCardHtml(g) {
       <div class="progress-label hidden" data-plabel="${g.id}"></div>
     </div></div>`;
 }
+
+// 🔴 MODIFICADO PARA RENDERIZAR DE 20 EM 20 🔴
 function renderLib() {
   const list = LIB.filter((g) => { const s = searchTerm.toLowerCase(); return !s || g.title.toLowerCase().includes(s) || String(g.app_id).includes(s); });
   $("#empty-lib").classList.toggle("hidden", list.length > 0);
-  grid.innerHTML = list.map(libCardHtml).join("");
-  list.forEach((g) => {
+  
+  // Fatiando a lista do item 0 até o limite atual (20, 40, etc)
+  const itemsToShow = list.slice(0, libVisibleCount);
+  grid.innerHTML = itemsToShow.map(libCardHtml).join("");
+  
+  // Controle do Botão "Ver Mais" da Biblioteca
+  const btnVerMaisLib = $("#btn-ver-mais-lib");
+  if (btnVerMaisLib) {
+    btnVerMaisLib.style.display = libVisibleCount < list.length ? "block" : "none";
+  }
+
+  // Aplica os cliques só nos botões que foram renderizados na tela
+  itemsToShow.forEach((g) => {
     const root = grid.querySelector(`[data-card="${g.id}"]`);
     root?.querySelector(".activate")?.addEventListener("click", () => activate(g));
     root?.querySelector(".deactivate")?.addEventListener("click", () => deactivate(g));
@@ -138,6 +156,7 @@ function renderLib() {
     }
   });
 }
+
 async function activate(g) {
   if (injecting[g.id]) return;
   injecting[g.id] = true; renderLib();
@@ -179,12 +198,25 @@ function bypassCardHtml(b) {
                   : `<button class="btn full" disabled style="opacity:.5">${tr("bp.noFile")}</button>`}
       </div></div></div>`;
 }
+
+// 🔴 MODIFICADO PARA RENDERIZAR DE 20 EM 20 🔴
 function renderBypass() {
   const list = BYPASS.filter((b) => { const s = bypassSearch.toLowerCase(); return !s || b.title.toLowerCase().includes(s) || String(b.app_id).includes(s); });
   $("#empty-bypass").classList.toggle("hidden", list.length > 0);
-  bypassGrid.innerHTML = list.map(bypassCardHtml).join("");
-  list.forEach((b) => bypassGrid.querySelector(`[data-bcard="${b.id}"] .dl`)?.addEventListener("click", () => downloadBypass(b)));
+  
+  // Fatiando a lista do Bypass
+  const itemsToShow = list.slice(0, bypassVisibleCount);
+  bypassGrid.innerHTML = itemsToShow.map(bypassCardHtml).join("");
+  
+  // Controle do Botão "Ver Mais" do Bypass
+  const btnVerMaisBypass = $("#btn-ver-mais-bypass");
+  if (btnVerMaisBypass) {
+    btnVerMaisBypass.style.display = bypassVisibleCount < list.length ? "block" : "none";
+  }
+
+  itemsToShow.forEach((b) => bypassGrid.querySelector(`[data-bcard="${b.id}"] .dl`)?.addEventListener("click", () => downloadBypass(b)));
 }
+
 async function downloadBypass(b) {
   if (downloading[b.id]) return;
   downloading[b.id] = true; renderBypass(); renderLib();
@@ -329,7 +361,7 @@ async function updateSteamUI() {
   else { s.className = "steam-status bad"; s.textContent = tr("steam.bad"); }
 }
 
-// ---------- NAV ----------
+// ---------- NAV E BUSCAS ----------
 document.querySelectorAll(".nav-item").forEach((b) => b.addEventListener("click", () => {
   document.querySelectorAll(".nav-item").forEach((x) => x.classList.remove("active"));
   b.classList.add("active");
@@ -343,14 +375,41 @@ document.querySelectorAll(".nav-item").forEach((b) => b.addEventListener("click"
   if (currentView === "store") loadStore();
   if (currentView === "bypass") loadBypass();
 }));
-$("#search").addEventListener("input", (e) => { searchTerm = e.target.value; renderLib(); });
-$("#search-bypass").addEventListener("input", (e) => { bypassSearch = e.target.value; renderBypass(); });
+
+// 🔴 MODIFICADO PARA RESETAR O LIMITE QUANDO PESQUISAR ALGO 🔴
+$("#search").addEventListener("input", (e) => { 
+  searchTerm = e.target.value; 
+  libVisibleCount = 20; // Reseta o contador
+  renderLib(); 
+});
+$("#search-bypass").addEventListener("input", (e) => { 
+  bypassSearch = e.target.value; 
+  bypassVisibleCount = 20; // Reseta o contador
+  renderBypass(); 
+});
+
 $("#refresh-lib").addEventListener("click", loadLibrary);
 $("#refresh-store").addEventListener("click", loadStore);
 $("#refresh-bypass").addEventListener("click", loadBypass);
 
+// 🔴 EVENTOS DE CLIQUE DOS BOTÕES "VER MAIS" 🔴
+if ($("#btn-ver-mais-lib")) {
+  $("#btn-ver-mais-lib").addEventListener("click", () => {
+    libVisibleCount += 20; // Pede mais 20
+    renderLib();
+  });
+}
+if ($("#btn-ver-mais-bypass")) {
+  $("#btn-ver-mais-bypass").addEventListener("click", () => {
+    bypassVisibleCount += 20; // Pede mais 20
+    renderBypass();
+  });
+}
+
+// 🔴 RESET DOS CONTADORES NO LOAD 🔴
 async function loadLibrary() {
   try {
+    libVisibleCount = 20; // Reseta sempre que atualiza
     LIB = await apiGet(`/api/library?device_code=${encodeURIComponent(CONFIG.deviceCode)}`);
     try { BYPASS = await apiGet(`/api/bypasses`); } catch { /* keep old */ }
     renderLib();
@@ -365,7 +424,11 @@ async function loadStore() {
   } catch (e) { toast(tr("t.storeFail"), e.message, "err"); }
 }
 async function loadBypass() {
-  try { BYPASS = await apiGet(`/api/bypasses`); renderBypass(); }
+  try { 
+    bypassVisibleCount = 20; // Reseta sempre que atualiza
+    BYPASS = await apiGet(`/api/bypasses`); 
+    renderBypass(); 
+  }
   catch (e) { toast(tr("t.storeFail"), e.message, "err"); $("#empty-bypass").classList.remove("hidden"); }
 }
 

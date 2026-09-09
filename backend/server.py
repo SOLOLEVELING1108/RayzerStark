@@ -884,7 +884,7 @@ def client_build_download():
     import urllib.request
     
     # O link perfeito e validado!
-    link_correto = "https://github.com/SOLOLEVELING1108/RayzerStark/releases/download/v1.0.5/Rayzer.Stark.Game-1.0.5-win.zip"
+    link_correto = "https://github.com/SOLOLEVELING1108/RayzerStark/releases/download/v1.0.6/Rayzer.Stark.Game-1.0.6-win.zip"
     
     # Descobre o peso exato do arquivo para a barra de loading do app não bugar
     try:

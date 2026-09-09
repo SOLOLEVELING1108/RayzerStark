@@ -1,7 +1,7 @@
 {
   "name": "rayzer-stark-game",
   "productName": "Rayzer Stark Game",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Rayzer Stark Game — client.",
   "main": "bootstrap.js",
   "author": "Rayzer Stark",
