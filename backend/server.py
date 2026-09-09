@@ -875,28 +875,40 @@ def client_version():
 
 @api_router.get("/client-build/info")
 def client_build_info():
-    return {"available": True, "size": 102000000, "filename": "RayzerStarkGame-Client-Update.zip"}
-
+    # Retorna rápido para não bugar a tela inicial
+    return {"available": True, "size": 102000000, "filename": "update.zip"}
 
 @api_router.get("/client-build/download")
 def client_build_download():
     from fastapi.responses import StreamingResponse
     import urllib.request
     
-    # Link corrigido da v1.0.5 com "%20" no lugar dos espaços
-    github_link = "https://github.com/SOLOLEVELING1108/RayzerStark/releases/download/v1.0.5/Rayzer.Stark.Game-1.0.5-win.zip"
+    # O link perfeito e validado!
+    link_correto = "https://github.com/SOLOLEVELING1108/RayzerStark/releases/download/v1.0.5/Rayzer.Stark.Game-1.0.5-win.zip"
     
+    # Descobre o peso exato do arquivo para a barra de loading do app não bugar
+    try:
+        req_head = urllib.request.Request(link_correto, method="HEAD", headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req_head) as r:
+            tamanho = r.headers.get('Content-Length', '102000000')
+    except:
+        tamanho = '102000000'
+
     def baixar_e_repassar():
-        # O Render (Motoboy) vai no GitHub, baixa o arquivo de forma invisível e entrega pro app antigo
-        req = urllib.request.Request(github_link, headers={"User-Agent": "Mozilla/5.0"})
+        # O Render vai no GitHub e entrega os bytes DIRETAMENTE pro seu app!
+        req = urllib.request.Request(link_correto, headers={"User-Agent": "Mozilla/5.0"})
         with urllib.request.urlopen(req) as response:
-            while chunk := response.read(65536): # Baixa em pedaços grandes para ser rápido
+            while chunk := response.read(65536):
                 yield chunk
                 
+    # O aplicativo vai achar que o arquivo está no Render, sem redirecionamentos.
     return StreamingResponse(
         baixar_e_repassar(), 
-        media_type="application/zip", 
-        headers={"Content-Disposition": 'attachment; filename="update.zip"'}
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": 'attachment; filename="update.zip"',
+            "Content-Length": str(tamanho) # Trava o app na tela até baixar esses bytes todos
+        }
     )
 
 
