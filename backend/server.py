@@ -878,44 +878,14 @@ LINK_GITHUB_107_EXE = "https://github.com/SOLOLEVELING1108/RayzerStark/releases/
 
 @api_router.get("/client-build/info")
 def client_build_info():
-    import urllib.request
-    try:
-        # Descobre o peso exato do .exe para a balança de segurança
-        req = urllib.request.Request(LINK_GITHUB_107_EXE, method="HEAD", headers={"User-Agent": "Mozilla/5.0"})
-        with urllib.request.urlopen(req) as r:
-            tamanho = int(r.headers.get('Content-Length', 80000000))
-        
-        # A MÁGICA: O servidor avisa que a versão 1.0.7 tá online!
-        return {"available": True, "version": "1.0.7", "size": tamanho, "filename": "update.exe"}
-    except:
-        return {"available": False}
+    # Isso aqui funciona como um botão de "Desliga". 
+    # O aplicativo bate aqui, vê o "False" e pula direto pra tela de login!
+    return {"available": False}
 
 @api_router.get("/client-build/download")
 def client_build_download():
-    from fastapi.responses import StreamingResponse
-    import urllib.request
-    
-    try:
-        req_head = urllib.request.Request(LINK_GITHUB_107_EXE, method="HEAD", headers={"User-Agent": "Mozilla/5.0"})
-        with urllib.request.urlopen(req_head) as r:
-            tamanho = r.headers.get('Content-Length', '80000000')
-    except:
-        tamanho = '80000000'
-
-    def baixar_exe_direto():
-        req = urllib.request.Request(LINK_GITHUB_107_EXE, headers={"User-Agent": "Mozilla/5.0"})
-        with urllib.request.urlopen(req) as response:
-            while chunk := response.read(65536):
-                yield chunk
-                
-    return StreamingResponse(
-        baixar_exe_direto(), 
-        media_type="application/octet-stream",
-        headers={
-            "Content-Disposition": 'attachment; filename="update.exe"',
-            "Content-Length": str(tamanho)
-        }
-    )
+    # Rota desativada, já que agora o update é no Drive
+    return {"error": "Atualizações manuais pelo Drive"}
 
 
 @api_router.get("/admin-build/info")
