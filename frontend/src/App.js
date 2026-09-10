@@ -7,6 +7,7 @@ import Login from "@/pages/Login";
 import Library from "@/pages/Library";
 import GameManage from "@/pages/GameManage";
 import Dependencies from "@/pages/Dependencies";
+import Manifests from "@/pages/Manifests"; // <-- IMPORTAÇÃO ADICIONADA AQUI
 import Orders from "@/pages/Orders";
 import Keys from "@/pages/Keys";
 import Settings from "@/pages/Settings";
@@ -41,6 +42,7 @@ function App() {
               <Route path="/bypass/new" element={<BypassManage />} />
               <Route path="/bypass/:id" element={<BypassManage />} />
               <Route path="/dependencies" element={<Dependencies />} />
+              <Route path="/manifests" element={<Manifests />} /> {/* <-- ROTA ADICIONADA AQUI */}
               <Route path="/orders" element={<Orders />} />
               <Route path="/keys" element={<Keys />} />
               <Route path="/settings" element={<Settings />} />
