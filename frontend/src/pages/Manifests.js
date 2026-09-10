@@ -13,26 +13,37 @@ export default function Manifests() {
 
   const load = () => {
     setLoading(true);
-    api.get("/manifests").then(({ data }) => setManifests(data)).catch(() => toast.error("Failed to load manifests")).finally(() => setLoading(false));
+    api.get("/manifests").then(({ data }) => setManifests(data)).catch(() => toast.error("Falha ao carregar manifests")).finally(() => setLoading(false));
   };
   useEffect(load, []);
 
   const upload = async () => {
-    const file = ref.current?.files?.[0];
-    if (!file) return;
+    // Agora ele pega TODOS os arquivos selecionados
+    const files = ref.current?.files;
+    if (!files || files.length === 0) return;
+    
     setUploading(true);
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
-      await api.post("/manifests", fd);
-      toast.success("Manifest adicionado com sucesso!");
-      ref.current.value = "";
-      load();
-    } catch {
-      toast.error("Falha ao fazer upload do manifest");
-    } finally {
-      setUploading(false);
+    let successCount = 0;
+    let errorCount = 0;
+
+    // Faz um loop enviando um por um silenciosamente pro servidor não engasgar
+    for (let i = 0; i < files.length; i++) {
+      try {
+        const fd = new FormData();
+        fd.append("file", files[i]);
+        await api.post("/manifests", fd);
+        successCount++;
+      } catch {
+        errorCount++;
+      }
     }
+
+    if (successCount > 0) toast.success(`${successCount} manifest(s) adicionado(s) com sucesso!`);
+    if (errorCount > 0) toast.error(`Falha ao enviar ${errorCount} manifest(s).`);
+    
+    ref.current.value = "";
+    load();
+    setUploading(false);
   };
 
   const remove = async (manifest) => {
@@ -53,15 +64,16 @@ export default function Manifests() {
       <div className="rounded-xl border border-purple-500/20 bg-purple-500/5 p-4 mb-6">
         <p className="text-[11px] font-mono text-slate-500 mb-3 flex items-center gap-2"><HardDriveDownload className="w-3.5 h-3.5" /> → C:\Program Files (x86)\Steam\depotcache\</p>
         <label className="flex items-center justify-center gap-2 py-2.5 rounded-lg border border-purple-500/30 text-sm text-purple-300 hover:bg-purple-500/10 cursor-pointer transition-colors max-w-xs">
-          <Upload className="w-4 h-4" /> Enviar Manifest
-          <input ref={ref} data-testid="manifest-file-input" type="file" className="hidden" onChange={upload} />
+          <Upload className="w-4 h-4" /> Enviar Manifests
+          {/* O atributo MULTIPLE foi adicionado aqui para permitir selecionar vários */}
+          <input ref={ref} data-testid="manifest-file-input" type="file" multiple className="hidden" onChange={upload} />
         </label>
-        {uploading && <p className="text-xs text-cyan-400 mt-3 flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Fazendo upload...</p>}
+        {uploading && <p className="text-xs text-cyan-400 mt-3 flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Fazendo upload dos arquivos...</p>}
       </div>
 
       <div className="rounded-xl border border-white/10 bg-[#10131E] divide-y divide-white/5">
         {loading ? (
-          <p className="p-6 text-center text-slate-500 text-sm">{t("common.loading")}</p>
+          <p className="p-6 text-center text-slate-500 text-sm">Carregando...</p>
         ) : manifests.length === 0 ? (
           <p className="p-6 text-center text-slate-500 text-sm">Nenhum manifest adicionado ainda.</p>
         ) : (

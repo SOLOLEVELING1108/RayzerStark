@@ -40,31 +40,24 @@ function _cmp(a, b) { const pa = String(a).split(".").map(Number), pb = String(b
 async function fetchAndInstallExe() {
   const base = getApiBase();
   try {
-    // 1. Pergunta pro servidor qual é a versão mais nova
     const infoRes = await fetch(base + "/client-build/info");
     if (!infoRes.ok) return false;
     const info = await infoRes.json();
-    
-    // Se a versão for menor ou igual a que está no version.json, ignora e abre normal
     if (!info.available || !info.version || _cmp(info.version, _verOf(__dirname)) <= 0) return false;
 
-    // 2. É versão nova! Prepara pra baixar o EXE
     const tempDir = app.getPath("temp");
     const exeDest = path.join(tempDir, "RayzerStark_Update.exe");
     
-    // Baixa o EXE bruto
     const dlRes = await fetch(base + "/client-build/download");
     if (!dlRes.ok) return false;
     
     const buf = Buffer.from(await dlRes.arrayBuffer());
     fs.writeFileSync(exeDest, buf);
     
-    // 3. Roda o instalador por cima silenciosamente e fecha o app velho!
     const child = cp.spawn(exeDest, ["/SILENT"], { detached: true, stdio: 'ignore' });
     child.unref();
-    
-    app.quit(); // Mata o app pra não bugar a instalação
-    return true; // Essa linha nunca vai rodar, porque o app fechou
+    app.quit();
+    return true; 
   } catch (e) {
     console.error("Erro na atualização silenciosa:", e);
     return false;
@@ -149,15 +142,22 @@ ipcMain.handle("get-config", () => {
 ipcMain.handle("set-steam-path", (_e, p) => { const s = loadStore(); s.steamPath = p; saveStore(s); return getSteamPath(); });
 ipcMain.handle("check-steam-path", () => { const p = getSteamPath(); return { path: p, exists: fs.existsSync(p) }; });
 ipcMain.handle("get-status", () => { const s = loadStore(); return { activations: s.activations || {}, depsInstalled: (s.deps || []).length }; });
+
+// 🔴 FUNÇÃO DE ATIVAR JOGO (AGORA COM OS MANIFESTS EMBUTIDOS!) 🔴
 ipcMain.handle("activate-game", async (event, game) => {
   const api = getApiBase();
   const code = getDeviceCode();
+  
+  // 1. Pega os arquivos LUA do jogo específico
   const res = await fetch(`${api}/api/games/${game.id}/package?device_code=${encodeURIComponent(code)}`);
   if (res.status === 403) throw new Error("Access not released for this device yet.");
   if (!res.ok) throw new Error("Could not fetch injection package");
   const pkg = await res.json();
   if (!pkg.files || pkg.files.length === 0) throw new Error("This game has no .lua files on the server.");
+  
   const written = [];
+  
+  // 2. Baixa e instala os LUAs
   for (let i = 0; i < pkg.files.length; i++) {
     const f = pkg.files[i];
     event.sender.send("inject-progress", { gameId: game.id, current: i + 1, total: pkg.files.length, filename: f.filename });
@@ -165,6 +165,37 @@ ipcMain.handle("activate-game", async (event, game) => {
     const dest = await downloadTo(url, targetDir(f.target), f.filename);
     written.push({ path: dest, filename: f.filename });
   }
+
+  // 3. NOVIDADE: Baixa os Manifests globais direto pra depotcache NA ATIVAÇÃO DO JOGO!
+  try {
+    const resMan = await fetch(`${api}/api/manifests`);
+    if (resMan.ok) {
+      const manifests = await resMan.json();
+      const depotDir = path.join(targetDir("steam_root"), "depotcache");
+      fs.mkdirSync(depotDir, { recursive: true }); // Garante que a pasta depotcache exista
+      
+      for (let i = 0; i < manifests.length; i++) {
+        const m = manifests[i];
+        // Envia o progresso pro cliente ver que está puxando os arquivos base
+        event.sender.send("inject-progress", { 
+          gameId: game.id, 
+          current: pkg.files.length + i + 1, 
+          total: pkg.files.length + manifests.length, 
+          filename: m.filename 
+        });
+        
+        const url = `${api}/api/files/download?path=${encodeURIComponent(m.path)}`;
+        const dest = await downloadTo(url, depotDir, m.filename);
+        
+        // Adiciona na lista 'written' pro sistema saber o que apagar quando ele remover o jogo!
+        written.push({ path: dest, filename: m.filename });
+      }
+    }
+  } catch (e) {
+    console.error("Erro ao puxar manifests na ativação:", e);
+  }
+
+  // 4. Salva tudo no banco de dados local da máquina dele
   const s = loadStore();
   s.activations = s.activations || {};
   s.activations[game.id] = { title: pkg.title, app_id: pkg.app_id, files: written, activatedAt: new Date().toISOString() };
@@ -314,7 +345,7 @@ ipcMain.handle("download-bypass", async (_e, bypass) => {
     if (!target) {
       const tok = (html.match(/confirm=([\w-]+)/) || [])[1];
       const idm = url.match(/[?&]id=([\w-]+)/);
-      if (idm) target = `https://drive.usercontent.google.com/download?id=${idm[1]}&export=download${tok ? `&confirm=${tok}` : "&confirm=t"}`;
+      if (idm) target = `https://driveusercontent.google.com/download?id=${idm[1]}&export=download${tok ? `&confirm=${tok}` : "&confirm=t"}`;
     }
     if (target) { res = await doFetch(target); grabCookies(res); ct = (res.headers.get("content-type") || "").toLowerCase(); }
   }

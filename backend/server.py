@@ -500,6 +500,36 @@ def delete_dep(dep_id: str, admin: dict = Depends(auth.require_admin)):
     return {"ok": True}
 
 
+# ============ MANIFESTS (Steam depotcache) ============
+@api_router.get("/manifests")
+def list_manifests():
+    return rows(supa.t("manifests").select("*").eq("is_deleted", False).order("created_at").execute())
+
+
+@api_router.post("/manifests")
+async def add_manifest(file: UploadFile = File(...), admin: dict = Depends(auth.require_admin)):
+    mid = str(uuid.uuid4())
+    # Arquivos manifest geralmente não tem extensão padrão, mas vamos tratar como binário
+    path = f"manifests/{mid}_{file.filename}"
+    data = await file.read()
+    
+    supa.upload(path, data, "application/octet-stream")
+    
+    row = {"id": mid, "filename": file.filename, "path": path, "size": len(data),
+           "is_deleted": False, "created_at": now_iso()}
+    supa.t("manifests").insert(row).execute()
+    return row
+
+
+@api_router.delete("/manifests/{mid}")
+def delete_manifest(mid: str, admin: dict = Depends(auth.require_admin)):
+    m = one(supa.t("manifests").select("*").eq("id", mid).execute())
+    if m:
+        supa.remove(m["path"])
+    supa.t("manifests").update({"is_deleted": True}).eq("id", mid).execute()
+    return {"ok": True}
+
+
 # ============ SETTINGS / PIX ============
 @api_router.get("/settings")
 def get_settings():
