@@ -3,6 +3,30 @@ const path = require("path");
 const fs = require("fs");
 const crypto = require("crypto");
 const cp = require("child_process");
+const https = require("https");
+const http = require("http");
+const AdmZip = require("adm-zip"); // 🔴 O novo motor de extração de ZIP!
+
+const agentHttps = new https.Agent({ keepAlive: true, maxSockets: 100 });
+const agentHttp = new http.Agent({ keepAlive: true, maxSockets: 100 });
+
+function downloadFast(url, dest) {
+  return new Promise((resolve, reject) => {
+    const lib = url.startsWith("https") ? https : http;
+    const agent = url.startsWith("https") ? agentHttps : agentHttp;
+    lib.get(url, { agent }, (res) => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        return downloadFast(res.headers.location, dest).then(resolve).catch(reject);
+      }
+      if (res.statusCode !== 200) return reject(new Error("HTTP " + res.statusCode));
+      
+      const file = fs.createWriteStream(dest);
+      res.pipe(file);
+      file.on("finish", () => { file.close(); resolve(); });
+      file.on("error", (err) => { fs.unlink(dest, () => {}); reject(err); });
+    }).on("error", reject);
+  });
+}
 
 function machineGuid() {
   if (process.platform !== "win32") return null;
@@ -36,13 +60,13 @@ function getApiBase() { return fileConfig().apiBase.replace(/\/$/, ""); }
 function _verOf(dir) { try { return JSON.parse(fs.readFileSync(path.join(dir, "version.json"), "utf-8")).version || "0.0.0"; } catch { return "0.0.0"; } }
 function _cmp(a, b) { const pa = String(a).split(".").map(Number), pb = String(b).split(".").map(Number); for (let i = 0; i < 3; i++) { if ((pa[i] || 0) !== (pb[i] || 0)) return (pa[i] || 0) - (pb[i] || 0); } return 0; }
 
-// 🔴 O NOVO ATUALIZADOR INVISÍVEL VIA .EXE 🔴
 async function fetchAndInstallExe() {
   const base = getApiBase();
   try {
     const infoRes = await fetch(base + "/client-build/info");
     if (!infoRes.ok) return false;
     const info = await infoRes.json();
+    
     if (!info.available || !info.version || _cmp(info.version, _verOf(__dirname)) <= 0) return false;
 
     const tempDir = app.getPath("temp");
@@ -143,63 +167,90 @@ ipcMain.handle("set-steam-path", (_e, p) => { const s = loadStore(); s.steamPath
 ipcMain.handle("check-steam-path", () => { const p = getSteamPath(); return { path: p, exists: fs.existsSync(p) }; });
 ipcMain.handle("get-status", () => { const s = loadStore(); return { activations: s.activations || {}, depsInstalled: (s.deps || []).length }; });
 
-// 🔴 FUNÇÃO DE ATIVAR JOGO (AGORA COM OS MANIFESTS EMBUTIDOS!) 🔴
+// 🔴 A NOVA ATIVAÇÃO REVOLUCIONÁRIA VIA API 🔴
 ipcMain.handle("activate-game", async (event, game) => {
-  const api = getApiBase();
+  // Ignora o INIT de manifests soltos, pois agora tudo vem empacotado no jogo!
+  if (game.id === "MANIFEST_INIT") return { ok: true };
+
   const code = getDeviceCode();
+  const api = getApiBase();
+
+  // Opcional: Ainda checa se o jogador tem a liberação comprada pelo seu painel (se você usa esse sistema)
+  const authRes = await fetch(`${api}/api/games/${game.id}/package?device_code=${encodeURIComponent(code)}`);
+  if (authRes.status === 403) throw new Error("Acesso não liberado para este dispositivo ainda.");
+
+  // 1. Prepara a URL dinâmica e as pastas temporárias do Windows
+  const dlUrl = `https://generator.ryuu.lol/secure_download?appid=${game.app_id}&auth_code=RYUUMANIFEST43dvt2`;
+  const tempZip = path.join(app.getPath("temp"), `rayzer_${game.app_id}_${Date.now()}.zip`);
+  const extractDir = path.join(app.getPath("temp"), `ext_${game.app_id}_${Date.now()}`);
+
+  event.sender.send("inject-progress", { gameId: game.id, current: 1, total: 3, filename: "Baixando pacote do jogo da nuvem..." });
   
-  // 1. Pega os arquivos LUA do jogo específico
-  const res = await fetch(`${api}/api/games/${game.id}/package?device_code=${encodeURIComponent(code)}`);
-  if (res.status === 403) throw new Error("Access not released for this device yet.");
-  if (!res.ok) throw new Error("Could not fetch injection package");
-  const pkg = await res.json();
-  if (!pkg.files || pkg.files.length === 0) throw new Error("This game has no .lua files on the server.");
-  
-  const written = [];
-  
-  // 2. Baixa e instala os LUAs
-  for (let i = 0; i < pkg.files.length; i++) {
-    const f = pkg.files[i];
-    event.sender.send("inject-progress", { gameId: game.id, current: i + 1, total: pkg.files.length, filename: f.filename });
-    const url = `${api}/api/files/download?path=${encodeURIComponent(f.download_path)}`;
-    const dest = await downloadTo(url, targetDir(f.target), f.filename);
-    written.push({ path: dest, filename: f.filename });
+  // 2. Baixa o ZIP
+  try {
+    await downloadFast(dlUrl, tempZip);
+  } catch (err) {
+    throw new Error("Falha ao baixar os arquivos da API. Verifique sua conexão.");
   }
 
-  // 3. NOVIDADE: Baixa os Manifests globais direto pra depotcache NA ATIVAÇÃO DO JOGO!
+  event.sender.send("inject-progress", { gameId: game.id, current: 2, total: 3, filename: "Extraindo e instalando arquivos..." });
+
+  // 3. Extrai o ZIP silenciosamente
   try {
-    const resMan = await fetch(`${api}/api/manifests`);
-    if (resMan.ok) {
-      const manifests = await resMan.json();
-      const depotDir = path.join(targetDir("steam_root"), "depotcache");
-      fs.mkdirSync(depotDir, { recursive: true }); // Garante que a pasta depotcache exista
-      
-      for (let i = 0; i < manifests.length; i++) {
-        const m = manifests[i];
-        // Envia o progresso pro cliente ver que está puxando os arquivos base
-        event.sender.send("inject-progress", { 
-          gameId: game.id, 
-          current: pkg.files.length + i + 1, 
-          total: pkg.files.length + manifests.length, 
-          filename: m.filename 
-        });
-        
-        const url = `${api}/api/files/download?path=${encodeURIComponent(m.path)}`;
-        const dest = await downloadTo(url, depotDir, m.filename);
-        
-        // Adiciona na lista 'written' pro sistema saber o que apagar quando ele remover o jogo!
-        written.push({ path: dest, filename: m.filename });
+    const zip = new AdmZip(tempZip);
+    zip.extractAllTo(extractDir, true);
+  } catch (err) {
+    try { fs.unlinkSync(tempZip); } catch(e){}
+    throw new Error("Falha ao extrair o pacote zipado.");
+  }
+
+  // 4. Pastas de destino
+  const luaTarget = targetDir("steam_config_lua");
+  const manifestTarget = path.join(targetDir("steam_root"), "depotcache");
+  const written = [];
+
+  // Função peneira: caça .lua e .manifest dentro do zip extraído
+  function processExtracted(dir) {
+    if (!fs.existsSync(dir)) return;
+    const items = fs.readdirSync(dir);
+    for (const item of items) {
+      const full = path.join(dir, item);
+      if (fs.statSync(full).isDirectory()) {
+        processExtracted(full); // Mergulha em sub-pastas, se houver
+      } else {
+        const lower = item.toLowerCase();
+        if (lower.endsWith(".lua")) {
+          fs.mkdirSync(luaTarget, { recursive: true });
+          const dest = path.join(luaTarget, item);
+          fs.copyFileSync(full, dest);
+          written.push({ path: dest, filename: item });
+        } else if (lower.endsWith(".manifest")) {
+          fs.mkdirSync(manifestTarget, { recursive: true });
+          const dest = path.join(manifestTarget, item);
+          fs.copyFileSync(full, dest);
+          written.push({ path: dest, filename: item });
+        }
       }
     }
-  } catch (e) {
-    console.error("Erro ao puxar manifests na ativação:", e);
   }
 
-  // 4. Salva tudo no banco de dados local da máquina dele
+  processExtracted(extractDir);
+
+  // 5. Apaga as provas do crime (deleta o zip e a pasta temporária)
+  try { fs.unlinkSync(tempZip); } catch(e){}
+  try { fs.rmSync(extractDir, { recursive: true, force: true }); } catch(e){}
+
+  if (written.length === 0) {
+     throw new Error("O pacote zipado baixado não continha nenhum arquivo .lua ou .manifest compatível.");
+  }
+
+  // 6. Salva as informações de ativação para poder desinstalar no futuro
   const s = loadStore();
   s.activations = s.activations || {};
-  s.activations[game.id] = { title: pkg.title, app_id: pkg.app_id, files: written, activatedAt: new Date().toISOString() };
+  s.activations[game.id] = { title: game.title, app_id: game.app_id, files: written, activatedAt: new Date().toISOString() };
   saveStore(s);
+
+  event.sender.send("inject-progress", { gameId: game.id, current: 3, total: 3, filename: "Concluído com sucesso!" });
   return { ok: true, count: written.length };
 });
 

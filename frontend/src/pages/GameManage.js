@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { ArrowLeft, Save, Upload, FileCode2, Trash2, Loader2, ImagePlus, Globe, ShoppingCart, Link2 } from "lucide-react";
+import { ArrowLeft, Save, Upload, FileCode2, Trash2, Loader2, ImagePlus, Globe, ShoppingCart, Link2, Search } from "lucide-react";
 import { api, resolveImg } from "@/lib/api";
 import { useI18n } from "@/i18n";
 
@@ -77,6 +77,56 @@ export default function GameManage() {
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
   const setVal = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+
+  // 🔴 MÁGICA DA STEAM AQUI 🔴
+  const fetchSteamData = async () => {
+    if (!form.app_id) {
+      toast.error("Digite o App ID primeiro!");
+      return;
+    }
+    const loadToast = toast.loading("Buscando na Steam...");
+    try {
+      // Túnel CORS pra enganar a Vercel e puxar direto da Steam
+      const url = encodeURIComponent(`https://store.steampowered.com/api/appdetails?appids=${form.app_id}&l=brazilian`);
+      const res = await fetch(`https://api.allorigins.win/get?url=${url}`);
+      const proxyData = await res.json();
+      const data = JSON.parse(proxyData.contents);
+
+      if (data[form.app_id] && data[form.app_id].success) {
+        const jogo = data[form.app_id].data;
+        const titulo = jogo.name;
+        const capa = jogo.header_image;
+
+        // Tradutor Inteligente de Categorias
+        let categoria = "Outros";
+        if (jogo.genres && jogo.genres.length > 0) {
+          const generosSteam = jogo.genres.map(g => g.description.toLowerCase());
+          
+          if (generosSteam.includes("corrida") || generosSteam.includes("esportes")) {
+            categoria = "Esporte";
+          } else if (generosSteam.includes("ação") && jogo.categories && jogo.categories.some(c => c.description.toLowerCase().includes("tiro") || c.description.toLowerCase().includes("shooter"))) {
+            categoria = "FPS";
+          } else if (generosSteam.includes("rpg")) {
+            categoria = "RPG";
+          } else if (generosSteam.includes("ação") || generosSteam.includes("aventura")) {
+            categoria = "Ação/Aventura";
+          } else {
+            categoria = jogo.genres[0].description; // Pega o primeiro se não bater nas regras
+          }
+        }
+
+        setForm(f => ({ ...f, title: titulo, category: categoria, cover_url: capa }));
+        setCoverPreview(capa);
+        setCoverFile(null);
+        toast.success("Jogo encontrado com sucesso!", { id: loadToast });
+      } else {
+        toast.error("Jogo não encontrado na Steam com esse ID.", { id: loadToast });
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro de conexão. Preencha manualmente.", { id: loadToast });
+    }
+  };
 
   const onCover = async (e) => {
     const file = e.target.files?.[0];
@@ -217,8 +267,20 @@ export default function GameManage() {
         <div className="lg:col-span-2 space-y-4">
           <div><label className={label}>{t("game.title")}</label><input data-testid="title-input" className={input} placeholder="Resident Evil 2 Remake" value={form.title} onChange={set("title")} /></div>
           {matchedBp && <p data-testid="bypass-linked-note" className="text-xs text-cyan-400 flex items-center gap-1.5 -mt-2"><Link2 className="w-3.5 h-3.5" /> {t("game.bypassLinked")}: {matchedBp.title}</p>}
+          
           <div className="grid grid-cols-2 gap-4">
-            <div><label className={label}>{t("game.appid")}</label><input data-testid="appid-input" className={`${input} font-mono`} placeholder="223308" value={form.app_id} onChange={set("app_id")} /></div>
+            
+            {/* 🔴 CAMPO DE APP ID COM BOTÃO MÁGICO AQUI 🔴 */}
+            <div>
+              <label className={label}>{t("game.appid")}</label>
+              <div className="flex gap-2">
+                <input data-testid="appid-input" className={`${input} font-mono flex-1`} placeholder="223308" value={form.app_id} onChange={set("app_id")} />
+                <button type="button" onClick={fetchSteamData} className="px-4 rounded-lg bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 transition-colors flex items-center justify-center border border-cyan-500/30 font-semibold text-sm">
+                  <Search className="w-4 h-4 mr-1.5" /> Buscar
+                </button>
+              </div>
+            </div>
+
             <div><label className={label}>{t("game.category")}</label><input data-testid="category-input" className={input} placeholder="Horror / Action" value={form.category} onChange={set("category")} /></div>
           </div>
           <div><label className={label}>{t("game.desc")}</label><textarea data-testid="description-input" rows={2} className={input} placeholder="…" value={form.description} onChange={set("description")} /></div>
