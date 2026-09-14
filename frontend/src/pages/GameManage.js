@@ -38,12 +38,11 @@ export default function GameManage() {
   const [uploading, setUploading] = useState(false);
   const [bypasses, setBypasses] = useState([]);
   
-  // Estados dos Bulks (Em massa)
   const luaRef = useRef();
   const bulkRef = useRef();
   const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkResult, setBulkResult] = useState(null);
-  const [bulkIds, setBulkIds] = useState(""); // 🔴 Novo estado para os IDs
+  const [bulkIds, setBulkIds] = useState("");
 
   useEffect(() => { api.get("/bypasses").then(({ data }) => setBypasses(data)).catch(() => {}); }, []);
   const norm = (s) => (s == null ? "" : String(s)).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
@@ -65,7 +64,6 @@ export default function GameManage() {
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
   const setVal = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
-  // 🔴 MÁGICA 1: BUSCA INDIVIDUAL DA STEAM 🔴
   const fetchSteamData = async () => {
     if (!form.app_id) {
       toast.error("Digite o App ID primeiro!");
@@ -105,9 +103,7 @@ export default function GameManage() {
     }
   };
 
-  // 🔴 MÁGICA 2: ADIÇÃO EM MASSA (BULK) DE IDs DA STEAM 🔴
   const processBulkIds = async () => {
-    // Separa os IDs por vírgula ou por quebra de linha (Enter)
     const ids = bulkIds.split(/[\n,]+/).map(id => id.trim()).filter(Boolean);
     if (!ids.length) return;
 
@@ -137,13 +133,12 @@ export default function GameManage() {
             else categoria = jogo.genres[0].description;
           }
 
-          // Monta e joga pro banco de dados
           const fd = new FormData();
           fd.append("title", titulo);
           fd.append("app_id", appId);
           fd.append("category", categoria);
           fd.append("description", "");
-          fd.append("is_public", true); // 🔴 JÁ VAI PÚBLICO (GRÁTIS PRA TODOS)
+          fd.append("is_public", true); 
           fd.append("in_store", false);
           fd.append("price", 0);
           fd.append("cover_url", capa);
@@ -151,15 +146,15 @@ export default function GameManage() {
           await api.post("/games", fd);
           ok++;
         } else {
-          fail++; // ID inválido na Steam
+          fail++; 
         }
       } catch (e) {
-        fail++; // Erro de conexão
+        fail++; 
       }
     }
 
     setBulkBusy(false);
-    setBulkIds(""); // Limpa a caixa de texto
+    setBulkIds(""); 
     toast.success(`Processo concluído! ${ok} jogos salvos. ${fail > 0 ? `(${fail} IDs falharam)` : ''}`, { id: loadToast });
   };
 
@@ -274,7 +269,6 @@ export default function GameManage() {
       {!editing && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
           
-          {/* 🔴 CARD 1: ADICIONAR EM MASSA VIA IDs (NOVO) 🔴 */}
           <div className="rounded-2xl border border-cyan-500/25 bg-cyan-500/[0.04] p-5 flex flex-col">
             <div className="flex items-center gap-2 mb-2"><ListPlus className="w-5 h-5 text-cyan-400" /><h2 className="font-display text-lg font-bold">Puxar Vários IDs (Steam)</h2></div>
             <p className="text-xs text-slate-400 mb-3 leading-relaxed">Cole os App IDs (separados por vírgula ou por linha). O sistema puxará os dados e salvará como <strong>Público</strong>.</p>
@@ -293,7 +287,6 @@ export default function GameManage() {
             </button>
           </div>
 
-          {/* CARD 2: VINCULAR ARQUIVOS .LUA EM MASSA */}
           <div data-testid="bulk-import-card" className="rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.04] p-5 flex flex-col">
             <div className="flex items-center gap-2 mb-2"><FileCode2 className="w-5 h-5 text-emerald-400" /><h2 className="font-display text-lg font-bold">{t("game.bulkTitle")}</h2></div>
             <p className="text-xs text-slate-400 mb-4 leading-relaxed">{t("game.bulkDesc")}</p>
@@ -320,7 +313,6 @@ export default function GameManage() {
         </div>
       )}
 
-      {/* A LINHA OU (DIVISOR) APENAS SE NÃO ESTIVER EDITANDO */}
       {!editing && <div className="mb-8 flex items-center gap-3 text-[10px] uppercase tracking-widest text-slate-600"><div className="h-px flex-1 bg-white/10" />OU ADICIONAR UM JOGO MANUALMENTE<div className="h-px flex-1 bg-white/10" /></div>}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -344,7 +336,6 @@ export default function GameManage() {
           {matchedBp && <p data-testid="bypass-linked-note" className="text-xs text-cyan-400 flex items-center gap-1.5 -mt-2"><Link2 className="w-3.5 h-3.5" /> {t("game.bypassLinked")}: {matchedBp.title}</p>}
           
           <div className="grid grid-cols-2 gap-4">
-            
             <div>
               <label className={label}>{t("game.appid")}</label>
               <div className="flex gap-2">
@@ -354,7 +345,6 @@ export default function GameManage() {
                 </button>
               </div>
             </div>
-
             <div><label className={label}>{t("game.category")}</label><input data-testid="category-input" className={input} placeholder="Horror / Action" value={form.category} onChange={set("category")} /></div>
           </div>
           <div><label className={label}>{t("game.desc")}</label><textarea data-testid="description-input" rows={2} className={input} placeholder="…" value={form.description} onChange={set("description")} /></div>
@@ -363,12 +353,13 @@ export default function GameManage() {
             <Toggle testid="toggle-public" checked={form.is_public} onChange={(v) => setVal("is_public", v)} label={t("game.public")} icon={Globe} />
             <Toggle testid="toggle-store" checked={form.in_store} onChange={(v) => setVal("in_store", v)} label={t("game.sell")} icon={ShoppingCart} />
           </div>
+          
           {form.in_store && (
             <div className="max-w-[220px]">
               <label className={label}>{t("game.price")}</label>
               <input data-testid="price-input" type="number" min="0" step="0.01" className={`${input} font-mono`} value={form.price} onChange={set("price")} />
             </div>
-          </div>
+          )}
 
           <button data-testid="save-game-btn" onClick={save} disabled={saving} className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-cyan-500 text-black font-semibold text-sm hover:bg-cyan-400 disabled:opacity-60 transition-colors">
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
