@@ -103,59 +103,93 @@ export default function GameManage() {
     }
   };
 
+  // 🔴 MÁGICA 2: FILTRO INTELIGENTE E ADIÇÃO EM MASSA 🔴
   const processBulkIds = async () => {
-    const ids = bulkIds.split(/[\n,]+/).map(id => id.trim()).filter(Boolean);
-    if (!ids.length) return;
+    const rawIds = bulkIds.split(/[\n,]+/).map(id => id.trim()).filter(Boolean);
+    if (!rawIds.length) return;
 
     setBulkBusy(true);
-    let ok = 0, fail = 0;
-    const loadToast = toast.loading(`Processando ${ids.length} jogos... Por favor, aguarde.`);
+    const loadToast = toast.loading(`Analisando ${rawIds.length} IDs...`);
 
-    for (const appId of ids) {
-      try {
-        const url = encodeURIComponent(`https://store.steampowered.com/api/appdetails?appids=${appId}&l=brazilian`);
-        const res = await fetch(`https://api.allorigins.win/get?url=${url}`);
-        const proxyData = await res.json();
-        const data = JSON.parse(proxyData.contents);
+    try {
+      // 1. Puxa todos os jogos que você já tem cadastrado no banco
+      const { data: existingGames } = await api.get("/games");
+      const existingAppIds = new Set(existingGames.map(g => String(g.app_id)));
 
-        if (data[appId] && data[appId].success) {
-          const jogo = data[appId].data;
-          const titulo = jogo.name;
-          const capa = jogo.header_image;
-
-          let categoria = "Outros";
-          if (jogo.genres && jogo.genres.length > 0) {
-            const generosSteam = jogo.genres.map(g => g.description.toLowerCase());
-            if (generosSteam.includes("corrida") || generosSteam.includes("esportes")) categoria = "Esporte";
-            else if (generosSteam.includes("ação") && jogo.categories && jogo.categories.some(c => c.description.toLowerCase().includes("tiro") || c.description.toLowerCase().includes("shooter"))) categoria = "FPS";
-            else if (generosSteam.includes("rpg")) categoria = "RPG";
-            else if (generosSteam.includes("ação") || generosSteam.includes("aventura")) categoria = "Ação/Aventura";
-            else categoria = jogo.genres[0].description;
-          }
-
-          const fd = new FormData();
-          fd.append("title", titulo);
-          fd.append("app_id", appId);
-          fd.append("category", categoria);
-          fd.append("description", "");
-          fd.append("is_public", true); 
-          fd.append("in_store", false);
-          fd.append("price", 0);
-          fd.append("cover_url", capa);
-
-          await api.post("/games", fd);
-          ok++;
+      // 2. Separa os novos dos repetidos
+      const newIds = [];
+      let skipped = 0;
+      
+      for (const id of rawIds) {
+        if (existingAppIds.has(String(id))) {
+          skipped++; // Já existe, ignora!
         } else {
+          newIds.push(id); // É novo, vamos cadastrar!
+        }
+      }
+
+      // Se você colar uma lista que já está 100% no banco, ele para aqui mesmo.
+      if (newIds.length === 0) {
+        setBulkBusy(false);
+        toast.success(`Nenhum jogo adicionado. Todos os ${skipped} já estavam na sua biblioteca!`, { id: loadToast });
+        return;
+      }
+
+      toast.loading(`Baixando ${newIds.length} novos jogos... (${skipped} repetidos ignorados)`, { id: loadToast });
+
+      let ok = 0, fail = 0;
+
+      // 3. Cadastra os novos puxando da Steam
+      for (const appId of newIds) {
+        try {
+          const url = encodeURIComponent(`https://store.steampowered.com/api/appdetails?appids=${appId}&l=brazilian`);
+          const res = await fetch(`https://api.allorigins.win/get?url=${url}`);
+          const proxyData = await res.json();
+          const data = JSON.parse(proxyData.contents);
+
+          if (data[appId] && data[appId].success) {
+            const jogo = data[appId].data;
+            const titulo = jogo.name;
+            const capa = jogo.header_image;
+
+            let categoria = "Outros";
+            if (jogo.genres && jogo.genres.length > 0) {
+              const generosSteam = jogo.genres.map(g => g.description.toLowerCase());
+              if (generosSteam.includes("corrida") || generosSteam.includes("esportes")) categoria = "Esporte";
+              else if (generosSteam.includes("ação") && jogo.categories && jogo.categories.some(c => c.description.toLowerCase().includes("tiro") || c.description.toLowerCase().includes("shooter"))) categoria = "FPS";
+              else if (generosSteam.includes("rpg")) categoria = "RPG";
+              else if (generosSteam.includes("ação") || generosSteam.includes("aventura")) categoria = "Ação/Aventura";
+              else categoria = jogo.genres[0].description;
+            }
+
+            const fd = new FormData();
+            fd.append("title", titulo);
+            fd.append("app_id", appId);
+            fd.append("category", categoria);
+            fd.append("description", "");
+            fd.append("is_public", true); // JÁ VAI PÚBLICO
+            fd.append("in_store", false);
+            fd.append("price", 0);
+            fd.append("cover_url", capa);
+
+            await api.post("/games", fd);
+            ok++;
+          } else {
+            fail++; 
+          }
+        } catch (e) {
           fail++; 
         }
-      } catch (e) {
-        fail++; 
       }
-    }
 
-    setBulkBusy(false);
-    setBulkIds(""); 
-    toast.success(`Processo concluído! ${ok} jogos salvos. ${fail > 0 ? `(${fail} IDs falharam)` : ''}`, { id: loadToast });
+      setBulkIds(""); // Limpa a caixa de texto
+      toast.success(`Pronto! ${ok} salvos, ${skipped} pulados. ${fail > 0 ? `(${fail} falharam)` : ''}`, { id: loadToast });
+
+    } catch (error) {
+      toast.error("Erro ao verificar biblioteca. Tente de novo.", { id: loadToast });
+    } finally {
+      setBulkBusy(false);
+    }
   };
 
   const importBulk = async () => {
@@ -271,7 +305,7 @@ export default function GameManage() {
           
           <div className="rounded-2xl border border-cyan-500/25 bg-cyan-500/[0.04] p-5 flex flex-col">
             <div className="flex items-center gap-2 mb-2"><ListPlus className="w-5 h-5 text-cyan-400" /><h2 className="font-display text-lg font-bold">Puxar Vários IDs (Steam)</h2></div>
-            <p className="text-xs text-slate-400 mb-3 leading-relaxed">Cole os App IDs (separados por vírgula ou por linha). O sistema puxará os dados e salvará como <strong>Público</strong>.</p>
+            <p className="text-xs text-slate-400 mb-3 leading-relaxed">Cole os App IDs. O sistema ignorará jogos repetidos, puxará os dados dos novos e os salvará como <strong>Público</strong>.</p>
             <textarea 
               className={`${input} h-28 mb-3 resize-none`} 
               placeholder={`Ex:\n1888930\n2322010\n1086940`} 
