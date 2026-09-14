@@ -103,7 +103,7 @@ export default function GameManage() {
     }
   };
 
-  // 🔴 MÁGICA 2: FILTRO INTELIGENTE E ADIÇÃO EM MASSA 🔴
+  // 🔴 MÁGICA 2: FILTRO INTELIGENTE E PROGRESSO EM TEMPO REAL 🔴
   const processBulkIds = async () => {
     const rawIds = bulkIds.split(/[\n,]+/).map(id => id.trim()).filter(Boolean);
     if (!rawIds.length) return;
@@ -112,35 +112,34 @@ export default function GameManage() {
     const loadToast = toast.loading(`Analisando ${rawIds.length} IDs...`);
 
     try {
-      // 1. Puxa todos os jogos que você já tem cadastrado no banco
       const { data: existingGames } = await api.get("/games");
       const existingAppIds = new Set(existingGames.map(g => String(g.app_id)));
 
-      // 2. Separa os novos dos repetidos
       const newIds = [];
       let skipped = 0;
       
       for (const id of rawIds) {
         if (existingAppIds.has(String(id))) {
-          skipped++; // Já existe, ignora!
+          skipped++; 
         } else {
-          newIds.push(id); // É novo, vamos cadastrar!
+          newIds.push(id); 
         }
       }
 
-      // Se você colar uma lista que já está 100% no banco, ele para aqui mesmo.
       if (newIds.length === 0) {
         setBulkBusy(false);
         toast.success(`Nenhum jogo adicionado. Todos os ${skipped} já estavam na sua biblioteca!`, { id: loadToast });
         return;
       }
 
-      toast.loading(`Baixando ${newIds.length} novos jogos... (${skipped} repetidos ignorados)`, { id: loadToast });
-
       let ok = 0, fail = 0;
 
-      // 3. Cadastra os novos puxando da Steam
-      for (const appId of newIds) {
+      for (let i = 0; i < newIds.length; i++) {
+        const appId = newIds[i];
+        
+        // ATUALIZA A MENSAGEM AO VIVO NA TELA
+        toast.loading(`Baixando ${i + 1} de ${newIds.length} jogos... (${skipped} repetidos ignorados)`, { id: loadToast });
+
         try {
           const url = encodeURIComponent(`https://store.steampowered.com/api/appdetails?appids=${appId}&l=brazilian`);
           const res = await fetch(`https://api.allorigins.win/get?url=${url}`);
@@ -167,7 +166,7 @@ export default function GameManage() {
             fd.append("app_id", appId);
             fd.append("category", categoria);
             fd.append("description", "");
-            fd.append("is_public", true); // JÁ VAI PÚBLICO
+            fd.append("is_public", true); 
             fd.append("in_store", false);
             fd.append("price", 0);
             fd.append("cover_url", capa);
@@ -182,7 +181,7 @@ export default function GameManage() {
         }
       }
 
-      setBulkIds(""); // Limpa a caixa de texto
+      setBulkIds(""); 
       toast.success(`Pronto! ${ok} salvos, ${skipped} pulados. ${fail > 0 ? `(${fail} falharam)` : ''}`, { id: loadToast });
 
     } catch (error) {
