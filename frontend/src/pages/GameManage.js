@@ -6,11 +6,10 @@ import { api, resolveImg } from "@/lib/api";
 import { useI18n } from "@/i18n";
 
 // MÁGICA 3: O MOTOR DE BUSCA COM PLANO B (FURA-BLOQUEIO +18)
-// Coloquei do lado de fora pra deixar o código super limpo!
 const fetchGameInfo = async (appId) => {
   let titulo = "";
   let categoria = "Outros";
-  let capa = `https://cdn.cloudflare.steamstatic.com/steam/apps/${appId}/header.jpg`; // Capa funciona sempre!
+  let capa = `https://cdn.cloudflare.steamstatic.com/steam/apps/${appId}/header.jpg`; 
   let success = false;
 
   // 1ª TENTATIVA: Steam Oficial
@@ -37,7 +36,7 @@ const fetchGameInfo = async (appId) => {
     }
   } catch (e) {}
 
-  // 2ª TENTATIVA (PLANO B): SteamSpy (Ignora bloqueio de idade do MK1, GTA V, etc)
+  // 2ª TENTATIVA (PLANO B): SteamSpy
   try {
     const url2 = encodeURIComponent(`https://steamspy.com/api.php?request=appdetails&appid=${appId}`);
     const res2 = await fetch(`https://api.allorigins.win/get?url=${url2}`);
@@ -56,7 +55,6 @@ const fetchGameInfo = async (appId) => {
 
   return { success, titulo, categoria, capa };
 };
-
 
 function Toggle({ checked, onChange, testid, label, icon: Icon }) {
   return (
@@ -169,38 +167,43 @@ export default function GameManage() {
         const appId = newIds[i];
         
         toast.loading(`Baixando ${i + 1} de ${newIds.length} jogos... (${skipped} repetidos ignorados)`, { id: loadToast });
-
         const info = await fetchGameInfo(appId);
 
         if (info.success) {
           try {
             const fd = new FormData();
             fd.append("title", info.titulo);
-            fd.append("app_id", appId);
+            fd.append("app_id", String(appId));
             fd.append("category", info.categoria);
             fd.append("description", "");
-            fd.append("is_public", true); 
-            fd.append("in_store", false);
-            fd.append("price", 0);
+            fd.append("is_public", "true"); // Forçando como string para o backend aceitar perfeito
+            fd.append("in_store", "false");
+            fd.append("price", "0");
             fd.append("cover_url", info.capa);
 
             await api.post("/games", fd);
             ok++;
           } catch (e) {
+            console.error("Falha ao salvar no banco de dados o ID:", appId, e);
             fail++; 
           }
         } else {
-          fail++; // Jogo realmente não foi achado nem na Steam nem no SteamSpy
+          fail++; 
         }
 
-        // FREIO ANTI-BLOQUEIO: Espera 1 segundo para não estourar limite da API
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 1500));
       }
 
       setBulkIds(""); 
-      toast.success(`Pronto! ${ok} salvos, ${skipped} pulados. ${fail > 0 ? `(${fail} falharam)` : ''}`, { id: loadToast });
+      toast.success(`Pronto! ${ok} salvos, ${skipped} pulados. Recarregando a biblioteca...`, { id: loadToast });
+      
+      // 🔴 O SEGREDO: Força a página a recarregar lá na Biblioteca pra você ver os jogos novos
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 1500);
 
     } catch (error) {
+      console.error("Erro geral no Bulk:", error);
       toast.error("Erro ao verificar biblioteca. Tente de novo.", { id: loadToast });
     } finally {
       setBulkBusy(false);
