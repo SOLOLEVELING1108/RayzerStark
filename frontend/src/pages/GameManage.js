@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { ArrowLeft, Save, Upload, FileCode2, Trash2, Loader2, ImagePlus, Globe, ShoppingCart, Link2, Search } from "lucide-react";
+import { ArrowLeft, Save, Upload, FileCode2, Trash2, Loader2, ImagePlus, Globe, ShoppingCart, Link2, Search, ListPlus, Download } from "lucide-react";
 import { api, resolveImg } from "@/lib/api";
 import { useI18n } from "@/i18n";
 
@@ -37,26 +37,13 @@ export default function GameManage() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [bypasses, setBypasses] = useState([]);
+  
+  // Estados dos Bulks (Em massa)
   const luaRef = useRef();
   const bulkRef = useRef();
   const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkResult, setBulkResult] = useState(null);
-
-  const importBulk = async () => {
-    const files = Array.from(bulkRef.current?.files || []);
-    if (!files.length) return;
-    setBulkBusy(true); setBulkResult(null);
-    try {
-      const fd = new FormData();
-      files.forEach((f) => fd.append("files", f));
-      const { data } = await api.post("/games/bulk-lua", fd);
-      setBulkResult(data);
-      toast.success(`${data.count} ${t("game.bulkDone")}`);
-      if (bulkRef.current) bulkRef.current.value = "";
-    } catch (e) {
-      toast.error(e.response?.data?.detail || t("game.saveFail"));
-    } finally { setBulkBusy(false); }
-  };
+  const [bulkIds, setBulkIds] = useState(""); // 🔴 Novo estado para os IDs
 
   useEffect(() => { api.get("/bypasses").then(({ data }) => setBypasses(data)).catch(() => {}); }, []);
   const norm = (s) => (s == null ? "" : String(s)).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
@@ -78,7 +65,7 @@ export default function GameManage() {
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
   const setVal = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
-  // 🔴 MÁGICA DA STEAM AQUI 🔴
+  // 🔴 MÁGICA 1: BUSCA INDIVIDUAL DA STEAM 🔴
   const fetchSteamData = async () => {
     if (!form.app_id) {
       toast.error("Digite o App ID primeiro!");
@@ -86,7 +73,6 @@ export default function GameManage() {
     }
     const loadToast = toast.loading("Buscando na Steam...");
     try {
-      // Túnel CORS pra enganar a Vercel e puxar direto da Steam
       const url = encodeURIComponent(`https://store.steampowered.com/api/appdetails?appids=${form.app_id}&l=brazilian`);
       const res = await fetch(`https://api.allorigins.win/get?url=${url}`);
       const proxyData = await res.json();
@@ -97,22 +83,14 @@ export default function GameManage() {
         const titulo = jogo.name;
         const capa = jogo.header_image;
 
-        // Tradutor Inteligente de Categorias
         let categoria = "Outros";
         if (jogo.genres && jogo.genres.length > 0) {
           const generosSteam = jogo.genres.map(g => g.description.toLowerCase());
-          
-          if (generosSteam.includes("corrida") || generosSteam.includes("esportes")) {
-            categoria = "Esporte";
-          } else if (generosSteam.includes("ação") && jogo.categories && jogo.categories.some(c => c.description.toLowerCase().includes("tiro") || c.description.toLowerCase().includes("shooter"))) {
-            categoria = "FPS";
-          } else if (generosSteam.includes("rpg")) {
-            categoria = "RPG";
-          } else if (generosSteam.includes("ação") || generosSteam.includes("aventura")) {
-            categoria = "Ação/Aventura";
-          } else {
-            categoria = jogo.genres[0].description; // Pega o primeiro se não bater nas regras
-          }
+          if (generosSteam.includes("corrida") || generosSteam.includes("esportes")) categoria = "Esporte";
+          else if (generosSteam.includes("ação") && jogo.categories && jogo.categories.some(c => c.description.toLowerCase().includes("tiro") || c.description.toLowerCase().includes("shooter"))) categoria = "FPS";
+          else if (generosSteam.includes("rpg")) categoria = "RPG";
+          else if (generosSteam.includes("ação") || generosSteam.includes("aventura")) categoria = "Ação/Aventura";
+          else categoria = jogo.genres[0].description;
         }
 
         setForm(f => ({ ...f, title: titulo, category: categoria, cover_url: capa }));
@@ -123,9 +101,82 @@ export default function GameManage() {
         toast.error("Jogo não encontrado na Steam com esse ID.", { id: loadToast });
       }
     } catch (err) {
-      console.error(err);
       toast.error("Erro de conexão. Preencha manualmente.", { id: loadToast });
     }
+  };
+
+  // 🔴 MÁGICA 2: ADIÇÃO EM MASSA (BULK) DE IDs DA STEAM 🔴
+  const processBulkIds = async () => {
+    // Separa os IDs por vírgula ou por quebra de linha (Enter)
+    const ids = bulkIds.split(/[\n,]+/).map(id => id.trim()).filter(Boolean);
+    if (!ids.length) return;
+
+    setBulkBusy(true);
+    let ok = 0, fail = 0;
+    const loadToast = toast.loading(`Processando ${ids.length} jogos... Por favor, aguarde.`);
+
+    for (const appId of ids) {
+      try {
+        const url = encodeURIComponent(`https://store.steampowered.com/api/appdetails?appids=${appId}&l=brazilian`);
+        const res = await fetch(`https://api.allorigins.win/get?url=${url}`);
+        const proxyData = await res.json();
+        const data = JSON.parse(proxyData.contents);
+
+        if (data[appId] && data[appId].success) {
+          const jogo = data[appId].data;
+          const titulo = jogo.name;
+          const capa = jogo.header_image;
+
+          let categoria = "Outros";
+          if (jogo.genres && jogo.genres.length > 0) {
+            const generosSteam = jogo.genres.map(g => g.description.toLowerCase());
+            if (generosSteam.includes("corrida") || generosSteam.includes("esportes")) categoria = "Esporte";
+            else if (generosSteam.includes("ação") && jogo.categories && jogo.categories.some(c => c.description.toLowerCase().includes("tiro") || c.description.toLowerCase().includes("shooter"))) categoria = "FPS";
+            else if (generosSteam.includes("rpg")) categoria = "RPG";
+            else if (generosSteam.includes("ação") || generosSteam.includes("aventura")) categoria = "Ação/Aventura";
+            else categoria = jogo.genres[0].description;
+          }
+
+          // Monta e joga pro banco de dados
+          const fd = new FormData();
+          fd.append("title", titulo);
+          fd.append("app_id", appId);
+          fd.append("category", categoria);
+          fd.append("description", "");
+          fd.append("is_public", true); // 🔴 JÁ VAI PÚBLICO (GRÁTIS PRA TODOS)
+          fd.append("in_store", false);
+          fd.append("price", 0);
+          fd.append("cover_url", capa);
+
+          await api.post("/games", fd);
+          ok++;
+        } else {
+          fail++; // ID inválido na Steam
+        }
+      } catch (e) {
+        fail++; // Erro de conexão
+      }
+    }
+
+    setBulkBusy(false);
+    setBulkIds(""); // Limpa a caixa de texto
+    toast.success(`Processo concluído! ${ok} jogos salvos. ${fail > 0 ? `(${fail} IDs falharam)` : ''}`, { id: loadToast });
+  };
+
+  const importBulk = async () => {
+    const files = Array.from(bulkRef.current?.files || []);
+    if (!files.length) return;
+    setBulkBusy(true); setBulkResult(null);
+    try {
+      const fd = new FormData();
+      files.forEach((f) => fd.append("files", f));
+      const { data } = await api.post("/games/bulk-lua", fd);
+      setBulkResult(data);
+      toast.success(`${data.count} ${t("game.bulkDone")}`);
+      if (bulkRef.current) bulkRef.current.value = "";
+    } catch (e) {
+      toast.error(e.response?.data?.detail || t("game.saveFail"));
+    } finally { setBulkBusy(false); }
   };
 
   const onCover = async (e) => {
@@ -221,32 +272,56 @@ export default function GameManage() {
       <h1 className="font-display text-3xl font-black tracking-tight mb-6">{editing ? t("game.manage") : t("game.add")}</h1>
 
       {!editing && (
-        <div data-testid="bulk-import-card" className="mb-8 rounded-2xl border border-cyan-500/25 bg-cyan-500/[0.04] p-5">
-          <div className="flex items-center gap-2 mb-1"><FileCode2 className="w-5 h-5 text-cyan-400" /><h2 className="font-display text-lg font-bold">{t("game.bulkTitle")}</h2></div>
-          <p className="text-xs text-slate-400 mb-4 leading-relaxed max-w-2xl">{t("game.bulkDesc")}</p>
-          <div className="flex flex-wrap items-center gap-3">
-            <label className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border border-cyan-500/40 text-sm font-semibold cursor-pointer transition-colors ${bulkBusy ? "opacity-60 pointer-events-none" : "text-cyan-300 hover:bg-cyan-500/10"}`}>
-              {bulkBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />} {t("game.bulkPick")}
-              <input ref={bulkRef} data-testid="bulk-lua-input" type="file" accept=".lua" multiple className="hidden" onChange={importBulk} />
-            </label>
-            <span className="text-[11px] text-slate-500">{t("game.bulkHint")}</span>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+          
+          {/* 🔴 CARD 1: ADICIONAR EM MASSA VIA IDs (NOVO) 🔴 */}
+          <div className="rounded-2xl border border-cyan-500/25 bg-cyan-500/[0.04] p-5 flex flex-col">
+            <div className="flex items-center gap-2 mb-2"><ListPlus className="w-5 h-5 text-cyan-400" /><h2 className="font-display text-lg font-bold">Puxar Vários IDs (Steam)</h2></div>
+            <p className="text-xs text-slate-400 mb-3 leading-relaxed">Cole os App IDs (separados por vírgula ou por linha). O sistema puxará os dados e salvará como <strong>Público</strong>.</p>
+            <textarea 
+              className={`${input} h-28 mb-3 resize-none`} 
+              placeholder={`Ex:\n1888930\n2322010\n1086940`} 
+              value={bulkIds} 
+              onChange={(e) => setBulkIds(e.target.value)} 
+            />
+            <button 
+              onClick={processBulkIds} 
+              disabled={bulkBusy || !bulkIds.trim()} 
+              className="mt-auto flex justify-center items-center gap-2 px-4 py-2.5 rounded-lg border border-cyan-500/40 text-sm font-semibold transition-colors disabled:opacity-50 text-cyan-300 hover:bg-cyan-500/10"
+            >
+              {bulkBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />} {bulkBusy ? "Processando..." : "Adicionar Jogos"}
+            </button>
           </div>
-          {bulkResult && (
-            <div className="mt-4 rounded-xl border border-white/10 bg-[#10131E] divide-y divide-white/5">
-              {bulkResult.created.map((g) => (
-                <div key={g.id} data-testid={`bulk-row-${g.app_id}`} className="flex items-center gap-3 px-4 py-2.5 text-sm">
-                  <span className="font-mono text-cyan-300">{g.app_id}</span>
-                  <span className="text-slate-600">→</span>
-                  <span className="truncate flex-1">{g.title}</span>
-                  <span className={`text-[11px] whitespace-nowrap ${g.resolved ? "text-emerald-400" : "text-amber-400"}`}>{g.resolved ? t("game.bulkResolved") : t("game.bulkManual")}</span>
-                  <button onClick={() => navigate(`/games/${g.id}`)} className="text-[11px] text-cyan-400 hover:underline whitespace-nowrap">{t("game.bulkEdit")}</button>
-                </div>
-              ))}
+
+          {/* CARD 2: VINCULAR ARQUIVOS .LUA EM MASSA */}
+          <div data-testid="bulk-import-card" className="rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.04] p-5 flex flex-col">
+            <div className="flex items-center gap-2 mb-2"><FileCode2 className="w-5 h-5 text-emerald-400" /><h2 className="font-display text-lg font-bold">{t("game.bulkTitle")}</h2></div>
+            <p className="text-xs text-slate-400 mb-4 leading-relaxed">{t("game.bulkDesc")}</p>
+            <div className="flex flex-col gap-3 mb-4">
+              <label className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-emerald-500/40 text-sm font-semibold cursor-pointer transition-colors ${bulkBusy ? "opacity-60 pointer-events-none" : "text-emerald-300 hover:bg-emerald-500/10"}`}>
+                {bulkBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />} Selecionar arquivos .lua
+                <input ref={bulkRef} data-testid="bulk-lua-input" type="file" accept=".lua" multiple className="hidden" onChange={importBulk} />
+              </label>
+              <span className="text-[11px] text-slate-500 text-center">{t("game.bulkHint")}</span>
             </div>
-          )}
-          <div className="mt-5 flex items-center gap-3 text-[10px] uppercase tracking-widest text-slate-600"><div className="h-px flex-1 bg-white/10" />{t("game.bulkOr")}<div className="h-px flex-1 bg-white/10" /></div>
+            
+            {bulkResult && (
+              <div className="mt-auto rounded-xl border border-white/10 bg-[#10131E] divide-y divide-white/5 max-h-32 overflow-y-auto">
+                {bulkResult.created.map((g) => (
+                  <div key={g.id} data-testid={`bulk-row-${g.app_id}`} className="flex items-center gap-3 px-4 py-2.5 text-sm">
+                    <span className="font-mono text-emerald-300">{g.app_id}</span>
+                    <span className="truncate flex-1 text-slate-300">{g.title}</span>
+                    <button onClick={() => navigate(`/games/${g.id}`)} className="text-[11px] text-emerald-400 hover:underline whitespace-nowrap">{t("game.bulkEdit")}</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
+
+      {/* A LINHA OU (DIVISOR) APENAS SE NÃO ESTIVER EDITANDO */}
+      {!editing && <div className="mb-8 flex items-center gap-3 text-[10px] uppercase tracking-widest text-slate-600"><div className="h-px flex-1 bg-white/10" />OU ADICIONAR UM JOGO MANUALMENTE<div className="h-px flex-1 bg-white/10" /></div>}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div>
@@ -270,7 +345,6 @@ export default function GameManage() {
           
           <div className="grid grid-cols-2 gap-4">
             
-            {/* 🔴 CAMPO DE APP ID COM BOTÃO MÁGICO AQUI 🔴 */}
             <div>
               <label className={label}>{t("game.appid")}</label>
               <div className="flex gap-2">
@@ -294,7 +368,7 @@ export default function GameManage() {
               <label className={label}>{t("game.price")}</label>
               <input data-testid="price-input" type="number" min="0" step="0.01" className={`${input} font-mono`} value={form.price} onChange={set("price")} />
             </div>
-          )}
+          </div>
 
           <button data-testid="save-game-btn" onClick={save} disabled={saving} className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-cyan-500 text-black font-semibold text-sm hover:bg-cyan-400 disabled:opacity-60 transition-colors">
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
