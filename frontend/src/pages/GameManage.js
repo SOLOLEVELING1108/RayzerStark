@@ -5,6 +5,59 @@ import { ArrowLeft, Save, Upload, FileCode2, Trash2, Loader2, ImagePlus, Globe, 
 import { api, resolveImg } from "@/lib/api";
 import { useI18n } from "@/i18n";
 
+// MÁGICA 3: O MOTOR DE BUSCA COM PLANO B (FURA-BLOQUEIO +18)
+// Coloquei do lado de fora pra deixar o código super limpo!
+const fetchGameInfo = async (appId) => {
+  let titulo = "";
+  let categoria = "Outros";
+  let capa = `https://cdn.cloudflare.steamstatic.com/steam/apps/${appId}/header.jpg`; // Capa funciona sempre!
+  let success = false;
+
+  // 1ª TENTATIVA: Steam Oficial
+  try {
+    const url1 = encodeURIComponent(`https://store.steampowered.com/api/appdetails?appids=${appId}&l=brazilian`);
+    const res1 = await fetch(`https://api.allorigins.win/get?url=${url1}`);
+    const data1 = JSON.parse((await res1.json()).contents);
+
+    if (data1[appId] && data1[appId].success) {
+      const jogo = data1[appId].data;
+      titulo = jogo.name;
+      capa = jogo.header_image || capa;
+
+      if (jogo.genres && jogo.genres.length > 0) {
+        const gen = jogo.genres.map(g => g.description.toLowerCase());
+        if (gen.includes("corrida") || gen.includes("esportes")) categoria = "Esporte";
+        else if (gen.includes("ação") && jogo.categories?.some(c => c.description.toLowerCase().includes("tiro"))) categoria = "FPS";
+        else if (gen.includes("rpg")) categoria = "RPG";
+        else if (gen.includes("ação") || gen.includes("aventura")) categoria = "Ação/Aventura";
+        else categoria = jogo.genres[0].description;
+      }
+      success = true;
+      return { success, titulo, categoria, capa };
+    }
+  } catch (e) {}
+
+  // 2ª TENTATIVA (PLANO B): SteamSpy (Ignora bloqueio de idade do MK1, GTA V, etc)
+  try {
+    const url2 = encodeURIComponent(`https://steamspy.com/api.php?request=appdetails&appid=${appId}`);
+    const res2 = await fetch(`https://api.allorigins.win/get?url=${url2}`);
+    const data2 = JSON.parse((await res2.json()).contents);
+
+    if (data2 && data2.name) {
+      titulo = data2.name;
+      const gen = (data2.genre || "").toLowerCase();
+      if (gen.includes("racing") || gen.includes("sports")) categoria = "Esporte";
+      else if (gen.includes("action") && data2.tags && (data2.tags.Shooter || data2.tags.FPS)) categoria = "FPS";
+      else if (gen.includes("rpg")) categoria = "RPG";
+      else if (gen.includes("action") || gen.includes("adventure")) categoria = "Ação/Aventura";
+      success = true;
+    }
+  } catch (e) {}
+
+  return { success, titulo, categoria, capa };
+};
+
+
 function Toggle({ checked, onChange, testid, label, icon: Icon }) {
   return (
     <button
@@ -70,40 +123,18 @@ export default function GameManage() {
       return;
     }
     const loadToast = toast.loading("Buscando na Steam...");
-    try {
-      const url = encodeURIComponent(`https://store.steampowered.com/api/appdetails?appids=${form.app_id}&l=brazilian`);
-      const res = await fetch(`https://api.allorigins.win/get?url=${url}`);
-      const proxyData = await res.json();
-      const data = JSON.parse(proxyData.contents);
+    const info = await fetchGameInfo(form.app_id);
 
-      if (data[form.app_id] && data[form.app_id].success) {
-        const jogo = data[form.app_id].data;
-        const titulo = jogo.name;
-        const capa = jogo.header_image;
-
-        let categoria = "Outros";
-        if (jogo.genres && jogo.genres.length > 0) {
-          const generosSteam = jogo.genres.map(g => g.description.toLowerCase());
-          if (generosSteam.includes("corrida") || generosSteam.includes("esportes")) categoria = "Esporte";
-          else if (generosSteam.includes("ação") && jogo.categories && jogo.categories.some(c => c.description.toLowerCase().includes("tiro") || c.description.toLowerCase().includes("shooter"))) categoria = "FPS";
-          else if (generosSteam.includes("rpg")) categoria = "RPG";
-          else if (generosSteam.includes("ação") || generosSteam.includes("aventura")) categoria = "Ação/Aventura";
-          else categoria = jogo.genres[0].description;
-        }
-
-        setForm(f => ({ ...f, title: titulo, category: categoria, cover_url: capa }));
-        setCoverPreview(capa);
-        setCoverFile(null);
-        toast.success("Jogo encontrado com sucesso!", { id: loadToast });
-      } else {
-        toast.error("Jogo não encontrado na Steam com esse ID.", { id: loadToast });
-      }
-    } catch (err) {
-      toast.error("Erro de conexão. Preencha manualmente.", { id: loadToast });
+    if (info.success) {
+      setForm(f => ({ ...f, title: info.titulo, category: info.categoria, cover_url: info.capa }));
+      setCoverPreview(info.capa);
+      setCoverFile(null);
+      toast.success("Jogo encontrado com sucesso!", { id: loadToast });
+    } else {
+      toast.error("Não foi possível puxar os dados. Preencha manualmente.", { id: loadToast });
     }
   };
 
-  // 🔴 MÁGICA 2: FILTRO INTELIGENTE E PROGRESSO EM TEMPO REAL 🔴
   const processBulkIds = async () => {
     const rawIds = bulkIds.split(/[\n,]+/).map(id => id.trim()).filter(Boolean);
     if (!rawIds.length) return;
@@ -137,48 +168,33 @@ export default function GameManage() {
       for (let i = 0; i < newIds.length; i++) {
         const appId = newIds[i];
         
-        // ATUALIZA A MENSAGEM AO VIVO NA TELA
         toast.loading(`Baixando ${i + 1} de ${newIds.length} jogos... (${skipped} repetidos ignorados)`, { id: loadToast });
 
-        try {
-          const url = encodeURIComponent(`https://store.steampowered.com/api/appdetails?appids=${appId}&l=brazilian`);
-          const res = await fetch(`https://api.allorigins.win/get?url=${url}`);
-          const proxyData = await res.json();
-          const data = JSON.parse(proxyData.contents);
+        const info = await fetchGameInfo(appId);
 
-          if (data[appId] && data[appId].success) {
-            const jogo = data[appId].data;
-            const titulo = jogo.name;
-            const capa = jogo.header_image;
-
-            let categoria = "Outros";
-            if (jogo.genres && jogo.genres.length > 0) {
-              const generosSteam = jogo.genres.map(g => g.description.toLowerCase());
-              if (generosSteam.includes("corrida") || generosSteam.includes("esportes")) categoria = "Esporte";
-              else if (generosSteam.includes("ação") && jogo.categories && jogo.categories.some(c => c.description.toLowerCase().includes("tiro") || c.description.toLowerCase().includes("shooter"))) categoria = "FPS";
-              else if (generosSteam.includes("rpg")) categoria = "RPG";
-              else if (generosSteam.includes("ação") || generosSteam.includes("aventura")) categoria = "Ação/Aventura";
-              else categoria = jogo.genres[0].description;
-            }
-
+        if (info.success) {
+          try {
             const fd = new FormData();
-            fd.append("title", titulo);
+            fd.append("title", info.titulo);
             fd.append("app_id", appId);
-            fd.append("category", categoria);
+            fd.append("category", info.categoria);
             fd.append("description", "");
             fd.append("is_public", true); 
             fd.append("in_store", false);
             fd.append("price", 0);
-            fd.append("cover_url", capa);
+            fd.append("cover_url", info.capa);
 
             await api.post("/games", fd);
             ok++;
-          } else {
+          } catch (e) {
             fail++; 
           }
-        } catch (e) {
-          fail++; 
+        } else {
+          fail++; // Jogo realmente não foi achado nem na Steam nem no SteamSpy
         }
+
+        // FREIO ANTI-BLOQUEIO: Espera 1 segundo para não estourar limite da API
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
 
       setBulkIds(""); 
@@ -304,10 +320,10 @@ export default function GameManage() {
           
           <div className="rounded-2xl border border-cyan-500/25 bg-cyan-500/[0.04] p-5 flex flex-col">
             <div className="flex items-center gap-2 mb-2"><ListPlus className="w-5 h-5 text-cyan-400" /><h2 className="font-display text-lg font-bold">Puxar Vários IDs (Steam)</h2></div>
-            <p className="text-xs text-slate-400 mb-3 leading-relaxed">Cole os App IDs. O sistema ignorará jogos repetidos, puxará os dados dos novos e os salvará como <strong>Público</strong>.</p>
+            <p className="text-xs text-slate-400 mb-3 leading-relaxed">Cole os App IDs. O sistema furará bloqueios de idade (+18), pulará repetidos e salvará tudo como <strong>Público</strong>.</p>
             <textarea 
               className={`${input} h-28 mb-3 resize-none`} 
-              placeholder={`Ex:\n1888930\n2322010\n1086940`} 
+              placeholder={`Ex:\n1971870 (Mortal Kombat)\n1888930\n1086940`} 
               value={bulkIds} 
               onChange={(e) => setBulkIds(e.target.value)} 
             />
