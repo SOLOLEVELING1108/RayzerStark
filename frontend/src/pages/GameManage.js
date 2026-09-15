@@ -5,38 +5,54 @@ import { ArrowLeft, Save, Upload, FileCode2, Trash2, Loader2, ImagePlus, Globe, 
 import { api, resolveImg } from "@/lib/api";
 import { useI18n } from "@/i18n";
 
-// MÁGICA 3: O MOTOR DE BUSCA (MODO TRATOR - NUNCA FALHA)
+// 🔴 NOVO MOTOR DE BUSCA TRIPLO (SEM NOME FEIO) 🔴
 const fetchGameInfo = async (appId) => {
-  let titulo = `Jogo ${appId}`; // Nome de emergência se a Steam bloquear
+  let titulo = "";
   let categoria = "Outros";
   let capa = `https://cdn.cloudflare.steamstatic.com/steam/apps/${appId}/header.jpg`; 
   
   try {
-    // Tentativa 1: Túnel super forte (Codetabs)
-    const url = `https://api.codetabs.com/v1/proxy?quest=https://store.steampowered.com/api/appdetails?appids=${appId}&l=brazilian`;
-    const res = await fetch(url);
-    const data = await res.json();
+    // 1ª Tentativa: SteamSpy via Codetabs (Fura o bloqueio de idade de jogos +18)
+    const res1 = await fetch(`https://api.codetabs.com/v1/proxy?quest=https://steamspy.com/api.php?request=appdetails&appid=${appId}`);
+    const data1 = await res1.json();
 
-    if (data[appId] && data[appId].success) {
-      const jogo = data[appId].data;
-      titulo = jogo.name || titulo;
+    if (data1 && data1.name) {
+      titulo = data1.name;
+      const gen = (data1.genre || "").toLowerCase();
+      if (gen.includes("racing") || gen.includes("sports")) categoria = "Esporte";
+      else if (gen.includes("action") && data1.tags && (data1.tags.Shooter || data1.tags.FPS)) categoria = "FPS";
+      else if (gen.includes("rpg")) categoria = "RPG";
+      else if (gen.includes("action") || gen.includes("adventure")) categoria = "Ação/Aventura";
+      
+      return { success: true, titulo, categoria, capa };
+    }
+  } catch (e) {
+    console.warn("Tentativa 1 falhou, indo para a 2...");
+  }
+
+  try {
+    // 2ª Tentativa: Steam Oficial via AllOrigins
+    const url2 = encodeURIComponent(`https://store.steampowered.com/api/appdetails?appids=${appId}&l=brazilian`);
+    const res2 = await fetch(`https://api.allorigins.win/get?url=${url2}`);
+    const json2 = await res2.json();
+    const data2 = JSON.parse(json2.contents);
+
+    if (data2[appId] && data2[appId].success) {
+      const jogo = data2[appId].data;
+      titulo = jogo.name;
       capa = jogo.header_image || capa;
 
       if (jogo.genres && jogo.genres.length > 0) {
-        const gen = jogo.genres.map(g => g.description.toLowerCase());
-        if (gen.includes("corrida") || gen.includes("esportes")) categoria = "Esporte";
-        else if (gen.includes("ação") && jogo.categories?.some(c => c.description.toLowerCase().includes("tiro"))) categoria = "FPS";
-        else if (gen.includes("rpg")) categoria = "RPG";
-        else if (gen.includes("ação") || gen.includes("aventura")) categoria = "Ação/Aventura";
-        else categoria = jogo.genres[0].description;
+        categoria = jogo.genres[0].description;
       }
+      return { success: true, titulo, categoria, capa };
     }
   } catch (e) {
-    console.warn(`A Steam bloqueou a leitura do ID ${appId}, mas vamos forçar o salvamento!`);
+    console.warn("Tentativa 2 falhou.");
   }
 
-  // Retorna SEMPRE true, garantindo que o jogo seja salvo no seu banco de dados de qualquer jeito!
-  return { success: true, titulo, categoria, capa };
+  // 🔴 SE TUDO FALHAR, RETORNA FALSO PARA NÃO SALVAR LIXO NA BIBLIOTECA
+  return { success: false };
 };
 
 function Toggle({ checked, onChange, testid, label, icon: Icon }) {
@@ -106,13 +122,16 @@ export default function GameManage() {
     const loadToast = toast.loading("Buscando na Steam...");
     const info = await fetchGameInfo(form.app_id);
 
-    setForm(f => ({ ...f, title: info.titulo, category: info.categoria, cover_url: info.capa }));
-    setCoverPreview(info.capa);
-    setCoverFile(null);
-    toast.success("Jogo processado com sucesso!", { id: loadToast });
+    if (info.success) {
+      setForm(f => ({ ...f, title: info.titulo, category: info.categoria, cover_url: info.capa }));
+      setCoverPreview(info.capa);
+      setCoverFile(null);
+      toast.success("Nome do jogo encontrado com sucesso!", { id: loadToast });
+    } else {
+      toast.error("Não foi possível encontrar o nome desse jogo. Verifique o ID.", { id: loadToast });
+    }
   };
 
-  // 🔴 MÁGICA 2: ADIÇÃO EM MASSA (BULK) 🔴
   const processBulkIds = async () => {
     const rawIds = bulkIds.split(/[\n,]+/).map(id => id.trim()).filter(Boolean);
     if (!rawIds.length) return;
@@ -121,7 +140,6 @@ export default function GameManage() {
     const loadToast = toast.loading(`Analisando ${rawIds.length} IDs no banco de dados...`);
 
     try {
-      // 1. Checa o que já existe
       const { data: existingGames } = await api.get("/games");
       const existingAppIds = new Set(existingGames.map(g => String(g.app_id)));
 
@@ -144,52 +162,50 @@ export default function GameManage() {
 
       let ok = 0, fail = 0;
 
-      // 2. Processa os jogos novos
       for (let i = 0; i < newIds.length; i++) {
         const appId = newIds[i];
-        
         toast.loading(`Baixando ${i + 1} de ${newIds.length} jogos... (${skipped} repetidos ignorados)`, { id: loadToast });
 
         const info = await fetchGameInfo(appId);
 
-        try {
-          const fd = new FormData();
-          fd.append("title", info.titulo);
-          fd.append("app_id", String(appId));
-          fd.append("category", info.categoria);
-          fd.append("description", "");
-          fd.append("is_public", "true"); // String explícita pro Python entender perfeito
-          fd.append("in_store", "false");
-          fd.append("price", "0");
-          fd.append("cover_url", info.capa);
+        // SÓ SALVA NO BANCO DE DADOS SE CONSEGUIU PUXAR O NOME REAL DO JOGO
+        if (info.success && info.titulo) {
+          try {
+            const fd = new FormData();
+            fd.append("title", info.titulo);
+            fd.append("app_id", String(appId));
+            fd.append("category", info.categoria);
+            fd.append("description", "");
+            fd.append("is_public", "true");
+            fd.append("in_store", "false");
+            fd.append("price", "0");
+            fd.append("cover_url", info.capa);
 
-          await api.post("/games", fd);
-          ok++;
-        } catch (e) {
-          console.error(`Erro ao salvar ID ${appId} no Supabase:`, e);
-          fail++; 
+            await api.post("/games", fd);
+            ok++;
+          } catch (e) {
+            fail++; 
+          }
+        } else {
+          fail++; // Conta como falha para não salvar lixo na biblioteca
         }
 
-        // Freio de segurança: 2 segundos de pausa para a Steam e o servidor respirarem
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise(resolve => setTimeout(resolve, 1500));
       }
 
       setBulkIds(""); 
       
-      // MENSAGEM FINAL CLARA
       if (fail > 0) {
-        toast.error(`Atenção: ${ok} Salvos, ${skipped} Pulados, ${fail} Erros no servidor. Recarregando...`, { id: loadToast });
+        toast.error(`Atenção: ${ok} Salvos, ${skipped} Pulados, ${fail} Não encontrados ou com erro. Recarregando...`, { id: loadToast });
       } else {
         toast.success(`TUDO CERTO! ${ok} Salvos e ${skipped} Pulados. Recarregando a biblioteca...`, { id: loadToast });
       }
       
-      // Força a página a recarregar e voltar pra Biblioteca para garantir que os dados atualizem
       setTimeout(() => {
         window.location.href = "/";
       }, 2500);
 
     } catch (error) {
-      console.error("Erro geral:", error);
       toast.error("Erro crítico ao verificar a biblioteca. Olhe o console.", { id: loadToast });
     } finally {
       setBulkBusy(false);
@@ -264,6 +280,19 @@ export default function GameManage() {
     }
   };
 
+  // 🔴 FUNÇÃO PARA EXCLUIR O JOGO 🔴
+  const deleteGame = async () => {
+    if (!window.confirm("ATENÇÃO: Tem certeza que deseja excluir este jogo permanentemente da biblioteca?")) return;
+    
+    try {
+      await api.delete(`/games/${id}`);
+      toast.success("Jogo excluído com sucesso!");
+      navigate("/");
+    } catch (error) {
+      toast.error("Erro ao excluir o jogo. Tente novamente.");
+    }
+  };
+
   const uploadLua = async () => {
     const files = Array.from(luaRef.current?.files || []);
     if (!files.length) return;
@@ -309,7 +338,7 @@ export default function GameManage() {
           
           <div className="rounded-2xl border border-cyan-500/25 bg-cyan-500/[0.04] p-5 flex flex-col">
             <div className="flex items-center gap-2 mb-2"><ListPlus className="w-5 h-5 text-cyan-400" /><h2 className="font-display text-lg font-bold">Puxar Vários IDs (Steam)</h2></div>
-            <p className="text-xs text-slate-400 mb-3 leading-relaxed">Cole os App IDs. O sistema salvará TODOS os jogos como <strong>Público</strong> de forma garantida.</p>
+            <p className="text-xs text-slate-400 mb-3 leading-relaxed">Cole os App IDs. O sistema salvará TODOS os jogos como <strong>Público</strong>. IDs inválidos serão ignorados.</p>
             <textarea 
               className={`${input} h-28 mb-3 resize-none`} 
               placeholder={`Ex:\n1971870\n1888930\n1086940`} 
@@ -399,10 +428,19 @@ export default function GameManage() {
             </div>
           )}
 
-          <button data-testid="save-game-btn" onClick={save} disabled={saving} className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-cyan-500 text-black font-semibold text-sm hover:bg-cyan-400 disabled:opacity-60 transition-colors">
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            {editing ? t("game.saveChanges") : t("game.create")}
-          </button>
+          {/* 🔴 BOTOES DE SALVAR E EXCLUIR 🔴 */}
+          <div className="flex gap-3 mt-2">
+            <button data-testid="save-game-btn" onClick={save} disabled={saving} className="flex-1 flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-cyan-500 text-black font-semibold text-sm hover:bg-cyan-400 disabled:opacity-60 transition-colors">
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              {editing ? t("game.saveChanges") : t("game.create")}
+            </button>
+            
+            {editing && (
+              <button type="button" onClick={deleteGame} className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-red-500/10 text-red-500 font-semibold text-sm hover:bg-red-500/20 transition-colors border border-red-500/30">
+                <Trash2 className="w-4 h-4" /> Excluir
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

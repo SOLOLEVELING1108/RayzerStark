@@ -2,6 +2,13 @@ let CONFIG = { apiBase: "", steamPath: "", deviceCode: "" };
 let SETTINGS = { pix_type: "", pix_key: "", pix_holder: "" };
 let LIB = [], STORE = [], BYPASS = [];
 let searchTerm = "", bypassSearch = "";
+
+// 🔴 ESTADOS DE PAGINAÇÃO INTELIGENTE 🔴
+let libVisible = 20;
+let bypassVisible = 20;
+let lastLibSearch = "";
+let lastBypassSearch = "";
+
 const injecting = {}, downloading = {};
 let buyGame = null;
 let LANG = localStorage.getItem("lang") || "pt";
@@ -18,7 +25,7 @@ const TR = {
     "set.deps": "Instalar dependências", "set.depsDesc": "Baixa e instala os arquivos necessários automaticamente.", "set.depsBtn": "Instalar dependências",
     "set.del": "Exclusões", "set.delDesc": "Remove permanentemente deste PC todos os arquivos dos jogos ativados.", "set.delBtn": "Excluir todos os jogos",
     "set.device": "Este dispositivo", "set.deviceDesc": "Envie este código junto do comprovante para liberar seu acesso:",
-    "pix.type": "Tipo", "pix.key": "Chave Pix", "pix.holder": "Titular", "pix.receipt": "Comprovante (imagem)", "pix.name": "Seu nome/apelido (opcional)", "pix.send": "Enviar comprovante",
+    "pix.type": "Type", "pix.key": "Chave Pix", "pix.holder": "Titular", "pix.receipt": "Comprovante (imagem)", "pix.name": "Seu nome/apelido (opcional)", "pix.send": "Enviar comprovante",
     "changing": "Mudando idioma…", "activate": "⚡ Ativar", "injecting": "Instalando…", "activated": "✓ Ativado — Remover", "free": "GRÁTIS", "active": "● Ativo",
     "buy": "Comprar", "owned": "✓ Você já tem", "pendingBtn": "⏳ Aguardando liberação", "installing": "Instalando",
     "t.activated": "Ativado", "t.filesInj": "arquivo(s) instalado(s)", "t.removed": "Removido", "t.filesDel": "arquivo(s) apagado(s)",
@@ -101,15 +108,17 @@ function coverUrl(u) { return !u ? "" : (u.startsWith("http") ? u : `${CONFIG.ap
 function showLoader(text) { const el = $("#app-loader-text"); if (el) el.textContent = text; $("#app-loader").classList.remove("hidden"); }
 function hideLoader() { $("#app-loader").classList.add("hidden"); }
 
-// ---------- LIBRARY ----------
+// 🔴 LIBRARY HTML TEMPLATE 🔴
 function libCardHtml(g) {
   const active = CONFIG.activations && CONFIG.activations[g.id];
   const busy = injecting[g.id];
   const cover = coverUrl(g.cover_url);
   const bp = BYPASS.find((b) => (b.file && (b.file.filename || b.file.url)) && (norm(b.title) === norm(g.title) || String(b.app_id) === String(g.app_id)));
   const tag = g.source === "public" ? `<span class="badge-active" style="background:rgba(16,185,129,.15);color:#10B981;border-color:rgba(16,185,129,.3)">${tr("free")}</span>` : "";
+  
+  // Usando loading="lazy" e decoding="async" sem opacidade oculta
   return `<div class="gcard" data-card="${g.id}">
-    <div class="cover">${cover ? `<img src="${cover}"/>` : ""}<span class="appid">APPID ${g.app_id}</span>
+    <div class="cover">${cover ? `<img src="${cover}" loading="lazy" decoding="async" onerror="this.src='https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=400'"/>` : ""}<span class="appid">APPID ${g.app_id}</span>
       ${active ? `<span class="badge-active">${tr("active")}</span>` : tag}</div>
     <div class="gbody">
       <div class="gtitle">${g.title}</div>
@@ -123,24 +132,54 @@ function libCardHtml(g) {
       <div class="progress-label hidden" data-plabel="${g.id}"></div>
     </div></div>`;
 }
-function renderLib() {
-  const list = LIB.filter((g) => { const s = searchTerm.toLowerCase(); return !s || g.title.toLowerCase().includes(s) || String(g.app_id).includes(s); });
+
+// 🔴 RENDER LIBRARY SMART APPEND (O Segredo para não travar) 🔴
+function renderLib(forceReset = false) {
+  const s = searchTerm.toLowerCase();
+  
+  // Se mudou a pesquisa ou mandou forçar, limpa tudo
+  if (s !== lastLibSearch || forceReset) {
+    lastLibSearch = s;
+    if (forceReset) libVisible = Math.max(20, grid.children.length); // Mantém a quantidade visualizada
+    else libVisible = 20;
+    grid.innerHTML = ""; 
+  }
+
+  const list = LIB.filter((g) => !s || g.title.toLowerCase().includes(s) || String(g.app_id).includes(s));
+  
+  const onScreen = grid.children.length; 
+  const toRender = list.slice(onScreen, libVisible);
+
+  if (toRender.length > 0) {
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = toRender.map(libCardHtml).join("");
+    
+    // Adiciona os botões de ativação apenas nos novos e injeta no final da lista
+    Array.from(tempDiv.children).forEach((card, index) => {
+      const g = toRender[index];
+      card.querySelector(".activate")?.addEventListener("click", () => activate(g));
+      card.querySelector(".deactivate")?.addEventListener("click", () => deactivate(g));
+      const bpBtn = card.querySelector(".lib-bypass");
+      if (bpBtn) {
+        const bp = BYPASS.find((b) => b.id === bpBtn.dataset.bp);
+        bpBtn.addEventListener("click", () => bp && downloadBypass(bp));
+      }
+      grid.appendChild(card);
+    });
+  }
+
   $("#empty-lib").classList.toggle("hidden", list.length > 0);
-  grid.innerHTML = list.map(libCardHtml).join("");
-  list.forEach((g) => {
-    const root = grid.querySelector(`[data-card="${g.id}"]`);
-    root?.querySelector(".activate")?.addEventListener("click", () => activate(g));
-    root?.querySelector(".deactivate")?.addEventListener("click", () => deactivate(g));
-    const bpBtn = root?.querySelector(".lib-bypass");
-    if (bpBtn) {
-      const bp = BYPASS.find((b) => b.id === bpBtn.dataset.bp);
-      bpBtn.addEventListener("click", () => bp && downloadBypass(bp));
-    }
-  });
+  $("#lib-more-wrap").classList.toggle("hidden", libVisible >= list.length);
 }
+
+$("#lib-more-btn").addEventListener("click", () => {
+  libVisible += 20;
+  renderLib(); // Chama a função normal para apenas INJETAR MAIS 20, sem apagar os outros
+});
+
 async function activate(g) {
   if (injecting[g.id]) return;
-  injecting[g.id] = true; renderLib();
+  injecting[g.id] = true; renderLib(true); // Redesenha para mostrar botão carregando
   grid.querySelector(`[data-progress="${g.id}"]`)?.classList.remove("hidden");
   grid.querySelector(`[data-plabel="${g.id}"]`)?.classList.remove("hidden");
   try {
@@ -150,53 +189,82 @@ async function activate(g) {
   } catch (e) {
     const msg = e.message.includes("not released") ? tr("t.notReleased") : (e.message.includes("no .lua") ? tr("t.noFiles") : tr("t.actFail"));
     toast(tr("t.actFail"), msg, "err");
-  } finally { injecting[g.id] = false; renderLib(); }
+  } finally { injecting[g.id] = false; renderLib(true); }
 }
+
 async function deactivate(g) {
   try {
     const res = await window.api.deactivateGame(g.id);
     toast(tr("t.removed") + ": " + g.title, `${res.removed.length} ${tr("t.filesDel")}`, "info");
-    CONFIG = await window.api.getConfig(); renderLib();
+    CONFIG = await window.api.getConfig(); renderLib(true);
   } catch (e) { toast(tr("t.actFail"), e.message, "err"); }
 }
+
 window.api.onProgress((d) => {
-  // 🔴 1. INTERCEPTADOR DE PROGRESSO DOS MANIFESTS NA ENTRADA 🔴
   if (d.gameId === "MANIFEST_INIT") {
     const pct = Math.round((d.current / d.total) * 100);
     $("#lang-bar-fill").style.width = pct + "%";
     $("#lang-pct").textContent = pct + "%";
     return;
   }
-  
-  // 🔴 2. PROGRESSO NORMAL DOS LUAS NOS BOTÕES 🔴
   const bar = grid.querySelector(`[data-progress="${d.gameId}"] > div`);
   const label = grid.querySelector(`[data-plabel="${d.gameId}"]`);
   if (bar) bar.style.width = `${Math.round((d.current / d.total) * 100)}%`;
   if (label) label.textContent = `${tr("installing")} (${d.current}/${d.total})`;
 });
 
-// ---------- BYPASS ----------
+// ---------- BYPASS (SMART APPEND) ----------
 function bypassCardHtml(b) {
   const cover = coverUrl(b.cover_url);
   const busy = downloading[b.id];
   const hasFile = b.file && b.file.filename;
   return `<div class="gcard" data-bcard="${b.id}">
-    <div class="cover">${cover ? `<img src="${cover}"/>` : ""}<span class="appid">APPID ${b.app_id}</span></div>
+    <div class="cover">${cover ? `<img src="${cover}" loading="lazy" decoding="async" onerror="this.src='https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=400'"/>` : ""}<span class="appid">APPID ${b.app_id}</span></div>
     <div class="gbody"><div class="gtitle">${b.title}</div><div class="gcat">${b.category || ""}</div>
       <div class="actions" style="margin-top:14px">
         ${hasFile ? `<button class="btn full dl" ${busy ? "disabled" : ""}>${busy ? tr("bp.downloading") : tr("bp.download")}</button>`
                   : `<button class="btn full" disabled style="opacity:.5">${tr("bp.noFile")}</button>`}
       </div></div></div>`;
 }
-function renderBypass() {
-  const list = BYPASS.filter((b) => { const s = bypassSearch.toLowerCase(); return !s || b.title.toLowerCase().includes(s) || String(b.app_id).includes(s); });
+
+function renderBypass(forceReset = false) {
+  const s = bypassSearch.toLowerCase();
+  
+  if (s !== lastBypassSearch || forceReset) {
+    lastBypassSearch = s;
+    if (forceReset) bypassVisible = Math.max(20, bypassGrid.children.length);
+    else bypassVisible = 20;
+    bypassGrid.innerHTML = ""; 
+  }
+
+  const list = BYPASS.filter((b) => !s || b.title.toLowerCase().includes(s) || String(b.app_id).includes(s));
+  
+  const onScreen = bypassGrid.children.length;
+  const toRender = list.slice(onScreen, bypassVisible);
+
+  if (toRender.length > 0) {
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = toRender.map(bypassCardHtml).join("");
+    
+    Array.from(tempDiv.children).forEach((card, index) => {
+      const b = toRender[index];
+      card.querySelector(".dl")?.addEventListener("click", () => downloadBypass(b));
+      bypassGrid.appendChild(card);
+    });
+  }
+
   $("#empty-bypass").classList.toggle("hidden", list.length > 0);
-  bypassGrid.innerHTML = list.map(bypassCardHtml).join("");
-  list.forEach((b) => bypassGrid.querySelector(`[data-bcard="${b.id}"] .dl`)?.addEventListener("click", () => downloadBypass(b)));
+  $("#bypass-more-wrap").classList.toggle("hidden", bypassVisible >= list.length);
 }
+
+$("#bypass-more-btn").addEventListener("click", () => {
+  bypassVisible += 20;
+  renderBypass();
+});
+
 async function downloadBypass(b) {
   if (downloading[b.id]) return;
-  downloading[b.id] = true; renderBypass(); renderLib();
+  downloading[b.id] = true; renderBypass(true); renderLib(true);
   try {
     const res = await window.api.downloadBypass(b);
     toast(b.title, `${tr("t.bpOk")}: ${res.filename}`, "ok");
@@ -204,7 +272,7 @@ async function downloadBypass(b) {
     const m = e.message || "";
     const detail = m.includes("no-file") ? tr("t.bpNoFile") : m.includes("bad-link") ? tr("t.bpBadLink") : m;
     toast(tr("t.dlFail"), detail, "err");
-  } finally { downloading[b.id] = false; renderBypass(); renderLib(); }
+  } finally { downloading[b.id] = false; renderBypass(true); renderLib(true); }
 }
 
 // ---------- STORE ----------
@@ -215,7 +283,7 @@ function storeCardHtml(g) {
   else if (g.pending) action = `<button class="btn full" disabled style="background:#3a3320;color:#F59E0B">${tr("pendingBtn")}</button>`;
   else action = `<button class="btn full buy">${tr("buy")} — R$ ${Number(g.price).toFixed(2)}</button>`;
   return `<div class="gcard" data-scard="${g.id}">
-    <div class="cover">${cover ? `<img src="${cover}"/>` : ""}<span class="appid">APPID ${g.app_id}</span></div>
+    <div class="cover">${cover ? `<img src="${cover}" loading="lazy" decoding="async"/>` : ""}<span class="appid">APPID ${g.app_id}</span></div>
     <div class="gbody"><div class="gtitle">${g.title}</div><div class="gcat">${g.category || ""}</div>
       <div class="counts"><span class="price-tag">R$ ${Number(g.price).toFixed(2)}</span></div>
       <div class="actions">${action}</div></div></div>`;
@@ -281,7 +349,7 @@ $("#delete-all-btn").addEventListener("click", async () => {
   try {
     const res = await window.api.deleteAll();
     toast(tr("t.deleteDone"), `${res.removed}`, "info");
-    CONFIG = await window.api.getConfig(); updateSettingsUI(); renderLib();
+    CONFIG = await window.api.getConfig(); updateSettingsUI(); renderLib(true);
   } catch (e) { toast(tr("t.depsFail"), e.message, "err"); }
 });
 
@@ -315,7 +383,7 @@ function applyLang() {
   $("#view-title").textContent = titles[currentView];
   renderLangButtons();
   updateSteamUI(); updateSettingsUI();
-  renderLib(); renderBypass(); renderStore();
+  renderLib(true); renderBypass(true); renderStore();
 }
 
 function updateSettingsUI() {
@@ -338,22 +406,34 @@ async function updateSteamUI() {
   else { s.className = "steam-status bad"; s.textContent = tr("steam.bad"); }
 }
 
-// ---------- NAV ----------
+// ---------- NAV E BUSCAS ----------
 document.querySelectorAll(".nav-item").forEach((b) => b.addEventListener("click", () => {
   document.querySelectorAll(".nav-item").forEach((x) => x.classList.remove("active"));
   b.classList.add("active");
   currentView = b.dataset.view;
   const titles = { library: tr("nav.library"), bypass: tr("nav.bypass"), store: tr("nav.store"), settings: tr("nav.settings") };
   $("#view-title").textContent = titles[currentView];
+  
+  // Opcional: Voltar ao topo ao trocar de aba e forçar render
+  if(currentView === "library") { libVisible = 20; renderLib(true); }
+  if(currentView === "bypass") { bypassVisible = 20; renderBypass(true); }
+
   $("#view-library").classList.toggle("hidden", currentView !== "library");
   $("#view-bypass").classList.toggle("hidden", currentView !== "bypass");
   $("#view-store").classList.toggle("hidden", currentView !== "store");
   $("#view-settings").classList.toggle("hidden", currentView !== "settings");
+  
   if (currentView === "store") loadStore();
-  if (currentView === "bypass") loadBypass();
 }));
-$("#search").addEventListener("input", (e) => { searchTerm = e.target.value; renderLib(); });
-$("#search-bypass").addEventListener("input", (e) => { bypassSearch = e.target.value; renderBypass(); });
+
+$("#search").addEventListener("input", (e) => { 
+  searchTerm = e.target.value; 
+  renderLib(true); // Força a recriar a grade de pesquisa
+});
+$("#search-bypass").addEventListener("input", (e) => { 
+  bypassSearch = e.target.value; 
+  renderBypass(true); 
+});
 $("#refresh-lib").addEventListener("click", loadLibrary);
 $("#refresh-store").addEventListener("click", loadStore);
 $("#refresh-bypass").addEventListener("click", loadBypass);
@@ -362,7 +442,7 @@ async function loadLibrary() {
   try {
     LIB = await apiGet(`/api/library?device_code=${encodeURIComponent(CONFIG.deviceCode)}`);
     try { BYPASS = await apiGet(`/api/bypasses`); } catch { /* keep old */ }
-    renderLib();
+    renderLib(true);
   }
   catch (e) { toast(tr("t.serverDown"), CONFIG.apiBase, "err"); $("#empty-lib").classList.remove("hidden"); }
 }
@@ -374,7 +454,7 @@ async function loadStore() {
   } catch (e) { toast(tr("t.storeFail"), e.message, "err"); }
 }
 async function loadBypass() {
-  try { BYPASS = await apiGet(`/api/bypasses`); renderBypass(); }
+  try { BYPASS = await apiGet(`/api/bypasses`); renderBypass(true); }
   catch (e) { toast(tr("t.storeFail"), e.message, "err"); $("#empty-bypass").classList.remove("hidden"); }
 }
 
@@ -394,22 +474,81 @@ function showGate(msg, blocked, prefill, btnLabel) {
   $("#key-submit").style.display = blocked ? "none" : "block";
   $("#key-quit").classList.toggle("hidden", !blocked);
 }
+
+// 🔴 MOTOR DE PRÉ-CACHE DE 12 SEGUNDOS 🔴
+async function runPreCacheSequence() {
+  const ov = $("#precache-overlay");
+  const bar = $("#precache-bar-fill");
+  const pct = $("#precache-pct");
+  const text = $("#precache-text");
+
+  ov.classList.remove("hidden");
+  
+  let progress = 0;
+  const duration = 12000;
+  const interval = setInterval(() => {
+    progress += 100;
+    const p = Math.min((progress / duration) * 100, 100);
+    bar.style.width = p + "%";
+    pct.textContent = Math.floor(p) + "%";
+  }, 100);
+
+  try {
+    text.textContent = "Sincronizando banco de dados...";
+    LIB = await apiGet(`/api/library?device_code=${encodeURIComponent(CONFIG.deviceCode)}`);
+    try { BYPASS = await apiGet(`/api/bypasses`); } catch {}
+
+    const first20 = LIB.slice(0, 20);
+    let loaded = 0;
+    text.textContent = `Injetando texturas na memória (0/${first20.length})...`;
+
+    const preloadImg = (url) => new Promise(res => {
+      if(!url) return res();
+      const img = new Image();
+      img.src = url;
+      img.onload = () => { loaded++; text.textContent = `Injetando texturas na memória (${loaded}/${first20.length})...`; res(); };
+      img.onerror = res;
+    });
+
+    const imgPromises = Promise.all(first20.map(g => preloadImg(coverUrl(g.cover_url))));
+    const timePromise = new Promise(res => setTimeout(res, duration));
+
+    await Promise.all([imgPromises, timePromise]);
+
+    clearInterval(interval);
+    bar.style.width = "100%";
+    pct.textContent = "100%";
+    text.textContent = "Tudo pronto! Abrindo biblioteca...";
+    
+    await new Promise(res => setTimeout(res, 500));
+  } catch (e) {
+    clearInterval(interval);
+  } finally {
+    ov.classList.add("hidden");
+  }
+}
+
 $("#key-input").addEventListener("keydown", (e) => { if (e.key === "Enter") $("#key-submit").click(); });
+
 $("#key-submit").addEventListener("click", async () => {
   const key = ($("#key-input").value || "").trim().toUpperCase();
   if (!key) return;
   $("#key-gate-msg").textContent = gt("checking");
   const res = await validateKey(key);
+  
   if (res.valid) {
     await window.api.setKey(key);
     $("#key-gate").classList.add("hidden");
     applyLang();
     startKeyWatch(key);
+    
+    await runPreCacheSequence();
     await enterApp();
   } else {
     $("#key-gate-msg").textContent = res.reason === "other_device" ? gt("other") : gt("invalid");
   }
 });
+
 $("#key-quit").addEventListener("click", () => window.api.quitApp());
 
 async function revokeAndWipe() {
@@ -437,7 +576,6 @@ function startKeyWatch(key) {
 }
 
 async function enterApp() {
-  // 🔴 PUXA TODOS OS MANIFESTS COM A BARRA BONITONA ANTES DE ABRIR A BIBLIOTECA 🔴
   const ov = $("#lang-overlay");
   ov.classList.remove("hidden");
   $("#lang-text").textContent = "Baixando arquivos adicionais...";
@@ -451,15 +589,11 @@ async function enterApp() {
   }
   ov.classList.add("hidden");
 
+  renderLib(true); // O Pré-Cache já puxou a lista, só renderizamos!
+  
   const first = !localStorage.getItem("firstLoadDone");
   if (first) {
-    showLoader(tr("load.games"));
-    const t0 = Date.now();
-    await loadLibrary();
     localStorage.setItem("firstLoadDone", "1");
-    setTimeout(hideLoader, Math.max(0, 1400 - (Date.now() - t0)));
-  } else {
-    await loadLibrary();
   }
 }
 
