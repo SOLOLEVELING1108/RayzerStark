@@ -7,20 +7,22 @@ export default function BypassLibrary() {
   const navigate = useNavigate();
   const [bypasses, setBypasses] = useState([]);
   const [search, setSearch] = useState("");
-  const [visible, setVisible] = useState(20); // 🔴 Começa mostrando só 20
+  const [visible, setVisible] = useState(20); // Carrega de 20 em 20
 
   useEffect(() => {
     api.get("/bypasses").then(res => setBypasses(res.data)).catch(console.error);
   }, []);
 
   const filtered = useMemo(() => {
+    if (!search) return bypasses;
+    const s = search.toLowerCase();
     return bypasses.filter(b => 
-      b.title.toLowerCase().includes(search.toLowerCase()) || 
-      String(b.app_id).includes(search)
+      b.title.toLowerCase().includes(s) || 
+      String(b.app_id).includes(s)
     );
   }, [bypasses, search]);
 
-  const visibleBypasses = filtered.slice(0, visible);
+  const visibleBypasses = useMemo(() => filtered.slice(0, visible), [filtered, visible]);
 
   return (
     <div className="max-w-7xl mx-auto pb-10">
@@ -51,30 +53,31 @@ export default function BypassLibrary() {
           <div 
             key={bypass.id} 
             onClick={() => navigate(`/bypasses/${bypass.id}`)}
-            className="group relative aspect-[3/4] rounded-xl overflow-hidden bg-[#10131E] border border-white/5 hover:border-emerald-500/50 cursor-pointer transition-all hover:-translate-y-1"
+            className="group relative aspect-[3/4] rounded-xl overflow-hidden bg-[#10131E] border border-white/5 hover:border-emerald-500 cursor-pointer"
           >
             <img 
-              src={resolveImg(bypass.cover_url) || "https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=400"} 
+              src={bypass.cover_url ? resolveImg(bypass.cover_url) : "https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=400"} 
               alt={bypass.title}
-              className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
-              loading="lazy" // 🔴 DEIXA SUPER LEVE
+              loading="lazy"
+              onError={(e) => { e.target.src = "https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=400"; }}
+              className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity duration-200"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent p-4 flex flex-col justify-end">
-              <div className="text-xs font-mono text-emerald-400 mb-1">{bypass.app_id}</div>
-              <div className="font-bold text-sm leading-tight line-clamp-2">{bypass.title}</div>
+            
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/80 to-transparent p-4 pt-12 flex flex-col justify-end pointer-events-none">
+              <div className="text-[10px] font-mono text-emerald-400 mb-0.5">{bypass.app_id}</div>
+              <div className="font-bold text-sm leading-tight text-white line-clamp-2">{bypass.title}</div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* 🔴 BOTÃO DE VER MAIS INTELIGENTE 🔴 */}
       {visible < filtered.length && (
         <div className="mt-10 flex justify-center">
           <button 
             onClick={() => setVisible(prev => prev + 20)}
-            className="flex items-center gap-2 px-6 py-3 rounded-full border border-white/10 bg-[#10131E] text-sm font-semibold hover:bg-white/5 transition-colors"
+            className="flex items-center gap-2 px-8 py-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-sm font-bold hover:bg-emerald-500/20 transition-colors"
           >
-            Ver mais bypasses <ChevronDown className="w-4 h-4" />
+            Carregar mais {Math.min(20, filtered.length - visible)} bypasses <ChevronDown className="w-4 h-4" />
           </button>
         </div>
       )}
