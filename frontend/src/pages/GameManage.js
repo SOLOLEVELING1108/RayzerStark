@@ -1,18 +1,17 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { ArrowLeft, Save, Upload, FileCode2, Trash2, Loader2, ImagePlus, Globe, ShoppingCart, Link2, Search, ListPlus, Download } from "lucide-react";
+import { ArrowLeft, Save, Upload, FileCode2, Trash2, Loader2, ImagePlus, Globe, ShoppingCart, Link2, Search, ListPlus, Download, RefreshCw } from "lucide-react";
 import { api, resolveImg } from "@/lib/api";
 import { useI18n } from "@/i18n";
 
-// 🔴 NOVO MOTOR DE BUSCA TRIPLO (SEM NOME FEIO) 🔴
+// MOTOR DE BUSCA TRIPLO
 const fetchGameInfo = async (appId) => {
   let titulo = "";
   let categoria = "Outros";
   let capa = `https://cdn.cloudflare.steamstatic.com/steam/apps/${appId}/header.jpg`; 
   
   try {
-    // 1ª Tentativa: SteamSpy via Codetabs (Fura o bloqueio de idade de jogos +18)
     const res1 = await fetch(`https://api.codetabs.com/v1/proxy?quest=https://steamspy.com/api.php?request=appdetails&appid=${appId}`);
     const data1 = await res1.json();
 
@@ -31,7 +30,6 @@ const fetchGameInfo = async (appId) => {
   }
 
   try {
-    // 2ª Tentativa: Steam Oficial via AllOrigins
     const url2 = encodeURIComponent(`https://store.steampowered.com/api/appdetails?appids=${appId}&l=brazilian`);
     const res2 = await fetch(`https://api.allorigins.win/get?url=${url2}`);
     const json2 = await res2.json();
@@ -51,7 +49,6 @@ const fetchGameInfo = async (appId) => {
     console.warn("Tentativa 2 falhou.");
   }
 
-  // 🔴 SE TUDO FALHAR, RETORNA FALSO PARA NÃO SALVAR LIXO NA BIBLIOTECA
   return { success: false };
 };
 
@@ -122,7 +119,7 @@ export default function GameManage() {
     const loadToast = toast.loading("Buscando na Steam...");
     const info = await fetchGameInfo(form.app_id);
 
-    if (info.success) {
+    if (info.success && info.titulo) {
       setForm(f => ({ ...f, title: info.titulo, category: info.categoria, cover_url: info.capa }));
       setCoverPreview(info.capa);
       setCoverFile(null);
@@ -168,7 +165,6 @@ export default function GameManage() {
 
         const info = await fetchGameInfo(appId);
 
-        // SÓ SALVA NO BANCO DE DADOS SE CONSEGUIU PUXAR O NOME REAL DO JOGO
         if (info.success && info.titulo) {
           try {
             const fd = new FormData();
@@ -187,7 +183,7 @@ export default function GameManage() {
             fail++; 
           }
         } else {
-          fail++; // Conta como falha para não salvar lixo na biblioteca
+          fail++; 
         }
 
         await new Promise(resolve => setTimeout(resolve, 1500));
@@ -206,7 +202,69 @@ export default function GameManage() {
       }, 2500);
 
     } catch (error) {
-      toast.error("Erro crítico ao verificar a biblioteca. Olhe o console.", { id: loadToast });
+      toast.error("Erro crítico ao verificar a biblioteca.", { id: loadToast });
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
+  // 🔴 O ROBÔ VARREDOR: CORRIGE OS JOGOS BUGADOS AUTOMATICAMENTE 🔴
+  const fixBuggedGames = async () => {
+    setBulkBusy(true);
+    const loadToast = toast.loading("Procurando jogos com nome genérico...");
+    
+    try {
+      const { data: allGames } = await api.get("/games");
+      // Procura jogos que o título começa com "Jogo "
+      const buggedGames = allGames.filter(g => g.title && g.title.toLowerCase().startsWith("jogo "));
+
+      if (buggedGames.length === 0) {
+        toast.success("Ótima notícia! Nenhum jogo bugado encontrado.", { id: loadToast });
+        setBulkBusy(false);
+        return;
+      }
+
+      toast.loading(`Encontrados ${buggedGames.length} jogos bugados. Iniciando correção...`, { id: loadToast });
+      let fixed = 0, failed = 0;
+
+      for (let i = 0; i < buggedGames.length; i++) {
+        const game = buggedGames[i];
+        toast.loading(`Corrigindo ${i + 1}/${buggedGames.length}: (ID ${game.app_id})...`, { id: loadToast });
+
+        const info = await fetchGameInfo(game.app_id);
+        
+        if (info.success && info.titulo) {
+          try {
+            // Atualiza o jogo no banco mantendo as outras informações intactas
+            await api.put(`/games/${game.id}`, {
+              title: info.titulo,
+              app_id: game.app_id,
+              category: info.categoria,
+              description: game.description || "",
+              cover_url: info.capa || game.cover_url,
+              is_public: game.is_public,
+              in_store: game.in_store,
+              price: Number(game.price) || 0
+            });
+            fixed++;
+          } catch (e) {
+            failed++;
+          }
+        } else {
+          failed++;
+        }
+
+        // Freio de segurança pra API da Steam não derrubar a conexão
+        await new Promise(resolve => setTimeout(resolve, 1500));
+      }
+
+      toast.success(`Correção Finalizada! ${fixed} corrigidos, ${failed} falhas. Recarregando...`, { id: loadToast });
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 2500);
+
+    } catch (e) {
+      toast.error("Erro ao buscar a lista de jogos para corrigir.", { id: loadToast });
     } finally {
       setBulkBusy(false);
     }
@@ -280,7 +338,6 @@ export default function GameManage() {
     }
   };
 
-  // 🔴 FUNÇÃO PARA EXCLUIR O JOGO 🔴
   const deleteGame = async () => {
     if (!window.confirm("ATENÇÃO: Tem certeza que deseja excluir este jogo permanentemente da biblioteca?")) return;
     
@@ -345,13 +402,25 @@ export default function GameManage() {
               value={bulkIds} 
               onChange={(e) => setBulkIds(e.target.value)} 
             />
-            <button 
-              onClick={processBulkIds} 
-              disabled={bulkBusy || !bulkIds.trim()} 
-              className="mt-auto flex justify-center items-center gap-2 px-4 py-2.5 rounded-lg border border-cyan-500/40 text-sm font-semibold transition-colors disabled:opacity-50 text-cyan-300 hover:bg-cyan-500/10"
-            >
-              {bulkBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />} {bulkBusy ? "Processando..." : "Adicionar Jogos"}
-            </button>
+            
+            <div className="mt-auto flex flex-col gap-2">
+              <button 
+                onClick={processBulkIds} 
+                disabled={bulkBusy || !bulkIds.trim()} 
+                className="w-full flex justify-center items-center gap-2 px-4 py-2.5 rounded-lg border border-cyan-500/40 text-sm font-semibold transition-colors disabled:opacity-50 text-cyan-300 hover:bg-cyan-500/10"
+              >
+                {bulkBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />} {bulkBusy ? "Processando..." : "Adicionar Jogos"}
+              </button>
+
+              {/* 🔴 O BOTÃO MÁGICO DO ROBÔ VARREDOR 🔴 */}
+              <button 
+                onClick={fixBuggedGames} 
+                disabled={bulkBusy} 
+                className="w-full flex justify-center items-center gap-2 px-4 py-2 rounded-lg border border-orange-500/40 text-xs font-semibold transition-colors disabled:opacity-50 text-orange-400 hover:bg-orange-500/10"
+              >
+                <RefreshCw className="w-3.5 h-3.5" /> Corrigir Nomes Genéricos (Auto-Fix)
+              </button>
+            </div>
           </div>
 
           <div data-testid="bulk-import-card" className="rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.04] p-5 flex flex-col">
@@ -428,7 +497,6 @@ export default function GameManage() {
             </div>
           )}
 
-          {/* 🔴 BOTOES DE SALVAR E EXCLUIR 🔴 */}
           <div className="flex gap-3 mt-2">
             <button data-testid="save-game-btn" onClick={save} disabled={saving} className="flex-1 flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-cyan-500 text-black font-semibold text-sm hover:bg-cyan-400 disabled:opacity-60 transition-colors">
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
