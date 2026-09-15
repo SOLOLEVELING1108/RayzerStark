@@ -5,50 +5,43 @@ import { ArrowLeft, Save, Upload, FileCode2, Trash2, Loader2, ImagePlus, Globe, 
 import { api, resolveImg } from "@/lib/api";
 import { useI18n } from "@/i18n";
 
-// MOTOR DE BUSCA TRIPLO
+// 🔴 O NOVO MOTOR BLINDADO COM ROTAÇÃO DE PROXIES 🔴
 const fetchGameInfo = async (appId) => {
-  let titulo = "";
-  let categoria = "Outros";
   let capa = `https://cdn.cloudflare.steamstatic.com/steam/apps/${appId}/header.jpg`; 
   
-  try {
-    const res1 = await fetch(`https://api.codetabs.com/v1/proxy?quest=https://steamspy.com/api.php?request=appdetails&appid=${appId}`);
-    const data1 = await res1.json();
+  const endpoints = [
+    `https://store.steampowered.com/api/appdetails?appids=${appId}&l=brazilian`,
+    `https://steamspy.com/api.php?request=appdetails&appid=${appId}`
+  ];
 
-    if (data1 && data1.name) {
-      titulo = data1.name;
-      const gen = (data1.genre || "").toLowerCase();
-      if (gen.includes("racing") || gen.includes("sports")) categoria = "Esporte";
-      else if (gen.includes("action") && data1.tags && (data1.tags.Shooter || data1.tags.FPS)) categoria = "FPS";
-      else if (gen.includes("rpg")) categoria = "RPG";
-      else if (gen.includes("action") || gen.includes("adventure")) categoria = "Ação/Aventura";
-      
-      return { success: true, titulo, categoria, capa };
-    }
-  } catch (e) {
-    console.warn("Tentativa 1 falhou, indo para a 2...");
-  }
+  // Três servidores diferentes para disfarçar a conexão
+  const proxies = [
+    (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+    (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+    (url) => `https://api.codetabs.com/v1/proxy?quest=${url}`
+  ];
 
-  try {
-    const url2 = encodeURIComponent(`https://store.steampowered.com/api/appdetails?appids=${appId}&l=brazilian`);
-    const res2 = await fetch(`https://api.allorigins.win/get?url=${url2}`);
-    const json2 = await res2.json();
-    const data2 = JSON.parse(json2.contents);
-
-    if (data2[appId] && data2[appId].success) {
-      const jogo = data2[appId].data;
-      titulo = jogo.name;
-      capa = jogo.header_image || capa;
-
-      if (jogo.genres && jogo.genres.length > 0) {
-        categoria = jogo.genres[0].description;
+  for (const endpoint of endpoints) {
+    for (const proxy of proxies) {
+      try {
+        const res = await fetch(proxy(endpoint));
+        const data = await res.json();
+        
+        // Se a Steam Oficial responder
+        if (data[appId] && data[appId].success) {
+          const jogo = data[appId].data;
+          return { success: true, titulo: jogo.name, categoria: jogo.genres?.[0]?.description || "Outros", capa };
+        }
+        // Se o SteamSpy responder
+        else if (data && data.name) {
+          return { success: true, titulo: data.name, categoria: "Outros", capa };
+        }
+      } catch (e) {
+        // Se der erro de bloqueio, tenta o próximo túnel silenciosamente
+        continue;
       }
-      return { success: true, titulo, categoria, capa };
     }
-  } catch (e) {
-    console.warn("Tentativa 2 falhou.");
   }
-
   return { success: false };
 };
 
@@ -161,7 +154,7 @@ export default function GameManage() {
 
       for (let i = 0; i < newIds.length; i++) {
         const appId = newIds[i];
-        toast.loading(`Baixando ${i + 1} de ${newIds.length} jogos... (${skipped} repetidos ignorados)`, { id: loadToast });
+        toast.loading(`Baixando ${i + 1} de ${newIds.length} jogos... (${skipped} ignorados)`, { id: loadToast });
 
         const info = await fetchGameInfo(appId);
 
@@ -185,22 +178,16 @@ export default function GameManage() {
         } else {
           fail++; 
         }
-
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        await new Promise(resolve => setTimeout(resolve, 3000));
       }
 
       setBulkIds(""); 
-      
       if (fail > 0) {
-        toast.error(`Atenção: ${ok} Salvos, ${skipped} Pulados, ${fail} Não encontrados ou com erro. Recarregando...`, { id: loadToast });
+        toast.error(`${ok} Salvos, ${fail} Erros. Recarregando...`, { id: loadToast });
       } else {
-        toast.success(`TUDO CERTO! ${ok} Salvos e ${skipped} Pulados. Recarregando a biblioteca...`, { id: loadToast });
+        toast.success(`TUDO CERTO! ${ok} Salvos. Recarregando...`, { id: loadToast });
       }
-      
-      setTimeout(() => {
-        window.location.href = "/";
-      }, 2500);
-
+      setTimeout(() => { window.location.href = "/"; }, 2500);
     } catch (error) {
       toast.error("Erro crítico ao verificar a biblioteca.", { id: loadToast });
     } finally {
@@ -208,42 +195,41 @@ export default function GameManage() {
     }
   };
 
-  // 🔴 O ROBÔ VARREDOR: CORRIGE OS JOGOS BUGADOS AUTOMATICAMENTE 🔴
+  // 🔴 ROBÔ CORRETOR SUPREMO: Limpa a sujeira do Banco de Dados 🔴
   const fixBuggedGames = async () => {
     setBulkBusy(true);
-    const loadToast = toast.loading("Procurando jogos com nome genérico...");
+    const loadToast = toast.loading("Mapeando biblioteca...");
     
     try {
       const { data: allGames } = await api.get("/games");
-      // Procura jogos que o título começa com "Jogo "
+      // Mapeia literalmente qualquer título que comece com "jogo " (ex: "Jogo 39210")
       const buggedGames = allGames.filter(g => g.title && g.title.toLowerCase().startsWith("jogo "));
 
       if (buggedGames.length === 0) {
-        toast.success("Ótima notícia! Nenhum jogo bugado encontrado.", { id: loadToast });
+        toast.success("Nenhum nome bugado encontrado! A biblioteca está limpa.", { id: loadToast });
         setBulkBusy(false);
         return;
       }
 
-      toast.loading(`Encontrados ${buggedGames.length} jogos bugados. Iniciando correção...`, { id: loadToast });
+      toast.loading(`Encontrados ${buggedGames.length} jogos bugados. Iniciando varredura lenta...`, { id: loadToast });
       let fixed = 0, failed = 0;
 
       for (let i = 0; i < buggedGames.length; i++) {
         const game = buggedGames[i];
-        toast.loading(`Corrigindo ${i + 1}/${buggedGames.length}: (ID ${game.app_id})...`, { id: loadToast });
+        toast.loading(`Corrigindo ${i + 1}/${buggedGames.length}: APPID ${game.app_id}...`, { id: loadToast });
 
         const info = await fetchGameInfo(game.app_id);
         
         if (info.success && info.titulo) {
           try {
-            // Atualiza o jogo no banco mantendo as outras informações intactas
             await api.put(`/games/${game.id}`, {
               title: info.titulo,
               app_id: game.app_id,
-              category: info.categoria,
+              category: info.categoria || game.category || "Outros",
               description: game.description || "",
               cover_url: info.capa || game.cover_url,
-              is_public: game.is_public,
-              in_store: game.in_store,
+              is_public: !!game.is_public,
+              in_store: !!game.in_store,
               price: Number(game.price) || 0
             });
             fixed++;
@@ -254,17 +240,15 @@ export default function GameManage() {
           failed++;
         }
 
-        // Freio de segurança pra API da Steam não derrubar a conexão
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        // Freio longo de 3 segundos pra Steam deixar o robô trabalhar em paz!
+        await new Promise(resolve => setTimeout(resolve, 3000));
       }
 
-      toast.success(`Correção Finalizada! ${fixed} corrigidos, ${failed} falhas. Recarregando...`, { id: loadToast });
-      setTimeout(() => {
-        window.location.href = "/";
-      }, 2500);
+      toast.success(`Faxina Concluída! ${fixed} Nomes corrigidos, ${failed} falhas de bloqueio. Recarregando...`, { id: loadToast });
+      setTimeout(() => { window.location.href = "/"; }, 2500);
 
     } catch (e) {
-      toast.error("Erro ao buscar a lista de jogos para corrigir.", { id: loadToast });
+      toast.error("Falha ao se conectar com o banco de dados.", { id: loadToast });
     } finally {
       setBulkBusy(false);
     }
@@ -395,7 +379,7 @@ export default function GameManage() {
           
           <div className="rounded-2xl border border-cyan-500/25 bg-cyan-500/[0.04] p-5 flex flex-col">
             <div className="flex items-center gap-2 mb-2"><ListPlus className="w-5 h-5 text-cyan-400" /><h2 className="font-display text-lg font-bold">Puxar Vários IDs (Steam)</h2></div>
-            <p className="text-xs text-slate-400 mb-3 leading-relaxed">Cole os App IDs. O sistema salvará TODOS os jogos como <strong>Público</strong>. IDs inválidos serão ignorados.</p>
+            <p className="text-xs text-slate-400 mb-3 leading-relaxed">Cole os App IDs. O sistema salvará TODOS os jogos como <strong>Público</strong>.</p>
             <textarea 
               className={`${input} h-28 mb-3 resize-none`} 
               placeholder={`Ex:\n1971870\n1888930\n1086940`} 
@@ -412,7 +396,6 @@ export default function GameManage() {
                 {bulkBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />} {bulkBusy ? "Processando..." : "Adicionar Jogos"}
               </button>
 
-              {/* 🔴 O BOTÃO MÁGICO DO ROBÔ VARREDOR 🔴 */}
               <button 
                 onClick={fixBuggedGames} 
                 disabled={bulkBusy} 
