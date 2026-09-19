@@ -1,32 +1,40 @@
-"""Single-admin JWT auth (Bearer). Admin credentials come from env."""
+"""Supabase-integrated JWT auth (Bearer)."""
 import os
 from datetime import datetime, timezone, timedelta
-
-import bcrypt
 import jwt
 from fastapi import Request, HTTPException
 
-JWT_ALGO = "HS256"
-ADMIN_EMAIL = os.environ["ADMIN_EMAIL"].strip().lower()
-_admin_hash = bcrypt.hashpw(os.environ["ADMIN_PASSWORD"].encode("utf-8"), bcrypt.gensalt())
+# 🔴 Importamos a ligação ao Supabase que já existe no teu projeto!
+from supa import supabase
 
+JWT_ALGO = "HS256"
+JWT_SECRET = os.environ.get("JWT_SECRET", "chave_secreta_super_segura_rayzer_stark_2026")
 
 def verify_credentials(email: str, password: str) -> bool:
-    if (email or "").strip().lower() != ADMIN_EMAIL:
-        return False
+    """A validação agora é feita DIRETAMENTE no banco de dados do Supabase!"""
     try:
-        return bcrypt.checkpw((password or "").encode("utf-8"), _admin_hash)
-    except Exception:
+        # Tenta fazer login na Autenticação Oficial do Supabase
+        response = supabase.auth.sign_in_with_password({
+            "email": email,
+            "password": password
+        })
+        
+        # Se o Supabase devolver os dados do utilizador, a senha está correta!
+        if response.user:
+            # Fazemos logout imediato na API (pois só queríamos validar se a senha estava certa)
+            supabase.auth.sign_out()
+            return True
         return False
-
+    except Exception as e:
+        print(f"Erro de login (Acesso Negado): {e}")
+        return False
 
 def create_token(email: str) -> str:
     payload = {
         "sub": email, "role": "admin", "type": "access",
         "exp": datetime.now(timezone.utc) + timedelta(hours=12),
     }
-    return jwt.encode(payload, os.environ["JWT_SECRET"], algorithm=JWT_ALGO)
-
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGO)
 
 def create_affiliate_token(affiliate_id: str, name: str) -> str:
     payload = {
@@ -34,8 +42,7 @@ def create_affiliate_token(affiliate_id: str, name: str) -> str:
         "affiliate_id": str(affiliate_id), "name": name, "type": "access",
         "exp": datetime.now(timezone.utc) + timedelta(hours=12),
     }
-    return jwt.encode(payload, os.environ["JWT_SECRET"], algorithm=JWT_ALGO)
-
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGO)
 
 def decode_token(request: Request) -> dict:
     header = request.headers.get("Authorization", "")
@@ -43,12 +50,11 @@ def decode_token(request: Request) -> dict:
     if not token:
         raise HTTPException(status_code=401, detail="Não autenticado")
     try:
-        return jwt.decode(token, os.environ["JWT_SECRET"], algorithms=[JWT_ALGO])
+        return jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGO])
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Sessão expirada")
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Token inválido")
-
 
 def require_admin(request: Request):
     header = request.headers.get("Authorization", "")
@@ -56,7 +62,7 @@ def require_admin(request: Request):
     if not token:
         raise HTTPException(status_code=401, detail="Não autenticado")
     try:
-        payload = jwt.decode(token, os.environ["JWT_SECRET"], algorithms=[JWT_ALGO])
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGO])
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Sessão expirada")
     except jwt.InvalidTokenError:
