@@ -4,8 +4,8 @@ from datetime import datetime, timezone, timedelta
 import jwt
 from fastapi import Request, HTTPException
 
-# 🔴 Importamos a ligação ao Supabase que já existe no teu projeto!
-from supa import supabase
+# 🔴 Importamos o 'client' diretamente do seu supa.py 🔴
+from supa import client
 
 JWT_ALGO = "HS256"
 JWT_SECRET = os.environ.get("JWT_SECRET", "chave_secreta_super_segura_rayzer_stark_2026")
@@ -13,8 +13,11 @@ JWT_SECRET = os.environ.get("JWT_SECRET", "chave_secreta_super_segura_rayzer_sta
 def verify_credentials(email: str, password: str) -> bool:
     """A validação agora é feita DIRETAMENTE no banco de dados do Supabase!"""
     try:
+        # Puxa o cliente ativo do Supabase
+        db = client()
+        
         # Tenta fazer login na Autenticação Oficial do Supabase
-        response = supabase.auth.sign_in_with_password({
+        response = db.auth.sign_in_with_password({
             "email": email,
             "password": password
         })
@@ -22,7 +25,7 @@ def verify_credentials(email: str, password: str) -> bool:
         # Se o Supabase devolver os dados do utilizador, a senha está correta!
         if response.user:
             # Fazemos logout imediato na API (pois só queríamos validar se a senha estava certa)
-            supabase.auth.sign_out()
+            db.auth.sign_out()
             return True
         return False
     except Exception as e:
