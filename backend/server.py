@@ -145,7 +145,7 @@ def login(payload: dict):
     password = p.get("password", "")
     if not auth.verify_credentials(email, password):
         raise HTTPException(401, "E-mail ou senha inválidos")
-    return {"token": auth.create_token(auth.ADMIN_EMAIL), "email": auth.ADMIN_EMAIL, "role": "admin"}
+    return {"token": auth.create_token(email), "email": email, "role": "admin"}
 
 
 @api_router.get("/auth/me")
