@@ -1,0 +1,45 @@
+{
+  "name": "rayzer-gamer",
+  "version": "1.0.5",
+  "description": "Sistema Rayzer Gamer",
+  "main": "src/main/main-client.js",
+  "scripts": {
+    "start:admin": "electron src/main/main-admin.js",
+    "start:client": "electron src/main/main-client.js",
+    "build:admin": "electron-builder --win portable -c.extraMetadata.main=src/main/main-admin.js -c.productName=\"Rayzer Admin\"",
+    "build:client": "electron-builder --win nsis -c.extraMetadata.main=src/main/main-client.js -c.productName=\"Rayzer Gamer\""
+  },
+  "author": "Rayzer Gamer",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^32.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "dependencies": {
+    "adm-zip": "^0.5.16",
+    "axios": "^1.7.7"
+  },
+  "build": {
+    "appId": "com.rayzergamer.app",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "SOLOLEVELING1108",
+        "repo": "RayzerStark"
+      }
+    ],
+    "win": {
+      "icon": "src/assets/rayzer.ico",
+      "requestedExecutionLevel": "requireAdministrator"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Rayzer Gamer",
+      "installerIcon": "src/assets/rayzer.ico",
+      "uninstallerIcon": "src/assets/rayzer.ico"
+    }
+  }
+}

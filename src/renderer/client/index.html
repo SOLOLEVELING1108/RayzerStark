@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Rayzer Gamer - Console Edition</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;800;900&family=Cinzel:wght@700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        /* =========================================
+           VARIÁVEIS DE CONSOLA (TEMAS DINÂMICOS)
+           ========================================= */
+        :root {
+            --bg-base: #0a0a0a;
+            --bg-surface: #121212;
+            --bg-surface-hover: #1e1e1e;
+            --glass-border: rgba(255, 255, 255, 0.05);
+            --text-main: #ffffff;
+            --text-muted: #8b949e;
+            
+            /* TEMA PREMIUM (DOURADO) */
+            --theme-color: #FFD700;
+            --theme-glow: rgba(255, 215, 0, 0.4);
+            --theme-dark: #B8860B;
+            --theme-text: #000000;
+        }
+
+        body.theme-pro {
+            /* TEMA PRO (ROXO NEON) */
+            --theme-color: #b026ff;
+            --theme-glow: rgba(176, 38, 255, 0.4);
+            --theme-dark: #5e108f;
+            --theme-text: #ffffff;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Montserrat', sans-serif; }
+        
+        body { 
+            background-color: var(--bg-base); 
+            color: var(--text-main); 
+            display: flex; 
+            flex-direction: column; 
+            height: 100vh; 
+            overflow: hidden; 
+            transition: all 0.8s ease;
+        }
+
+        /* Efeito de brilho de fundo dinâmico */
+        body::before {
+            content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+            background: radial-gradient(circle at 50% 0%, var(--theme-glow), transparent 35%);
+            opacity: 0.15; pointer-events: none; z-index: 0; transition: all 1s ease;
+        }
+
+        /* =========================================
+           TITLEBAR (DRAG AREA)
+           ========================================= */
+        #custom-titlebar { 
+            width: 100%; height: 32px; background: transparent; display: flex; justify-content: space-between; 
+            align-items: center; z-index: 10001; position: relative; -webkit-app-region: drag; 
+        }
+        .titlebar-drag { color: var(--text-muted); font-weight: 800; font-size: 10px; padding-left: 20px; letter-spacing: 4px; text-transform: uppercase; flex-grow: 1; }
+        .titlebar-controls { -webkit-app-region: no-drag; display: flex; height: 100%; align-items: center; padding-right: 10px; }
+        .titlebar-controls button { background: transparent; border: none; color: var(--text-muted); width: 35px; height: 100%; cursor: pointer; font-size: 14px; transition: 0.2s; }
+        .titlebar-controls button:hover { background: rgba(255,255,255,0.05); color: #fff; }
+        .titlebar-controls button:last-child:hover { background: #e81123; color: #fff; }
+
+        /* =========================================
+           TELA DE LOGIN CONSOLE (MINIMALISTA)
+           ========================================= */
+        #global-overlay { 
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: var(--bg-base);
+            z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; overflow: hidden;
+        }
+
+        /* Ambient Glow do Login */
+        .login-ambient {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 60vw; height: 60vw; background: radial-gradient(circle, var(--theme-glow) 0%, transparent 60%);
+            opacity: 0.3; filter: blur(60px); animation: pulseGlow 4s infinite alternate ease-in-out;
+            pointer-events: none; z-index: 1; transition: background 1s ease;
+        }
+        @keyframes pulseGlow { 0% { transform: translate(-50%, -50%) scale(0.9); opacity: 0.2; } 100% { transform: translate(-50%, -50%) scale(1.1); opacity: 0.4; } }
+
+        #login-container { 
+            position: relative; z-index: 10; display: flex; flex-direction: column; align-items: center; 
+            background: rgba(18, 18, 18, 0.7); backdrop-filter: blur(20px); border: 1px solid var(--glass-border); 
+            border-radius: 20px; padding: 50px; width: 100%; max-width: 450px; 
+            box-shadow: 0 30px 60px rgba(0,0,0,0.8); animation: slideUpFade 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes slideUpFade { 0% { opacity: 0; transform: translateY(40px); } 100% { opacity: 1; transform: translateY(0); } }
+
+        .login-brand { font-family: 'Cinzel', serif; font-size: 42px; font-weight: 900; letter-spacing: 10px; margin-bottom: 5px; text-transform: uppercase; text-shadow: 0 0 20px var(--theme-glow); }
+        .login-subtitle { font-size: 11px; letter-spacing: 6px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 40px; font-weight: 800; }
+
+        .input-key { 
+            background: rgba(0, 0, 0, 0.5); border: 1px solid var(--glass-border); border-radius: 12px; color: #fff; 
+            font-family: monospace; font-size: 18px; font-weight: bold; width: 100%; padding: 20px; text-align: center;
+            outline: none; letter-spacing: 3px; transition: 0.3s; margin-bottom: 25px;
+        }
+        .input-key:focus { border-color: var(--theme-color); box-shadow: 0 0 20px var(--theme-glow); transform: scale(1.02); }
+        .input-key::placeholder { color: rgba(255,255,255,0.2); font-weight: normal; letter-spacing: 2px; }
+        
+        .btn-entrar { 
+            background: var(--theme-color); color: var(--theme-text); font-weight: 900; font-size: 14px; 
+            padding: 20px; width: 100%; border: none; border-radius: 12px; cursor: pointer; text-transform: uppercase; 
+            letter-spacing: 3px; transition: 0.3s; box-shadow: 0 10px 30px var(--theme-glow);
+        }
+        .btn-entrar:hover:not(:disabled) { transform: translateY(-3px); filter: brightness(1.2); }
+        .btn-entrar:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        .hwid-display { color: var(--text-muted); font-size: 10px; font-family: monospace; letter-spacing: 2px; margin-top: 25px; z-index: 10; position: relative; }
+
+        #loading-container { 
+            display: none; flex-direction: column; align-items: center; background: rgba(18, 18, 18, 0.8); backdrop-filter: blur(15px);
+            padding: 50px; border-radius: 20px; border: 1px solid var(--theme-color); box-shadow: 0 0 50px var(--theme-glow); 
+            position: relative; z-index: 10; width: 100%; max-width: 450px;
+        }
+        .title-login { font-family: 'Cinzel', serif; color: #fff; font-size: 20px; font-weight: 900; letter-spacing: 6px; margin-bottom: 25px; text-transform: uppercase; text-shadow: 0 0 20px var(--theme-glow); }
+        .progress-bar { width: 100%; height: 4px; background-color: rgba(255,255,255,0.05); border-radius: 10px; overflow: hidden; }
+        .progress-bar-inner { width: 0%; height: 100%; background-color: var(--theme-color); transition: width 4s cubic-bezier(0.25, 0.46, 0.45, 0.94); box-shadow: 0 0 15px var(--theme-color); }
+
+        /* =========================================
+           TOP NAVIGATION (CONSOLE DASHBOARD)
+           ========================================= */
+        #app-wrapper { width: 100%; height: calc(100vh - 32px); display: flex; flex-direction: column; position: relative; z-index: 2; }
+        
+        .top-nav {
+            display: flex; align-items: center; justify-content: space-between; padding: 0 40px; 
+            height: 80px; background: linear-gradient(to bottom, rgba(10,10,10,0.9), transparent);
+            border-bottom: 1px solid rgba(255,255,255,0.02);
+        }
+
+        .nav-left { display: flex; align-items: center; gap: 20px; }
+        .nav-logo { font-family: 'Cinzel', serif; font-size: 24px; font-weight: 900; letter-spacing: 6px; color: #fff; text-shadow: 0 0 15px var(--theme-glow); }
+        .plan-badge-top { font-size: 10px; font-weight: 800; padding: 4px 10px; border-radius: 6px; text-transform: uppercase; letter-spacing: 2px; background: rgba(255,255,255,0.05); color: var(--theme-color); border: 1px solid var(--theme-color); box-shadow: 0 0 10px var(--theme-glow); }
+
+        .nav-center { display: flex; gap: 40px; height: 100%; }
+        .nav-item { 
+            display: flex; align-items: center; gap: 10px; color: var(--text-muted); font-size: 13px; font-weight: 700; 
+            text-transform: uppercase; letter-spacing: 2px; cursor: pointer; transition: 0.3s; position: relative; height: 100%;
+        }
+        .nav-item span.icone-menu { font-size: 16px; opacity: 0.5; transition: 0.3s; }
+        .nav-item:hover { color: #fff; }
+        .nav-item:hover span.icone-menu { opacity: 1; }
+        
+        /* O sublinhado clássico de console na aba ativa */
+        .nav-item.active { color: #fff; text-shadow: 0 0 10px rgba(255,255,255,0.3); }
+        .nav-item.active span.icone-menu { opacity: 1; text-shadow: 0 0 10px var(--theme-glow); }
+        .nav-item.active::after { 
+            content: ''; position: absolute; bottom: -1px; left: 0; width: 100%; height: 3px; 
+            background: var(--theme-color); box-shadow: 0 -2px 10px var(--theme-glow); border-radius: 3px 3px 0 0; 
+        }
+
+        .nav-right { display: flex; align-items: center; gap: 20px; }
+        .status-steam { display: flex; align-items: center; gap: 8px; color: #3fb950; font-size: 10px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; background: rgba(63, 185, 80, 0.1); padding: 6px 12px; border-radius: 20px; border: 1px solid rgba(63, 185, 80, 0.3); }
+        .status-dot { width: 6px; height: 6px; background-color: #3fb950; border-radius: 50%; box-shadow: 0 0 8px #3fb950; animation: pulseText 2s infinite; }
+        .btn-sair { color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.05); transition: 0.3s; }
+        .btn-sair:hover { background: rgba(255,0,0,0.2); color: #ff0000; box-shadow: 0 0 15px rgba(255,0,0,0.3); }
+
+        /* =========================================
+           MAIN CONTENT E PESQUISA
+           ========================================= */
+        .main-content { flex-grow: 1; position: relative; overflow: hidden; display: flex; flex-direction: column; }
+        
+        .top-action-bar { display: flex; justify-content: space-between; align-items: flex-end; padding: 30px 40px 10px 40px; }
+        .page-title { font-size: 32px; color: #fff; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 5px; text-shadow: 0 4px 10px rgba(0,0,0,0.8); }
+        .page-subtitle { color: var(--text-muted); font-size: 12px; font-weight: 600; letter-spacing: 1px; }
+
+        .barra-busca { 
+            width: 300px; padding: 12px 20px; background-color: var(--bg-surface); 
+            border: 1px solid var(--glass-border); border-radius: 20px; color: #fff; 
+            outline: none; transition: 0.3s; font-size: 12px; font-weight: 600;
+        }
+        .barra-busca:focus { border-color: var(--theme-color); box-shadow: 0 0 15px var(--theme-glow); width: 350px; }
+        .barra-busca::placeholder { color: #666; letter-spacing: 1px; }
+
+        .view { padding: 20px 40px 40px 40px; display: none; height: 100%; overflow-y: auto; }
+        .view.active { display: block; animation: fadeInView 0.4s ease; }
+        .view::-webkit-scrollbar { width: 6px; } .view::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+        @keyframes fadeInView { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* =========================================
+           CARDS DA VITRINE (PROPORÇÃO LARGA - HEADER)
+           ========================================= */
+        .games-grid { 
+            display: grid; 
+            /* Grid mais largo para acomodar bem as imagens 16:9 */
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
+            gap: 25px; 
+            margin-bottom: 30px; 
+        }
+        
+        .game-card { 
+            display: flex; flex-direction: column; background: transparent; cursor: pointer; group;
+        }
+
+        .game-cover-container {
+            width: 100%; 
+            /* PROPORÇÃO 16:9 PARA HEADERS (banners) DA STEAM */
+            aspect-ratio: 16 / 9; 
+            border-radius: 16px; overflow: hidden; position: relative;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5); border: 1px solid var(--glass-border);
+            transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            background-color: var(--bg-surface);
+        }
+
+        .game-cover { 
+            width: 100%; height: 100%; 
+            background-size: cover; background-position: center; 
+            transition: 0.4s ease;
+        }
+
+        /* Overlay escuro que sobe ao passar o rato para mostrar os botões */
+        .game-overlay-actions {
+            position: absolute; bottom: 0; left: 0; width: 100%; padding: 25px 20px 20px 20px;
+            background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.8) 60%, transparent 100%);
+            display: flex; flex-direction: column; gap: 8px; justify-content: flex-end;
+            transform: translateY(100%); opacity: 0; transition: 0.3s ease;
+        }
+
+        .game-cover-container:hover { transform: translateY(-8px); border-color: var(--theme-color); box-shadow: 0 15px 30px var(--theme-glow); }
+        .game-cover-container:hover .game-cover { transform: scale(1.08); filter: brightness(0.6) blur(2px); }
+        .game-cover-container:hover .game-overlay-actions { transform: translateY(0); opacity: 1; }
+
+        /* NOME DO JOGO SEMPRE VISÍVEL ABAIXO DA CAPA */
+        .game-title-bar { padding: 12px 5px 0 5px; }
+        .game-title { font-size: 14px; font-weight: 800; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-transform: uppercase; letter-spacing: 1px; }
+        .game-appid { font-size: 10px; color: var(--text-muted); font-weight: 700; letter-spacing: 2px; margin-top: 3px; }
+
+        /* Botões dinâmicos dentro do Overlay */
+        .btn-card { 
+            width: 100%; padding: 12px; border-radius: 10px; border: none; font-weight: 800; font-size: 11px;
+            text-transform: uppercase; letter-spacing: 2px; cursor: pointer; transition: 0.2s;
+        }
+        .btn-card.action { background: var(--theme-color); color: var(--theme-text); box-shadow: 0 5px 15px var(--theme-glow); }
+        .btn-card.action:hover:not(:disabled) { filter: brightness(1.2); transform: scale(1.03); }
+        .btn-card.remove { background: rgba(248, 81, 73, 0.1); border: 1px solid #f85149; color: #f85149; }
+        .btn-card.remove:hover { background: #f85149; color: #fff; }
+        .btn-card.bypass { background: rgba(255,255,255,0.1); border: 1px solid var(--theme-color); color: #fff; }
+        .btn-card.bypass:hover { background: var(--theme-color); color: var(--theme-text); }
+        .btn-card:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* Design do card de Bypass puro */
+        .bypass-card-pure {
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            background: var(--bg-surface); border: 1px solid var(--glass-border); border-radius: 16px;
+            padding: 30px 20px; aspect-ratio: 16/9; transition: 0.3s; text-align: center;
+        }
+        .bypass-card-pure:hover { border-color: var(--theme-color); transform: translateY(-8px); box-shadow: 0 15px 30px var(--theme-glow); }
+        .bypass-icon { font-size: 50px; margin-bottom: 20px; filter: drop-shadow(0 0 15px var(--theme-glow)); }
+
+        .btn-ver-mais { 
+            background-color: transparent; color: #fff; padding: 15px 40px; border-radius: 12px; font-weight: bold; 
+            cursor: pointer; border: 1px solid var(--glass-border); transition: 0.3s; text-transform: uppercase; 
+            letter-spacing: 2px; margin: 20px auto 40px auto; display: block;
+        }
+        .btn-ver-mais:hover { border-color: var(--theme-color); background: rgba(255,255,255,0.05); transform: translateY(-2px); box-shadow: 0 5px 15px var(--theme-glow); }
+
+        /* MODAIS E CONFIG (Mantidos estruturalmente iguais, mas adaptados às cores) */
+        #modal-pix { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(8px); z-index: 10002; display: none; justify-content: center; align-items: center; }
+        .modal-box { background: var(--bg-surface); width: 100%; max-width: 480px; padding: 50px; border-radius: 24px; border: 1px solid var(--glass-border); text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.8); }
+        .modal-box h2 { color: #3fb950; margin-bottom: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 3px; font-size: 26px; }
+        .modal-box p { color: var(--text-muted); font-size: 14px; margin-bottom: 30px; letter-spacing: 1px; }
+        .pix-code { background: rgba(0,0,0,0.3); border: 1px dashed #3fb950; color: #fff; padding: 20px; border-radius: 12px; font-family: monospace; font-size: 16px; margin-bottom: 30px; cursor: pointer; transition: 0.2s; }
+        .pix-code:hover { background: rgba(63, 185, 80, 0.1); transform: scale(1.02); }
+        .btn-upload { background: transparent; border: 1px dashed rgba(255,255,255,0.2); color: #fff; width: 100%; padding: 18px; border-radius: 12px; cursor: pointer; transition: 0.3s; font-weight: bold; letter-spacing: 1px; margin-bottom: 30px; }
+        .btn-upload:hover { border-color: #3fb950; color: #3fb950; background: rgba(63, 185, 80, 0.1); }
+        .modal-actions { display: flex; gap: 20px; }
+        .modal-actions button { flex: 1; padding: 18px; font-weight: bold; border-radius: 12px; border: none; cursor: pointer; text-transform: uppercase; letter-spacing: 2px; font-size: 13px; transition: 0.2s; }
+        .btn-cancelar { background: rgba(255,255,255,0.08); color: #fff; border: 1px solid var(--glass-border); }
+        .btn-cancelar:hover { background: rgba(255,255,255,0.15); }
+        .btn-enviar-comp { background: #3fb950; color: #fff; }
+        .btn-enviar-comp:hover { filter: brightness(1.2); box-shadow: 0 10px 20px rgba(63, 185, 80, 0.4);}
+
+        .config-box { background-color: var(--bg-surface); border: 1px solid var(--glass-border); border-radius: 20px; padding: 35px; margin-bottom: 30px; max-width: 800px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        .config-box h3 { color: #fff; font-size: 18px; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 2px; font-weight: 900; }
+        .config-box p { color: var(--text-muted); font-size: 12px; margin-bottom: 25px; letter-spacing: 1px; line-height: 1.6; }
+        .lang-buttons { display: flex; gap: 15px; }
+        .lang-btn { background: transparent; border: 1px solid var(--glass-border); color: #fff; padding: 15px 30px; border-radius: 12px; cursor: pointer; font-size: 14px; transition: 0.3s; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; }
+        .lang-btn.active { border-color: var(--theme-color); color: var(--theme-text); background-color: var(--theme-color); box-shadow: 0 10px 20px var(--theme-glow); transform: translateY(-3px); }
+        .btn-config-primary { background-color: transparent; color: #fff; font-weight: bold; padding: 18px 35px; border: 1px solid var(--glass-border); border-radius: 12px; cursor: pointer; font-size: 13px; text-transform: uppercase; letter-spacing: 2px; transition: 0.3s; }
+        .btn-config-primary:hover:not(:disabled) { border-color: var(--theme-color); box-shadow: 0 10px 25px var(--theme-glow); transform: translateY(-3px); background-color: rgba(255,255,255,0.05); }
+        .btn-config-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+        .hwid-box { background-color: rgba(0,0,0,0.4); border: 1px dashed var(--glass-border); padding: 20px; border-radius: 12px; color: var(--theme-color); font-family: monospace; font-size: 18px; text-align: center; letter-spacing: 4px; font-weight: bold; text-shadow: 0 0 10px var(--theme-glow); }
+
+        #update-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: var(--bg-base); z-index: 20000; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        #lang-loading-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0,0,0,0.8); backdrop-filter: blur(10px); z-index: 10002; display: none; flex-direction: column; justify-content: center; align-items: center; }
+        .lang-loader { color: #fff; font-size: 18px; font-weight: bold; letter-spacing: 3px; text-transform: uppercase; text-shadow: 0 0 10px var(--theme-glow); animation: pulseText 1.5s infinite; }
+    </style>
+</head>
+<body>
+    <!-- TELA DE ATUALIZAÇÃO -->
+    <div id="update-overlay" style="display: none;">
+        <div style="width: 50px; height: 50px; border: 5px solid rgba(255,255,255,0.1); border-top: 5px solid var(--theme-color); border-radius: 50%; animation: spin 1s linear infinite;"></div>
+        <h2 id="update-text" style="color: #fff; font-family: 'Cinzel', serif; font-size: 20px; letter-spacing: 4px; text-transform: uppercase; text-shadow: 0 0 15px var(--theme-glow); margin-top: 20px;">Procurando atualizações...</h2>
+        <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
+    </div>
+
+    <div id="lang-loading-overlay"><span class="lang-loader" id="lang-loader-text">Loading language...</span></div>
+
+    <!-- DRAG BAR -->
+    <div id="custom-titlebar">
+        <div class="titlebar-drag">Rayzer Gamer - Console Edition</div>
+        <div class="titlebar-controls">
+            <button onclick="atualizarApp()">↻</button>
+            <button onclick="minimizarApp()">—</button>
+            <button onclick="maximizarApp()">🗖</button>
+            <button onclick="fecharApp()">✕</button>
+        </div>
+    </div>
+
+    <!-- MODAL DO PIX -->
+    <div id="modal-pix">
+        <div class="modal-box">
+            <h2 style="color: #3fb950;">Pagamento</h2>
+            <p>Faça o Pix para a chave abaixo e envie o comprovante.</p>
+            <div class="pix-code" id="display-pix" onclick="navigator.clipboard.writeText(this.innerText)">Carregando chave...</div>
+            <div style="margin-bottom: 30px;">
+                <input type="file" id="inputComprovante" accept="image/png, image/jpeg, image/webp" style="display: none;">
+                <button class="btn-upload" onclick="document.getElementById('inputComprovante').click()" id="btnSelectImg">📷 Selecionar Comprovante</button>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-cancelar" onclick="document.getElementById('modal-pix').style.display='none'">Cancelar</button>
+                <button class="btn-enviar-comp" id="btnEnviarComprovante" onclick="enviarComprovante()">Enviar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOGIN CINEMÁTICO -->
+    <div id="global-overlay">
+        <div class="login-ambient"></div>
+        <div id="particles-container"></div>
+        
+        <div id="login-container">
+            <div class="login-brand">RAYZER</div>
+            <div class="login-subtitle">Sistema de Acesso Privado</div>
+            <input type="text" id="inputKeyCliente" class="input-key" placeholder="PRO-XXXX-XXXX-XXXX">
+            <button class="btn-entrar" id="btnFazerLogin" data-i18n="logBtn">ENTRAR ⚡</button>
+            <span class="hwid-display" id="displayHwid">PC Info: CARREGANDO...</span>
+        </div>
+        
+        <div id="loading-container">
+            <h1 class="title-login">AUTENTICANDO...</h1>
+            <div class="progress-bar"><div class="progress-bar-inner" id="loading-bar"></div></div>
+        </div>
+    </div>
+
+    <!-- APLICAÇÃO PRINCIPAL (CONSOLE UI) -->
+    <div id="app-wrapper" style="display: none;">
+        
+        <!-- TOP NAVIGATION (ESTILO CONSOLA) -->
+        <nav class="top-nav">
+            <div class="nav-left">
+                <div class="nav-logo">RAYZER</div>
+                <div id="userPlanBadge" class="plan-badge-top">PRO</div>
+            </div>
+            
+            <div class="nav-center">
+                <div class="nav-item active" id="nav-biblioteca" onclick="mudarAba('biblioteca', 'biblioteca')">
+                    <span class="icone-menu">🎮</span> <span data-i18n="mnBiblio">Biblioteca</span>
+                </div>
+                <div class="nav-item" id="nav-bypass" onclick="mudarAba('bypass', 'bypass')">
+                    <span class="icone-menu">🛡️</span> <span data-i18n="mnBypass">Bypass</span>
+                </div>
+                <div class="nav-item" id="nav-loja" onclick="mudarAba('loja', 'loja')">
+                    <span class="icone-menu">🛒</span> <span data-i18n="mnStore">Loja</span>
+                </div>
+                <div class="nav-item" id="nav-configuracoes" onclick="mudarAba('configuracoes', 'configuracoes')">
+                    <span class="icone-menu">⚙️</span> <span data-i18n="mnConf">Configs</span>
+                </div>
+            </div>
+
+            <div class="nav-right">
+                <div class="status-steam"><div class="status-dot"></div><span data-i18n="stSteam">Steam OK</span></div>
+                <div class="btn-sair" onclick="sairDaConta()" title="Sair da Conta">
+                    <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                </div>
+            </div>
+        </nav>
+
+        <main class="main-content">
+            <!-- BIBLIOTECA -->
+            <div id="view-biblioteca" class="view active">
+                <div class="top-action-bar">
+                    <div>
+                        <h1 class="page-title" data-i18n="ttBiblio">Sua Biblioteca</h1>
+                        <p class="page-subtitle" data-i18n="subBiblio">Jogos liberados. Prontos para injeção.</p>
+                    </div>
+                    <input type="text" class="barra-busca" data-i18n-ph="phSearch" placeholder="Procurar jogo..." onkeyup="debouncePesquisa(this.value, 'biblioteca')">
+                </div>
+                
+                <div class="games-grid" id="grid-jogos"></div>
+                <div class="games-grid" id="grid-jogos-hidden" style="display: none;"></div>
+                <button id="btn-ver-mais-biblioteca" class="btn-ver-mais" onclick="verMaisJogos('biblioteca')" style="display: none;">Mostrar Mais</button>
+            </div>
+
+            <!-- BYPASS -->
+            <div id="view-bypass" class="view">
+                <div class="top-action-bar">
+                    <div>
+                        <h1 class="page-title" data-i18n="ttBypass">Bypass Center</h1>
+                        <p class="page-subtitle" data-i18n="subBypass">Módulos de segurança oficiais do repositório.</p>
+                    </div>
+                    <input type="text" class="barra-busca" data-i18n-ph="phSearch" placeholder="Procurar bypass..." onkeyup="debouncePesquisa(this.value, 'bypass')">
+                </div>
+
+                <div class="games-grid" id="grid-bypasses"></div>
+                <div class="games-grid" id="grid-bypasses-hidden" style="display: none;"></div>
+                <button id="btn-ver-mais-bypass" class="btn-ver-mais" onclick="verMaisJogos('bypass')" style="display: none;">Mostrar Mais</button>
+            </div>
+
+            <!-- LOJA -->
+            <div id="view-loja" class="view">
+                <div class="top-action-bar">
+                    <div>
+                        <h1 class="page-title" data-i18n="ttStore">Loja Premium</h1>
+                        <p class="page-subtitle" data-i18n="subStore">Expanda sua coleção de scripts.</p>
+                    </div>
+                    <input type="text" class="barra-busca" data-i18n-ph="phSearch" placeholder="Procurar na loja..." onkeyup="debouncePesquisa(this.value, 'loja')">
+                </div>
+
+                <div class="games-grid" id="grid-loja"></div>
+                <div class="games-grid" id="grid-loja-hidden" style="display: none;"></div>
+                <button id="btn-ver-mais-loja" class="btn-ver-mais" onclick="verMaisJogos('loja')" style="display: none;">Mostrar Mais</button>
+            </div>
+
+            <!-- CONFIGURAÇÕES -->
+            <div id="view-configuracoes" class="view">
+                <div class="top-action-bar">
+                    <div>
+                        <h1 class="page-title" data-i18n="ttConf">Sistema</h1>
+                        <p class="page-subtitle">Personalização e manutenção.</p>
+                    </div>
+                </div>
+                
+                <div style="padding: 0 40px;">
+                    <div class="config-box">
+                        <h3 data-i18n="bxLang">Idioma</h3>
+                        <p data-i18n="descLang">Escolha o idioma do aplicativo.</p>
+                        <div class="lang-buttons">
+                            <button class="lang-btn active" onclick="mudarIdioma('pt', this)">🇧🇷 BR</button>
+                            <button class="lang-btn" onclick="mudarIdioma('en', this)">🇺🇸 US</button>
+                            <button class="lang-btn" onclick="mudarIdioma('es', this)">🇪🇸 ES</button>
+                        </div>
+                    </div>
+
+                    <div class="config-box">
+                        <h3 data-i18n="bxDep">Instalar dependências</h3>
+                        <p data-i18n="descDep">Arquivos globais necessários na raiz da Steam.</p>
+                        <button class="btn-config-primary" id="btn-deps" onclick="instalarDependencias()"><span data-i18n="btnInstDep">Instalar Agora</span></button>
+                    </div>
+
+                    <div class="config-box" style="border-color: rgba(255,0,0,0.3);">
+                        <h3 style="color: #ff0000;"><span data-i18n="bxClean">Limpeza Profunda</span></h3>
+                        <p data-i18n="descClean">Remove todos os scripts e manifests injetados na sua Steam.</p>
+                        <button class="btn-config-primary" style="border-color: #ff0000; color: #ff0000;" id="btn-limpar" onclick="limparTudoSteam()">
+                            <span data-i18n="btnClean">🧹 Remover Tudo</span>
+                        </button>
+                    </div>
+
+                    <div class="config-box">
+                        <h3 data-i18n="bxDev">Identificação do Dispositivo</h3>
+                        <p data-i18n="descDev">Hardware ID local seguro.</p>
+                        <div class="hwid-box" id="configHwid">AGUARDANDO</div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- SCRIPTS MÁGICOS (MANTIDOS 100% INTACTOS DA SUA BASE) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const { ipcRenderer } = require('electron');
+        const fs = require('fs');
+        const path = require('path');
+        const os = require('os');
+        const { execSync } = require('child_process');
+        const axios = require('axios');
+
+        function fecharApp() { ipcRenderer.send('fechar-app'); }
+        function minimizarApp() { ipcRenderer.send('minimizar-app'); }
+        function maximizarApp() { ipcRenderer.send('maximizar-app'); }
+        function atualizarApp() { window.location.reload(); }
+
+        ipcRenderer.on('update-status', (event, mensagem) => {
+            if (mensagem === 'ok_sem_atualizacao') { document.getElementById('update-overlay').style.display = 'none'; } 
+            else { document.getElementById('update-text').innerText = mensagem; }
+        });
+
+        function reiniciarSteam() {
+            try { execSync('taskkill /F /IM steam.exe /T', { stdio: 'ignore' }); } catch(e) {}
+            setTimeout(() => {
+                try {
+                    const steamPath = obterCaminhoSteam();
+                    const steamExe = path.join(steamPath, "steam.exe");
+                    const { spawn } = require('child_process');
+                    const child = spawn(steamExe, [], { detached: true, stdio: 'ignore', cwd: steamPath });
+                    child.unref();
+                } catch(e) { console.error("Erro Steam:", e); }
+            }, 2000);
+        }
+
+        const supabaseUrl = 'https://ujebdsehpowamayseitf.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVqZWJkc2VocG93YW1heXNlaXRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyMDkwMTgsImV4cCI6MjEwMzc4NTAxOH0.4-4PnwMU-F-A_FsiB9yhqVEKvpRwx3jAW3s2_uK8-yM'; 
+        const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        let currentUserKey = ''; let currentUserPlan = 'pro'; 
+        let pcInfo = { hwid: 'EMPTY-SIMULATION', hostname: 'PC-SIMULATION' };
+        let minhasCompras = []; let infoPix = ''; let jogoSelecionado = ''; let base64Comprovante = '';
+
+        let cacheLuaFiles = null;
+        const PAGINATION = 40; // ALTERADO PARA 40 JOGOS E BYPASSES POR PÁGINA
+        let estadoListas = {
+            biblioteca: { itens: [], filtrados: [], contVisivel: 0 },
+            loja: { itens: [], filtrados: [], contVisivel: 0 },
+            bypass: { itens: [], filtrados: [], contVisivel: 0 }
+        };
+
+        const dicionario = {
+            pt: { "logBtn": "Entrar ⚡", "mnBiblio": "Biblioteca", "mnBypass": "Bypass", "mnStore": "Loja", "mnConf": "Configs", "stSteam": "Steam OK", "ttBiblio": "Sua Biblioteca", "subBiblio": "Jogos liberados. Prontos para injeção.", "ttBypass": "Bypass Center", "subBypass": "Módulos de segurança oficiais do repositório.", "ttStore": "Loja Premium", "subStore": "Expanda sua coleção de scripts.", "ttConf": "Sistema", "bxLang": "Idioma", "descLang": "Escolha o idioma do aplicativo.", "bxDep": "Instalar dependências", "descDep": "Arquivos globais necessários na raiz da Steam.", "btnInstDep": "Instalar Agora", "bxDev": "Identificação do Dispositivo", "descDev": "Hardware ID local seguro.", "msg_ativar": "⚡ Injetar", "msg_desativar": "🗑️ Remover", "msg_ativando": "Injetando...", "msg_desativando": "Removendo...", "msg_carregando_lang": "Aplicando idioma...", "btn_vermais": "Mostrar Mais", "phSearch": "Procurar...", "sideExit": "Sair da Conta", "bxClean": "Limpeza Profunda", "descClean": "Remove todos os scripts e manifests injetados na sua Steam.", "btnClean": "🧹 Remover Tudo" },
+            en: { "logBtn": "Login ⚡", "mnBiblio": "Library", "mnBypass": "Bypass", "mnStore": "Store", "mnConf": "Settings", "stSteam": "Steam OK", "ttBiblio": "Your Library", "subBiblio": "Unlocked games. Ready to inject.", "ttBypass": "Bypass Center", "subBypass": "Official security modules from the repository.", "ttStore": "Premium Store", "subStore": "Expand your script collection.", "ttConf": "System", "bxLang": "Language", "descLang": "Choose the app language.", "bxDep": "Install Dependencies", "descDep": "Global files needed in Steam root.", "btnInstDep": "Install Now", "bxDev": "Device ID", "descDev": "Secure local Hardware ID.", "msg_ativar": "⚡ Inject", "msg_desativar": "🗑️ Remove", "msg_ativando": "Injecting...", "msg_desativando": "Removing...", "msg_carregando_lang": "Applying language...", "btn_vermais": "Show More", "phSearch": "Search...", "sideExit": "Log Out", "bxClean": "Deep Clean", "descClean": "Removes all injected scripts and manifests from Steam.", "btnClean": "🧹 Remove All" },
+            es: { "logBtn": "Iniciar ⚡", "mnBiblio": "Biblioteca", "mnBypass": "Bypass", "mnStore": "Tienda", "mnConf": "Ajustes", "stSteam": "Steam OK", "ttBiblio": "Tu Biblioteca", "subBiblio": "Juegos desbloqueados. Listos para inyección.", "ttBypass": "Centro Bypass", "subBypass": "Módulos de seguridad oficiales del repositorio.", "ttStore": "Tienda Premium", "subStore": "Expande tu colección de scripts.", "ttConf": "Sistema", "bxLang": "Idioma", "descLang": "Elige el idioma de la app.", "bxDep": "Instalar Dependencias", "descDep": "Archivos globales necesarios en la raíz de Steam.", "btnInstDep": "Instalar Ahora", "bxDev": "ID de Dispositivo", "descDev": "Hardware ID local seguro.", "msg_ativar": "⚡ Inyectar", "msg_desativar": "🗑️ Remover", "msg_ativando": "Inyectando...", "msg_desativando": "Removiendo...", "msg_carregando_lang": "Aplicando idioma...", "btn_vermais": "Mostrar Más", "phSearch": "Buscar...", "sideExit": "Cerrar Sesión", "bxClean": "Limpieza Profunda", "descClean": "Elimina todos los scripts y manifests inyectados en Steam.", "btnClean": "🧹 Eliminar Todo" }
+        };
+
+        const keyFilePath = path.join(os.homedir(), 'rayzer_saved_key.txt');
+
+        function iniciarParticulas() {
+            // As luzes pulsantes de fundo e o hover dinâmico já tratam do aspeto imersivo.
+        }
+
+        function obterCaminhoSteam() {
+            try {
+                const output = execSync('reg query HKCU\\Software\\Valve\\Steam /v SteamPath', { encoding: 'utf8' });
+                const match = output.match(/REG_SZ\s+([^\r\n]+)/);
+                if (match && match[1]) { return match[1].trim().replace(/\//g, '\\'); }
+            } catch (e) {}
+            return "C:\\Program Files (x86)\\Steam";
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('lang-loading-overlay').style.display = 'none';
+            try { if (fs.existsSync(keyFilePath)) { document.getElementById('inputKeyCliente').value = fs.readFileSync(keyFilePath, 'utf8'); } } catch(e) {}
+            ipcRenderer.send('get-pc-info');
+        });
+
+        ipcRenderer.on('pc-info-reply', (event, data) => { 
+            pcInfo.hwid = data.hwid; pcInfo.hostname = data.hostname;
+            document.getElementById('displayHwid').innerText = `PC: ${data.hostname} | ${data.hwid.substring(0,8)}...`;
+            document.getElementById('configHwid').innerText = data.hwid;
+        });
+
+        // ==========================================
+        // LOGIN DINÂMICO
+        // ==========================================
+        document.getElementById('btnFazerLogin').addEventListener('click', async function() {
+            const keyInput = document.getElementById('inputKeyCliente').value.trim();
+            if (!keyInput) return alert('Por favor, digite sua Key.');
+            this.disabled = true; this.innerHTML = 'VERIFICANDO...';
+
+            try {
+                const { data: keyData, error } = await supabaseClient.from('access_keys').select('*').eq('key', keyInput).single();
+                if (error || !keyData) throw new Error("Key inválida ou não encontrada.");
+                if (keyData.status !== 'active') throw new Error("Esta Key foi desativada pelo administrador.");
+                
+                if (!keyData.hwid || keyData.hwid === 'EMPTY') {
+                    const { error: updateError } = await supabaseClient.from('access_keys').update({ hwid: pcInfo.hwid, label: pcInfo.hostname }).eq('id', keyData.id);
+                    if (updateError) throw new Error("Erro ao vincular a Key.");
+                } else if (keyData.hwid !== pcInfo.hwid) {
+                    throw new Error("Esta Key já está vinculada a outro computador!");
+                }
+
+                try { fs.writeFileSync(keyFilePath, keyInput); } catch(e) {}
+                
+                currentUserKey = keyInput;
+                currentUserPlan = keyData.plan || 'pro';
+                
+                const badge = document.getElementById('userPlanBadge');
+                if(currentUserPlan === 'pro') {
+                    document.body.classList.add('theme-pro'); badge.innerText = "PRO";
+                } else {
+                    document.body.classList.remove('theme-pro'); badge.innerText = "PREMIUM";
+                }
+                
+                const { data: appSettings } = await supabaseClient.from('app_settings').select('pix_key').eq('id', 1).single();
+                if(appSettings) infoPix = appSettings.pix_key;
+                
+                document.getElementById('login-container').style.display = 'none';
+                document.getElementById('displayHwid').style.display = 'none';
+                document.getElementById('loading-container').style.display = 'flex';
+                setTimeout(() => { document.getElementById('loading-bar').style.width = '100%'; }, 100);
+
+                setTimeout(() => { 
+                    document.getElementById('global-overlay').style.display = 'none'; 
+                    document.getElementById('app-wrapper').style.display = 'flex';
+                    iniciarSistema(); 
+                }, 4000); 
+            } catch (err) { alert(err.message); this.disabled = false; this.innerHTML = 'ENTRAR ⚡'; }
+        });
+
+        function sairDaConta() {
+            if(confirm("Deseja realmente sair da conta? Você precisará inserir sua Key novamente.")) {
+                try { if (fs.existsSync(keyFilePath)) fs.unlinkSync(keyFilePath); } catch(e) {}
+                window.location.reload(); 
+            }
+        }
+
+        async function iniciarSistema() {
+            const { data } = await supabaseClient.from('purchase_requests').select('*').eq('key', currentUserKey);
+            minhasCompras = data || [];
+            carregarDadosGerais();
+        }
+
+        function isJogoAtivo(appId) {
+            try {
+                const steamPath = obterCaminhoSteam();
+                const luaPath = path.join(steamPath, "config", "lua");
+                if (!fs.existsSync(luaPath)) return false;
+                if (!cacheLuaFiles) cacheLuaFiles = fs.readdirSync(luaPath);
+                return cacheLuaFiles.some(f => f.includes(appId) && f.endsWith('.lua'));
+            } catch(e) { return false; }
+        }
+
+        async function carregarDadosGerais() {
+            cacheLuaFiles = null; 
+            const [reqJogos, reqBypasses] = await Promise.all([
+                supabaseClient.from('games').select('*').eq('is_deleted', false).order('created_at', { ascending: false }),
+                supabaseClient.from('bypasses').select('*').eq('is_deleted', false).order('created_at', { ascending: false })
+            ]);
+
+            let jogosTotais = reqJogos.data || [];
+            const bypassData = reqBypasses.data || [];
+
+            if (currentUserPlan === 'pro') { jogosTotais = jogosTotais.filter(jogo => jogo.plan === 'pro' || !jogo.plan); }
+
+            estadoListas.biblioteca.itens = []; estadoListas.loja.itens = [];
+            jogosTotais.forEach(item => {
+                let isOwned = false;
+                const compra = minhasCompras.find(c => c.game_id === item.id);
+                if(compra && compra.status === 'approved') isOwned = true;
+                if (isOwned || !item.in_store) { estadoListas.biblioteca.itens.push({ ...item, type: 'biblioteca', statusCompra: compra ? compra.status : null }); } 
+                else { estadoListas.loja.itens.push({ ...item, type: 'loja', statusCompra: compra ? compra.status : null }); }
+            });
+
+            estadoListas.bypass.itens = bypassData.map(b => ({ ...b, type: 'bypass' }));
+            estadoListas.biblioteca.filtrados = [...estadoListas.biblioteca.itens];
+            estadoListas.loja.filtrados = [...estadoListas.loja.itens];
+            estadoListas.bypass.filtrados = [...estadoListas.bypass.itens];
+
+            renderizarAbaLazy('biblioteca'); renderizarAbaLazy('loja'); renderizarAbaLazy('bypass');
+        }
+
+        let timerPesquisa = null;
+        function debouncePesquisa(termo, abaKey) {
+            clearTimeout(timerPesquisa);
+            timerPesquisa = setTimeout(() => {
+                const lower = termo.toLowerCase();
+                estadoListas[abaKey].filtrados = estadoListas[abaKey].itens.filter(i => i.title.toLowerCase().includes(lower) || i.app_id.includes(lower));
+                renderizarAbaLazy(abaKey);
+            }, 400); 
+        }
+
+        function renderizarAbaLazy(abaKey) {
+            const state = estadoListas[abaKey];
+            let gridId = abaKey === 'biblioteca' ? 'jogos' : (abaKey === 'bypass' ? 'bypasses' : abaKey);
+            const visibleGrid = document.getElementById(`grid-${gridId}`);
+            const hiddenGrid = document.getElementById(`grid-${gridId}-hidden`);
+            
+            visibleGrid.innerHTML = ''; hiddenGrid.innerHTML = ''; state.contVisivel = 0;
+            for(let i=0; i<PAGINATION && i<state.filtrados.length; i++) { visibleGrid.appendChild(gerarHTMLCard(state.filtrados[i])); state.contVisivel++; }
+            for(let i=PAGINATION; i<(PAGINATION*2) && i<state.filtrados.length; i++) { hiddenGrid.appendChild(gerarHTMLCard(state.filtrados[i])); }
+            atualizarBotaoVerMais(abaKey);
+        }
+
+        function verMaisJogos(abaKey) {
+            const state = estadoListas[abaKey];
+            let gridId = abaKey === 'biblioteca' ? 'jogos' : (abaKey === 'bypass' ? 'bypasses' : abaKey);
+            const visibleGrid = document.getElementById(`grid-${gridId}`);
+            const hiddenGrid = document.getElementById(`grid-${gridId}-hidden`);
+            
+            while(hiddenGrid.firstChild) { visibleGrid.appendChild(hiddenGrid.firstChild); state.contVisivel++; }
+            let nextLimit = state.contVisivel + PAGINATION;
+            for(let i=state.contVisivel; i<nextLimit && i<state.filtrados.length; i++) { hiddenGrid.appendChild(gerarHTMLCard(state.filtrados[i])); }
+            atualizarBotaoVerMais(abaKey);
+        }
+
+        function atualizarBotaoVerMais(abaKey) {
+            const state = estadoListas[abaKey];
+            const btnId = abaKey === 'bypass' ? 'btn-ver-mais-bypass' : `btn-ver-mais-${abaKey}`;
+            document.getElementById(btnId).style.display = (state.contVisivel >= state.filtrados.length) ? 'none' : 'block';
+        }
+
+        // ==========================================
+        // NOVA ESTRUTURA DOS CARDS (CONSOLE ENQUADRADO - 16:9)
+        // ==========================================
+        function gerarHTMLCard(item) {
+            const langAtivo = document.querySelector('.lang-btn.active')?.innerText.includes('US') ? 'en' : (document.querySelector('.lang-btn.active')?.innerText.includes('ES') ? 'es' : 'pt');
+            const card = document.createElement('div');
+            card.className = 'game-card';
+            
+            if (item.type === 'bypass') {
+                card.innerHTML = `
+                    <div class="bypass-card-pure">
+                        <div class="bypass-icon">🛡️</div>
+                        <div class="game-title">${item.title}</div>
+                        <div class="game-appid" style="margin-bottom: 25px;">APPID: ${item.app_id}</div>
+                        <button class="btn-card bypass" onclick="baixarBypassSupabase('${item.cover_url}', '${item.app_id}', this)">↓ DOWNLOAD</button>
+                    </div>`;
+                return card;
+            }
+
+            const capa = item.cover_url ? `url('${item.cover_url}')` : 'none';
+            const nomeLimpo = item.title.replace(/^\d+[\s\-|_]+/, '');
+            let actionBtn = '';
+            
+            if (item.type === 'biblioteca') {
+                if (isJogoAtivo(item.app_id)) {
+                    const txtDesativar = dicionario[langAtivo] ? dicionario[langAtivo]["msg_desativar"] : "🗑️ Remover";
+                    actionBtn = `<button class="btn-card remove" onclick="desativarJogo('${item.app_id}', this)">${txtDesativar}</button>`;
+                } else {
+                    const txtAtivar = dicionario[langAtivo] ? dicionario[langAtivo]["msg_ativar"] : "⚡ Injetar";
+                    actionBtn = `<button class="btn-card action" onclick="ativarJogoAPI('${item.app_id}', this)">${txtAtivar}</button>`;
+                }
+            } else if (item.type === 'loja') {
+                if(item.statusCompra === 'pending') {
+                    actionBtn = `<button class="btn-card" disabled>⏳ Em Análise</button>`;
+                } else if(item.statusCompra === 'rejected') {
+                    actionBtn = `<button class="btn-card remove" onclick="abrirModalCompra('${item.id}')">❌ Recusado</button>`;
+                } else {
+                    actionBtn = `<button class="btn-card action" onclick="abrirModalCompra('${item.id}')">🛒 R$ ${item.price}</button>`;
+                }
+            }
+
+            let bypassBtnHtml = '';
+            const bypassCorrespondente = estadoListas.bypass.itens.find(b => b.app_id === item.app_id);
+            if (bypassCorrespondente) {
+                bypassBtnHtml = `<button class="btn-card bypass" onclick="baixarBypassSupabase('${bypassCorrespondente.cover_url}', '${item.app_id}', this)">🛡️ Bypass</button>`;
+            }
+
+            card.innerHTML = `
+                <div class="game-cover-container">
+                    <div class="game-cover" style="background-image: ${capa};"></div>
+                    <div class="game-overlay-actions">
+                        ${actionBtn}
+                        ${bypassBtnHtml}
+                    </div>
+                </div>
+                <div class="game-title-bar">
+                    <div class="game-title" title="${nomeLimpo}">${nomeLimpo}</div>
+                    <div class="game-appid">APPID: ${item.app_id}</div>
+                </div>`;
+            return card;
+        }
+
+        // ==========================================
+        // DOWNLOAD DE BYPASS (CLIENTE - VITRINE SUPABASE)
+        // ==========================================
+        async function baixarBypassSupabase(urlDownload, appId, btnElement) {
+            const txtOriginal = btnElement.innerHTML; 
+            btnElement.innerHTML = `⏳ BAIXANDO...`; btnElement.disabled = true;
+            try {
+                if (!urlDownload || urlDownload === 'undefined' || urlDownload === '') throw new Error("Link não encontrado.");
+                const nomeArquivo = urlDownload.split('/').pop() || `${appId}_bypass.zip`;
+                const pastaDownloads = path.join(os.homedir(), 'Downloads');
+                const caminhoFinal = path.join(pastaDownloads, nomeArquivo);
+
+                const response = await axios({ method: 'get', url: urlDownload, responseType: 'arraybuffer' });
+                fs.writeFileSync(caminhoFinal, Buffer.from(response.data));
+
+                btnElement.innerHTML = "✅ SALVO!"; btnElement.style.background = "rgba(63, 185, 80, 0.2)"; btnElement.style.color = "#3fb950"; btnElement.style.borderColor = "#3fb950";
+                alert(`✅ Bypass baixado com sucesso!\nSalvo em: ${caminhoFinal}`);
+                
+                setTimeout(() => { btnElement.innerHTML = txtOriginal; btnElement.style.background = ""; btnElement.style.color = ""; btnElement.style.borderColor = ""; btnElement.disabled = false; }, 4000);
+            } catch(e) { alert(`Falha: ${e.message}`); btnElement.innerHTML = txtOriginal; btnElement.disabled = false; }
+        }
+
+        // ==========================================
+        // INJEÇÃO E REMOÇÃO
+        // ==========================================
+        async function ativarJogoAPI(appId, btnElement) {
+            const langAtivo = document.querySelector('.lang-btn.active')?.innerText.includes('US') ? 'en' : (document.querySelector('.lang-btn.active')?.innerText.includes('ES') ? 'es' : 'pt');
+            const txtDesativar = dicionario[langAtivo] ? dicionario[langAtivo]["msg_desativar"] : "🗑️ Remover";
+            const txtOriginal = btnElement.innerHTML;
+            
+            btnElement.innerHTML = `⏳ INJETANDO...`; btnElement.disabled = true;
+            
+            try {
+                const caminhoNoStorage = `luas/${appId}.lua`;
+                const { data } = supabaseClient.storage.from('arquivos').getPublicUrl(caminhoNoStorage);
+                if (!data || !data.publicUrl) throw new Error("Link do arquivo não foi gerado.");
+
+                const response = await axios({ method: 'get', url: data.publicUrl, responseType: 'arraybuffer' });
+                const pluginPath = path.join(obterCaminhoSteam(), "config", "stplug-in");
+                if (!fs.existsSync(pluginPath)) fs.mkdirSync(pluginPath, { recursive: true });
+
+                fs.writeFileSync(path.join(pluginPath, `${appId}.lua`), Buffer.from(response.data));
+                cacheLuaFiles = null; 
+                
+                btnElement.innerHTML = txtDesativar; 
+                btnElement.className = "btn-card remove"; 
+                btnElement.setAttribute("onclick", `desativarJogo('${appId}', this)`); 
+                btnElement.disabled = false;
+                
+                reiniciarSteam();
+                alert(`✅ Script injetado com sucesso!\nA Steam será reiniciada.`);
+            } catch (error) {
+                alert(`Falha al injetar.\nMotivo: ` + (error.message || "Erro de conexão."));
+                btnElement.innerHTML = txtOriginal; btnElement.disabled = false;
+            }
+        }
+
+        async function desativarJogo(appId, btnElement) {
+            const langAtivo = document.querySelector('.lang-btn.active')?.innerText.includes('US') ? 'en' : (document.querySelector('.lang-btn.active')?.innerText.includes('ES') ? 'es' : 'pt');
+            const txtAtivar = dicionario[langAtivo] ? dicionario[langAtivo]["msg_ativar"] : "⚡ Injetar";
+            const txtDesativando = dicionario[langAtivo] ? dicionario[langAtivo]["msg_desativando"] : "⏳ Removendo...";
+            
+            if(!confirm("Deseja remover este script ativo?")) return;
+            btnElement.innerHTML = txtDesativando; btnElement.disabled = true;
+
+            try {
+                try { execSync('taskkill /F /IM steam.exe /T', { stdio: 'ignore' }); } catch(e) {} 
+                const luaPath = path.join(obterCaminhoSteam(), "config", "lua");
+                
+                if (fs.existsSync(luaPath)) fs.readdirSync(luaPath).forEach(f => { if (f.includes(appId) && f.endsWith('.lua')) fs.unlinkSync(path.join(luaPath, f)); });
+                cacheLuaFiles = null; 
+                
+                btnElement.innerHTML = txtAtivar; btnElement.className = "btn-card action"; 
+                btnElement.setAttribute("onclick", `ativarJogoAPI('${appId}', this)`); btnElement.disabled = false;
+                
+                reiniciarSteam();
+                alert("Removido com sucesso! A Steam será reiniciada.");
+            } catch(error) { alert("Erro ao remover."); btnElement.innerHTML = "🗑️ Remover"; btnElement.disabled = false; }
+        }
+
+        async function limparTudoSteam() {
+            if(!confirm("⚠️ Isso vai remover TODOS os arquivos injetados na sua Steam. Deseja continuar?")) return;
+            const btn = document.getElementById('btn-limpar');
+            const txtOriginal = btn.innerHTML; btn.innerHTML = "⏳ Limpando..."; btn.disabled = true;
+
+            try {
+                try { execSync('taskkill /F /IM steam.exe /T', { stdio: 'ignore' }); } catch(e) {}
+                const steamPath = obterCaminhoSteam();
+                const depotPath = path.join(steamPath, "depotcache");
+                const luaPath = path.join(steamPath, "config", "lua");
+
+                if (fs.existsSync(depotPath)) fs.readdirSync(depotPath).forEach(f => { if (f.endsWith('.manifest')) try { fs.unlinkSync(path.join(depotPath, f)); } catch(e){} });
+                if (fs.existsSync(luaPath)) fs.readdirSync(luaPath).forEach(f => { if (f.endsWith('.lua')) try { fs.unlinkSync(path.join(luaPath, f)); } catch(e){} });
+
+                const { data: deps } = await supabaseClient.from('dependencies').select('filename').eq('is_deleted', false);
+                if (deps && deps.length > 0) {
+                    deps.forEach(dep => { const depPath = path.join(steamPath, dep.filename); if (fs.existsSync(depPath)) try { fs.unlinkSync(depPath); } catch(e){} });
+                }
+                cacheLuaFiles = null; reiniciarSteam(); alert("✅ Limpeza concluída com sucesso!"); carregarDadosGerais();
+            } catch(e) { alert("Erro ao realizar a limpeza total."); }
+            btn.innerHTML = txtOriginal; btn.disabled = false;
+        }
+
+        // ==========================================
+        // COMPRAS / DEPS / UI NAVEGAÇÃO
+        // ==========================================
+        function abrirModalCompra(idJogo) {
+            jogoSelecionado = idJogo; document.getElementById('display-pix').innerText = infoPix; 
+            document.getElementById('btnSelectImg').innerText = "📷 Selecionar Comprovante";
+            base64Comprovante = ''; document.getElementById('modal-pix').style.display = 'flex';
+        }
+
+        document.getElementById('inputComprovante').addEventListener('change', function(ev) {
+            if (ev.target.files[0]) { document.getElementById('btnSelectImg').innerText = "✅ Imagem Carregada!";
+                const reader = new FileReader(); reader.onloadend = () => { base64Comprovante = reader.result; }; reader.readAsDataURL(ev.target.files[0]); }
+        });
+
+        async function enviarComprovante() {
+            if(!base64Comprovante) return alert("Selecione a foto!");
+            const btn = document.getElementById('btnEnviarComprovante'); btn.innerText = "Enviando..."; btn.disabled = true;
+
+            const payload = { game_id: jogoSelecionado, key: currentUserKey, device_code: pcInfo.hwid, status: 'pending', receipt_image: base64Comprovante };
+            const compraAntiga = minhasCompras.find(c => c.game_id === jogoSelecionado);
+            
+            if(compraAntiga && compraAntiga.status === 'rejected') { await supabaseClient.from('purchase_requests').update({ status: 'pending', receipt_image: base64Comprovante }).eq('id', compraAntiga.id); } 
+            else { await supabaseClient.from('purchase_requests').insert([payload]); }
+
+            document.getElementById('modal-pix').style.display = 'none'; btn.innerText = "Enviar"; btn.disabled = false;
+            alert("Enviado para análise!"); iniciarSistema();
+        }
+
+        async function instalarDependencias() {
+            const btn = document.getElementById('btn-deps'); btn.disabled = true; btn.innerHTML = "⏳ Consultando...";
+            try {
+                const { data: deps, error } = await supabaseClient.from('dependencies').select('*').eq('is_deleted', false);
+                if (error || !deps || deps.length === 0) { alert("Nenhuma dependência no banco."); btn.innerHTML = "Instalar Agora"; btn.disabled = false; return; }
+                const listaDownloads = deps.map(dep => { const { data } = supabaseClient.storage.from('arquivos').getPublicUrl(dep.path); return { nome: dep.filename, url: data.publicUrl }; });
+                ipcRenderer.send('iniciar-instalacao-deps', listaDownloads);
+            } catch (error) { alert("Erro ao buscar dependências."); btn.innerHTML = "Instalar Agora"; btn.disabled = false; }
+        }
+
+        ipcRenderer.on('deps-status', (event, mensagem) => {
+            const btn = document.getElementById('btn-deps');
+            if (mensagem.startsWith('ERRO|')) { alert("Falha na instalação:\n\n" + mensagem.split('|')[1]); btn.innerHTML = "Instalar Agora"; btn.disabled = false; } 
+            else if (mensagem === 'FINALIZADO') { btn.innerHTML = "Instalar Agora"; btn.disabled = false; reiniciarSteam(); alert("✅ Dependências instaladas! A Steam será reiniciada."); } 
+            else { btn.innerHTML = mensagem; }
+        });
+
+        function mudarAba(idView, idNav) {
+            document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            document.getElementById('view-' + idView).classList.add('active');
+            if(idNav) document.getElementById('nav-' + idNav).classList.add('active');
+        }
+
+        function mudarIdioma(langCode, buttonElement) {
+            document.getElementById('lang-loader-text').innerText = dicionario[langCode]["msg_carregando_lang"];
+            document.getElementById('lang-loading-overlay').style.display = 'flex';
+            setTimeout(() => {
+                document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
+                buttonElement.classList.add('active');
+                document.querySelectorAll('.btn-ver-mais').forEach(btn => btn.innerText = dicionario[langCode]["btn_vermais"]);
+                const traducoes = dicionario[langCode];
+                for (const key in traducoes) {
+                    if (key.startsWith("msg_") || key === "btn_vermais") continue;
+                    document.querySelectorAll(`[data-i18n="${key}"]`).forEach(el => { el.innerText = traducoes[key]; });
+                    document.querySelectorAll(`[data-i18n-ph="${key}"]`).forEach(el => { el.placeholder = traducoes[key]; });
+                }
+                document.getElementById('lang-loading-overlay').style.display = 'none';
+            }, 800);
+        }
+    </script>
+</body>
+</html>

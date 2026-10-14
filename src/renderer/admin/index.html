@@ -1,0 +1,2868 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Rayzer Gamer - Admin Premium (Completo e Formatado)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+        }
+        
+        body { 
+            background-color: #030303; 
+            background-image: linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.6)), url('../../assets/rayzer gamer.png');
+            background-size: cover; 
+            background-position: center; 
+            background-repeat: no-repeat;
+            color: #c9d1d9; 
+            display: flex; 
+            flex-direction: column; 
+            height: 100vh; 
+            overflow: hidden; 
+        }
+
+        #loading-screen { 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100vw; 
+            height: 100vh; 
+            background-color: rgba(0,0,0,0.6); 
+            backdrop-filter: blur(10px); 
+            z-index: 10000; 
+            display: none; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center; 
+        }
+
+        .spinner { 
+            width: 50px; 
+            height: 50px; 
+            border: 5px solid rgba(255,255,255,0.1); 
+            border-top: 5px solid #ff0000; 
+            border-radius: 50%; 
+            animation: spin 1s linear infinite; 
+            margin-bottom: 20px; 
+        }
+
+        @keyframes spin { 
+            0% { transform: rotate(0deg); } 
+            100% { transform: rotate(360deg); } 
+        }
+
+        .loading-text { 
+            color: #ff0000; 
+            font-size: 14px; 
+            font-weight: bold; 
+            letter-spacing: 2px; 
+            text-transform: uppercase; 
+            animation: pulseText 1.5s infinite; 
+            text-shadow: 0 0 10px rgba(0,0,0,0.8); 
+        }
+
+        #lang-loading { 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100vw; 
+            height: 100vh; 
+            background-color: rgba(0,0,0,0.6); 
+            backdrop-filter: blur(8px); 
+            z-index: 10005; 
+            display: none; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center; 
+        }
+
+        #lang-loading-text { 
+            color: #fff; 
+            font-size: 18px; 
+            font-weight: bold; 
+            letter-spacing: 3px; 
+            text-transform: uppercase; 
+            text-shadow: 0 0 10px #ff0000; 
+            animation: pulseText 1.5s infinite; 
+        }
+
+        @keyframes pulseText { 
+            0% { opacity: 0.5; } 
+            50% { opacity: 1; } 
+            100% { opacity: 0.5; } 
+        }
+
+        #custom-titlebar { 
+            width: 100%; 
+            height: 35px; 
+            background: transparent; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            border-bottom: 1px solid rgba(255,255,255,0.05); 
+            z-index: 10001; 
+            position: relative; 
+            -webkit-app-region: drag; 
+        }
+
+        .titlebar-drag { 
+            color: #8b949e; 
+            font-weight: bold; 
+            font-size: 10px; 
+            padding-left: 15px; 
+            letter-spacing: 3px; 
+            text-transform: uppercase; 
+            flex-grow: 1; 
+            height: 100%; 
+            display: flex; 
+            align-items: center; 
+            text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+        }
+
+        .titlebar-controls { 
+            -webkit-app-region: no-drag; 
+            display: flex; 
+            height: 100%; 
+            margin-right: 15px; 
+            margin-top: 10px;
+        }
+
+        .titlebar-controls button { 
+            background: rgba(255,255,255,0.05); 
+            border: 1px solid rgba(255,255,255,0.1); 
+            border-radius: 50%; 
+            color: #8b949e; 
+            width: 30px; 
+            height: 30px; 
+            margin-left: 10px; 
+            cursor: pointer; 
+            font-size: 12px; 
+            transition: 0.2s; 
+            backdrop-filter: blur(5px);
+        }
+
+        .titlebar-controls button:hover { 
+            background: rgba(255,255,255,0.2); 
+            color: #fff; 
+            transform: scale(1.1); 
+        }
+
+        .titlebar-controls button:last-child:hover { 
+            background: #ff0000; 
+            border-color: #ff0000; 
+            box-shadow: 0 0 10px #ff0000; 
+        }
+
+        .titlebar-controls button.btn-atualizar { 
+            border-radius: 8px; 
+            width: auto; 
+            padding: 0 12px; 
+            font-weight: bold; 
+            letter-spacing: 1px; 
+            display: flex; 
+            align-items: center; 
+            gap: 5px; 
+        }
+
+        .check-lembrar { 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+            margin-bottom: 20px; 
+            margin-top: -5px; 
+        }
+
+        .check-lembrar input { 
+            width: 15px; 
+            height: 15px; 
+            accent-color: #ff0000; 
+            cursor: pointer; 
+        }
+
+        .check-lembrar label { 
+            font-size: 12px; 
+            color: #c9d1d9; 
+            cursor: pointer; 
+            margin-bottom: 0; 
+            text-transform: none; 
+            letter-spacing: 1px; 
+            font-weight: normal; 
+        }
+
+        #login-screen { 
+            position: fixed; 
+            top: 35px; 
+            left: 0; 
+            width: 100vw; 
+            height: calc(100vh - 35px); 
+            background-color: rgba(0,0,0,0.4); 
+            backdrop-filter: blur(5px); 
+            z-index: 9999; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center; 
+        }
+
+        .login-box { 
+            background: rgba(0, 0, 0, 0.05); 
+            padding: 50px 40px; 
+            border-radius: 24px; 
+            border: 1px solid rgba(255,255,255,0.05); 
+            width: 100%; 
+            max-width: 450px; 
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6); 
+            backdrop-filter: blur(8px);
+        }
+
+        .login-header { 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 15px; 
+            margin-bottom: 30px; 
+            flex-direction: column;
+        }
+
+        .login-header-logo { 
+            width: 90px; 
+            height: 90px; 
+            background-image: url('../../assets/rayzer.ico'); 
+            background-size: cover; 
+            border-radius: 20px; 
+            box-shadow: 0 10px 20px rgba(255,0,0,0.2);
+        }
+
+        .login-header-text { text-align: center; }
+
+        .login-header-text h1 { 
+            font-family: 'Cinzel', serif; 
+            color: #fff; 
+            font-size: 26px; 
+            margin: 0; 
+            font-weight: 900; 
+            letter-spacing: 4px; 
+            text-transform: uppercase; 
+            text-shadow: 0 0 15px rgba(255,0,0,0.8);
+        }
+
+        .login-header-text span { 
+            color: #8b949e; 
+            font-size: 12px; 
+            letter-spacing: 4px; 
+            text-shadow: 0 1px 3px rgba(0,0,0,0.8); 
+        }
+
+        .erro-login { 
+            color: #ff7b72; 
+            font-size: 13px; 
+            margin-bottom: 15px; 
+            display: none; 
+            background: rgba(255, 123, 114, 0.1); 
+            padding: 10px; 
+            border-radius: 8px; 
+            border: 1px solid rgba(255, 123, 114, 0.2); 
+            text-align: center; 
+            font-weight: bold;
+        }
+
+        .login-form-group { margin-bottom: 20px; text-align: left; }
+        
+        .login-form-group label { 
+            display: block; 
+            font-size: 11px; 
+            color: #8b949e; 
+            letter-spacing: 2px; 
+            margin-bottom: 8px; 
+            text-transform: uppercase; 
+            text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+        }
+
+        .input-with-icon { position: relative; display: flex; align-items: center; }
+        
+        .input-with-icon svg { 
+            position: absolute; 
+            left: 15px; 
+            color: #ff0000; 
+            width: 18px; 
+            height: 18px; 
+        }
+
+        .input-with-icon input { 
+            width: 100%; 
+            padding: 16px 16px 16px 45px; 
+            background-color: rgba(0,0,0,0.05); 
+            border: 1px solid rgba(255,255,255,0.08); 
+            color: #fff; 
+            border-radius: 12px; 
+            outline: none; 
+            transition: 0.3s; 
+            font-size: 14px; 
+            font-weight: bold; 
+            letter-spacing: 1px; 
+            text-shadow: 0 0 5px rgba(255,0,0,0.5);
+        }
+
+        .input-with-icon input:focus { 
+            border-color: #ff0000; 
+            box-shadow: 0 0 20px rgba(255,0,0,0.3); 
+            background-color: rgba(0,0,0,0.2); 
+            transform: scale(1.02);
+        }
+
+        .btn-login { 
+            width: 100%; 
+            background-color: rgba(255,0,0,0.8); 
+            color: #fff; 
+            font-weight: bold; 
+            padding: 18px; 
+            border: 1px solid rgba(255,0,0,0.5); 
+            border-radius: 12px; 
+            cursor: pointer; 
+            font-size: 14px; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            gap: 10px; 
+            transition: 0.3s; 
+            margin-top: 10px; 
+            text-transform: uppercase; 
+            letter-spacing: 2px; 
+            backdrop-filter: blur(4px);
+        }
+
+        .btn-login:hover { 
+            background-color: #e60000; 
+            box-shadow: 0 10px 25px rgba(255,0,0,0.6); 
+            transform: translateY(-3px);
+        }
+
+        #app-wrapper { 
+            display: none; 
+            width: 100%; 
+            height: calc(100vh - 35px); 
+            flex-direction: row; 
+            padding: 0 25px 25px 25px; 
+            gap: 25px; 
+        }
+        
+        .sidebar { 
+            width: 280px; 
+            background: rgba(0, 0, 0, 0.05); 
+            backdrop-filter: blur(4px); 
+            display: flex; 
+            flex-direction: column; 
+            border: 1px solid rgba(255, 255, 255, 0.05); 
+            border-radius: 24px; 
+            overflow: hidden; 
+        }
+
+        .logo-area { 
+            width: 100%; 
+            height: 120px; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center; 
+            border-bottom: 1px solid rgba(255,255,255,0.02); 
+            background: linear-gradient(to bottom, rgba(255,255,255,0.02), transparent); 
+            gap: 10px;
+        }
+
+        .logo-area .icone { 
+            width: 40px; 
+            height: 40px; 
+            background-image: url('../../assets/rayzer.ico'); 
+            background-size: cover; 
+            border-radius: 10px; 
+            box-shadow: 0 5px 15px rgba(255,0,0,0.2);
+        }
+
+        .logo-text { text-align: center; }
+        
+        .logo-text h1 { 
+            font-family: 'Cinzel', serif; 
+            font-size: 18px; 
+            color: #ff0000; 
+            margin: 0; 
+            text-transform: uppercase; 
+            letter-spacing: 2px; 
+            text-shadow: 0 0 10px rgba(255,0,0,0.5);
+        }
+
+        .logo-text span { 
+            font-size: 10px; 
+            color: #8b949e; 
+            letter-spacing: 2px;
+        }
+        
+        .menu { 
+            flex-grow: 1; 
+            padding: 20px 15px; 
+            overflow-y: auto; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 5px; 
+        }
+
+        .menu::-webkit-scrollbar { width: 5px; } 
+        .menu::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 5px; }
+        
+        .menu-item { 
+            padding: 14px 20px; 
+            display: flex; 
+            align-items: center; 
+            gap: 15px; 
+            color: #c9d1d9; 
+            cursor: pointer; 
+            transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            font-size: 12px; 
+            font-weight: 800; 
+            text-transform: uppercase; 
+            letter-spacing: 1px; 
+            border-radius: 12px; 
+            text-shadow: 0 2px 5px rgba(0,0,0,0.8);
+        }
+
+        .menu-item span.icone-menu { 
+            font-size: 16px; 
+            filter: grayscale(100%); 
+            opacity: 0.5; 
+            transition: 0.3s; 
+            text-shadow: none;
+        }
+
+        .menu-item:hover { 
+            color: #fff; 
+            background-color: rgba(255, 255, 255, 0.05); 
+            transform: scale(1.02) translateX(5px); 
+        }
+
+        .menu-item.active { 
+            color: #fff; 
+            background-color: rgba(255, 0, 0, 0.7); 
+            box-shadow: 0 5px 15px rgba(255,0,0,0.4); 
+            transform: scale(1.05); 
+            border: 1px solid rgba(255, 255, 255, 0.1); 
+            backdrop-filter: blur(3px);
+        }
+        
+        .sidebar-footer { 
+            padding: 20px; 
+            font-size: 11px; 
+            border-top: 1px solid rgba(255,255,255,0.02); 
+            background: rgba(0,0,0,0.1); 
+        }
+
+        .btn-sair { 
+            color: #8b949e; 
+            cursor: pointer; 
+            display: flex; 
+            align-items: center; 
+            gap: 10px; 
+            font-size: 12px; 
+            font-weight: bold; 
+            text-transform: uppercase; 
+            letter-spacing: 1px; 
+            transition: 0.2s;
+        }
+
+        .btn-sair:hover { 
+            color: #ff0000; 
+            text-shadow: 0 0 10px rgba(255,0,0,0.5);
+        }
+        
+        .main-content { 
+            flex-grow: 1; 
+            display: flex; 
+            flex-direction: column; 
+            position: relative; 
+            overflow: hidden; 
+            background: rgba(0, 0, 0, 0.05); 
+            backdrop-filter: blur(4px); 
+            border: 1px solid rgba(255, 255, 255, 0.05); 
+            border-radius: 24px; 
+        }
+
+        .topbar { 
+            padding: 30px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            background: transparent; 
+            z-index: 10; 
+            position: relative; 
+            border-bottom: none;
+        }
+
+        .topbar-center-logo { 
+            font-family: 'Cinzel', serif; 
+            font-size: 32px; 
+            color: #fff; 
+            font-weight: 900; 
+            text-transform: uppercase; 
+            letter-spacing: 12px; 
+            text-shadow: 0 0 10px rgba(255,0,0,0.8), 0 0 20px rgba(255,0,0,0.5), 0 0 40px rgba(0,0,0,1); 
+            animation: pulseGlow 2.5s infinite alternate; 
+        }
+
+        @keyframes pulseGlow { 
+            from { text-shadow: 0 0 10px rgba(255,0,0,0.4); } 
+            to { text-shadow: 0 0 15px rgba(255,0,0,1), 0 0 30px rgba(255,0,0,0.6); } 
+        }
+
+        .view { 
+            padding: 40px; 
+            display: none; 
+            height: 100%; 
+            overflow-y: auto; 
+            position: relative; 
+            z-index: 2; 
+        }
+
+        .view.active { display: block; }
+        .view::-webkit-scrollbar { width: 8px; } 
+        .view::-webkit-scrollbar-thumb { background: rgba(255,0,0,0.5); border-radius: 5px; }
+        
+        .btn-voltar { 
+            color: #8b949e; 
+            cursor: pointer; 
+            margin-bottom: 20px; 
+            display: inline-block; 
+            font-size: 12px; 
+            font-weight: bold; 
+            text-transform: uppercase; 
+            letter-spacing: 1px; 
+            transition: 0.2s;
+        }
+
+        .btn-voltar:hover { 
+            color: #fff; 
+            text-shadow: 0 0 10px #fff;
+        }
+
+        .page-title { 
+            font-size: 36px; 
+            color: #fff; 
+            font-weight: 900; 
+            margin-bottom: 5px; 
+            text-transform: uppercase; 
+            letter-spacing: 3px; 
+            text-shadow: 0 5px 15px rgba(0,0,0,0.9); 
+            display: flex; 
+            align-items: center; 
+            gap: 15px;
+        }
+
+        .page-subtitle { 
+            color: #fff; 
+            font-size: 14px; 
+            margin-top: -25px; 
+            margin-bottom: 30px; 
+            letter-spacing: 1px; 
+            text-shadow: 0 2px 6px rgba(0,0,0,1); 
+        }
+
+        .barra-busca { 
+            width: 100%; 
+            max-width: 450px; 
+            padding: 16px 25px; 
+            background-color: rgba(0,0,0,0.05); 
+            border: 1px solid rgba(255,255,255,0.08); 
+            border-radius: 12px; 
+            color: #fff; 
+            margin-bottom: 20px; 
+            outline: none; 
+            transition: 0.3s; 
+            font-size: 14px; 
+            text-shadow: 0 1px 3px rgba(0,0,0,0.8); 
+            backdrop-filter: blur(4px);
+        }
+
+        .barra-busca:focus { 
+            border-color: #ff0000; 
+            box-shadow: 0 10px 25px rgba(255,0,0,0.15); 
+            background-color: rgba(0,0,0,0.2);
+        }
+
+        .barra-busca::placeholder { 
+            color: #8b949e; 
+            text-shadow: 0 1px 3px rgba(0,0,0,0.8); 
+        }
+        
+        .header-actions { display: flex; gap: 15px; align-items: center; }
+        
+        .btn-adicionar-topo { 
+            background-color: rgba(255,0,0,0.8); 
+            color: #fff; 
+            padding: 12px 25px; 
+            border-radius: 12px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            border: 1px solid rgba(255,0,0,0.4); 
+            transition: 0.3s; 
+            text-transform: uppercase; 
+            letter-spacing: 1px; 
+            backdrop-filter: blur(4px);
+        }
+
+        .btn-adicionar-topo:hover { 
+            background-color: #e60000; 
+            box-shadow: 0 10px 20px rgba(255,0,0,0.4); 
+            transform: translateY(-2px);
+        }
+
+        .btn-sync { 
+            background-color: rgba(0,0,0,0.2); 
+            color: #fff; 
+            border: 1px solid rgba(255,255,255,0.1); 
+            padding: 12px 20px; 
+            border-radius: 12px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            transition: 0.3s; 
+            backdrop-filter: blur(4px);
+        }
+
+        .btn-sync:hover { 
+            background-color: rgba(255,255,255,0.1); 
+            transform: translateY(-2px);
+        }
+
+        .btn-excluir-massa { 
+            background-color: rgba(255,0,0,0.8); 
+            color: #fff; 
+            padding: 12px 25px; 
+            border-radius: 12px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            border: 1px solid rgba(255,0,0,0.4); 
+            transition: 0.3s; 
+            text-transform: uppercase; 
+            letter-spacing: 1px; 
+            backdrop-filter: blur(4px); 
+            display: none; 
+        }
+
+        .btn-excluir-massa:hover { 
+            background-color: #cc0000; 
+            box-shadow: 0 10px 20px rgba(255,0,0,0.5); 
+            transform: translateY(-2px); 
+        }
+
+        .form-grid { display: flex; gap: 40px; padding-bottom: 50px; }
+        .col-left { width: 300px; }
+        
+        .col-left label, .col-right label { 
+            font-size: 11px; 
+            font-weight: bold; 
+            color: #c9d1d9; 
+            letter-spacing: 2px; 
+            margin-bottom: 10px; 
+            display: block; 
+            text-transform: uppercase; 
+            text-shadow: 0 2px 4px rgba(0,0,0,0.9);
+        }
+
+        .image-preview { 
+            width: 100%; 
+            height: 200px; 
+            background-color: rgba(0,0,0,0.2); 
+            border: 1px dashed rgba(255,255,255,0.2); 
+            border-radius: 16px; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            margin-bottom: 15px; 
+            color: #8b949e; 
+            overflow: hidden; 
+            backdrop-filter: blur(4px); 
+            background-size: cover; 
+            background-position: center;
+        }
+
+        .btn-upload { 
+            width: 100%; 
+            padding: 15px; 
+            background-color: rgba(0,0,0,0.1); 
+            border: 1px dashed rgba(255,255,255,0.2); 
+            color: #fff; 
+            border-radius: 12px; 
+            cursor: pointer; 
+            transition: 0.3s; 
+            margin-bottom: 20px; 
+            font-weight: bold; 
+            letter-spacing: 1px;
+        }
+
+        .btn-upload:hover { 
+            background-color: rgba(255,255,255,0.05); 
+            border-color: #ff0000; 
+            color: #ff0000;
+        }
+
+        .input-dark { 
+            width: 100%; 
+            padding: 15px; 
+            background-color: rgba(0,0,0,0.1); 
+            border: 1px solid rgba(255,255,255,0.08); 
+            color: #fff; 
+            border-radius: 12px; 
+            outline: none; 
+            margin-bottom: 25px; 
+            transition: 0.3s; 
+            text-shadow: 0 1px 3px rgba(0,0,0,0.8); 
+            backdrop-filter: blur(2px);
+        }
+
+        .input-dark:focus { 
+            border-color: #ff0000; 
+            box-shadow: 0 0 15px rgba(255,0,0,0.2); 
+            background-color: rgba(0,0,0,0.2);
+        }
+
+        textarea.input-dark { resize: vertical; min-height: 120px; }
+        .col-right { flex-grow: 1; max-width: 600px; }
+        .row { display: flex; gap: 20px; }
+        .row > div { flex: 1; }
+        
+        .toggles-area { display: flex; gap: 20px; margin-top: 10px; margin-bottom: 25px; }
+        
+        .toggle-box { 
+            background-color: rgba(0,0,0,0.1); 
+            border: 1px solid rgba(255,255,255,0.05); 
+            padding: 20px; 
+            border-radius: 16px; 
+            flex: 1; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            backdrop-filter: blur(4px);
+        }
+
+        .toggle-box span { 
+            font-weight: bold; 
+            font-size: 13px; 
+            text-transform: uppercase; 
+            letter-spacing: 1px; 
+            text-shadow: 0 2px 4px rgba(0,0,0,0.9);
+        }
+
+        .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        
+        .slider { 
+            position: absolute; 
+            cursor: pointer; 
+            top: 0; 
+            left: 0; 
+            right: 0; 
+            bottom: 0; 
+            background-color: rgba(255,255,255,0.1); 
+            transition: .4s; 
+            border-radius: 24px; 
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .slider:before { 
+            position: absolute; 
+            content: ""; 
+            height: 16px; 
+            width: 16px; 
+            left: 3px; 
+            bottom: 3px; 
+            background-color: #8b949e; 
+            transition: .4s; 
+            border-radius: 50%; 
+        }
+
+        input:checked + .slider { 
+            background-color: rgba(255,0,0,0.6); 
+            border-color: #ff0000;
+        }
+
+        input:checked + .slider:before { 
+            transform: translateX(20px); 
+            background-color: #fff; 
+            box-shadow: 0 0 10px #fff;
+        }
+        
+        .btn-criar { 
+            background-color: rgba(255,0,0,0.8); 
+            color: #fff; 
+            font-weight: bold; 
+            padding: 18px 30px; 
+            border: 1px solid rgba(255,0,0,0.4); 
+            border-radius: 12px; 
+            cursor: pointer; 
+            font-size: 14px; 
+            transition: 0.3s; 
+            margin-top: 10px; 
+            width: 100%; 
+            text-transform: uppercase; 
+            letter-spacing: 2px; 
+            backdrop-filter: blur(4px);
+        }
+
+        .btn-criar:hover:not(:disabled) { 
+            background-color: #e60000; 
+            box-shadow: 0 10px 20px rgba(255,0,0,0.5); 
+            transform: translateY(-3px);
+        }
+        
+        .biblioteca-header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 25px; 
+        }
+
+        .caixa-padrao { 
+            background-color: rgba(0, 0, 0, 0.05); 
+            border-radius: 20px; 
+            padding: 30px; 
+            margin-bottom: 30px; 
+            max-width: 1000px; 
+            border: 1px solid rgba(255,255,255,0.05); 
+            backdrop-filter: blur(4px); 
+        }
+
+        .caixa-padrao h3 { 
+            display: flex; 
+            align-items: center; 
+            gap: 10px; 
+            font-size: 16px; 
+            margin-bottom: 20px; 
+            color: #fff; 
+            text-transform: uppercase; 
+            letter-spacing: 2px; 
+            text-shadow: 0 2px 5px rgba(0,0,0,0.9);
+        }
+        
+        .file-list { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 15px; 
+            max-width: 1000px; 
+            padding-bottom: 50px; 
+        }
+
+        .file-item, .pedido-item, .key-item { 
+            background-color: rgba(0, 0, 0, 0.1); 
+            border: 1px solid rgba(255,255,255,0.05); 
+            border-radius: 16px; 
+            padding: 20px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            backdrop-filter: blur(4px); 
+            transition: 0.3s;
+        }
+
+        .file-item:hover, .pedido-item:hover, .key-item:hover { 
+            background-color: rgba(0,0,0,0.2); 
+            border-color: rgba(255,255,255,0.1); 
+            transform: translateY(-2px);
+        }
+        
+        .file-info { display: flex; align-items: center; gap: 15px; }
+        
+        .game-thumb { 
+            width: 80px; 
+            height: 50px; 
+            background-size: cover; 
+            background-position: center; 
+            border-radius: 8px; 
+            border: 1px solid rgba(255,255,255,0.1); 
+            background-color: rgba(0,0,0,0.3);
+        }
+
+        .file-details h4 { 
+            color: #fff; 
+            font-size: 16px; 
+            font-weight: 900; 
+            margin-bottom: 5px; 
+            text-shadow: 0 2px 4px rgba(0,0,0,0.9); 
+            letter-spacing: 1px;
+        }
+
+        .file-details span { 
+            color: #c9d1d9; 
+            font-size: 11px; 
+            text-transform: uppercase; 
+            letter-spacing: 1px; 
+            text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+        }
+        
+        .btn-icon { 
+            background: rgba(0,0,0,0.2); 
+            border: 1px solid rgba(255,255,255,0.05); 
+            color: #c9d1d9; 
+            cursor: pointer; 
+            font-size: 13px; 
+            font-weight: bold; 
+            transition: 0.2s; 
+            padding: 8px 15px; 
+            border-radius: 8px; 
+            text-transform: uppercase; 
+            letter-spacing: 1px;
+        }
+
+        .btn-icon:hover { 
+            color: #fff; 
+            background-color: rgba(255,255,255,0.1); 
+        }
+
+        .btn-icon.delete:hover { 
+            color: #ff0000; 
+            background-color: rgba(255,0,0,0.1); 
+            border-color: #ff0000;
+        }
+
+        .game-checkbox { 
+            width: 20px; 
+            height: 20px; 
+            cursor: pointer; 
+            accent-color: #ff0000; 
+        }
+
+        .pedidos-filters { display: flex; gap: 10px; margin-bottom: 30px; }
+        
+        .pedidos-filter { 
+            padding: 12px 20px; 
+            background: rgba(0,0,0,0.1); 
+            border: 1px solid rgba(255,255,255,0.05); 
+            border-radius: 12px; 
+            color: #c9d1d9; 
+            cursor: pointer; 
+            font-size: 12px; 
+            font-weight: bold; 
+            text-transform: uppercase; 
+            letter-spacing: 1px; 
+            transition: 0.3s; 
+            backdrop-filter: blur(4px);
+        }
+
+        .pedidos-filter:hover { background-color: rgba(255,255,255,0.05); }
+        
+        .pedidos-filter.active { 
+            border-color: #ff0000; 
+            color: #fff; 
+            background: rgba(255,0,0,0.2); 
+            box-shadow: 0 5px 15px rgba(255,0,0,0.2);
+        }
+        
+        .pedidos-empty { 
+            max-width: 800px; 
+            border: 1px dashed rgba(255,255,255,0.1); 
+            border-radius: 20px; 
+            padding: 80px 20px; 
+            text-align: center; 
+            color: #8b949e; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            gap: 15px; 
+            backdrop-filter: blur(4px);
+        }
+
+        .pedido-item { display: block; max-width: 800px; margin-bottom: 20px; }
+        
+        .pedido-header { 
+            display: flex; 
+            justify-content: space-between; 
+            margin-bottom: 15px; 
+            border-bottom: 1px solid rgba(255,255,255,0.05); 
+            padding-bottom: 15px;
+        }
+
+        .pedido-info span { 
+            display: block; 
+            color: #8b949e; 
+            font-size: 11px; 
+            margin-bottom: 5px; 
+            text-transform: uppercase; 
+            letter-spacing: 1px;
+        }
+
+        .pedido-info b { 
+            color: #fff; 
+            font-size: 15px; 
+            text-shadow: 0 2px 4px rgba(0,0,0,0.9);
+        }
+        
+        .badge-status { 
+            padding: 6px 12px; 
+            border-radius: 12px; 
+            font-size: 10px; 
+            text-transform: uppercase; 
+            font-weight: bold; 
+            height: fit-content; 
+            letter-spacing: 1px;
+        }
+
+        .status-pending { background: rgba(210, 168, 255, 0.15); color: #d2a8ff; border: 1px solid rgba(210, 168, 255, 0.3); }
+        .status-approved { background: rgba(63, 185, 80, 0.15); color: #3fb950; border: 1px solid rgba(63, 185, 80, 0.3); }
+        .status-rejected { background: rgba(248, 81, 73, 0.15); color: #ff0000; border: 1px solid rgba(248, 81, 73, 0.3); }
+        
+        .pedido-actions { display: flex; gap: 15px; margin-top: 20px; }
+        
+        .btn-aprovar { 
+            background-color: rgba(63,185,80,0.8); 
+            color: #fff; 
+            border: 1px solid rgba(63,185,80,0.4); 
+            padding: 12px 20px; 
+            border-radius: 10px; 
+            cursor: pointer; 
+            font-weight: bold; 
+            font-size: 12px; 
+            text-transform: uppercase; 
+            letter-spacing: 1px; 
+            transition: 0.3s;
+        }
+
+        .btn-aprovar:hover { background-color: #2ea043; transform: translateY(-2px);}
+        
+        .btn-recusar { 
+            background-color: rgba(0,0,0,0.2); 
+            border: 1px solid rgba(255,0,0,0.5); 
+            color: #ff0000; 
+            padding: 12px 20px; 
+            border-radius: 10px; 
+            cursor: pointer; 
+            font-weight: bold; 
+            font-size: 12px; 
+            text-transform: uppercase; 
+            letter-spacing: 1px; 
+            transition: 0.3s;
+        }
+
+        .btn-recusar:hover { background-color: rgba(255,0,0,0.1); transform: translateY(-2px);}
+        
+        .comprovante-img { 
+            max-width: 100%; 
+            max-height: 250px; 
+            border-radius: 12px; 
+            border: 1px solid rgba(255,255,255,0.1); 
+            margin-top: 15px; 
+            object-fit: contain; 
+            background: rgba(0,0,0,0.5);
+        }
+
+        .afiliados-add { display: flex; gap: 15px; margin-bottom: 25px; }
+        .afiliados-add .input-dark { margin-bottom: 0; max-width: 300px; }
+        
+        .btn-afiliado { 
+            background-color: rgba(255,0,0,0.8); 
+            color: #fff; 
+            border: 1px solid rgba(255,0,0,0.4); 
+            padding: 0 25px; 
+            border-radius: 12px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            text-transform: uppercase; 
+            letter-spacing: 1px; 
+            transition: 0.3s;
+        }
+
+        .btn-afiliado:hover { background-color: #e60000; transform: translateY(-2px);}
+        
+        .afiliados-list { display: flex; flex-direction: column; gap: 10px; }
+        
+        .afiliado-item { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding: 15px 20px; 
+            border-bottom: 1px solid rgba(255,255,255,0.05); 
+            background: rgba(0,0,0,0.1); 
+            border-radius: 12px;
+        }
+
+        .afiliado-info { 
+            display: flex; 
+            align-items: center; 
+            gap: 15px; 
+            color: #fff; 
+            font-size: 14px; 
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+        }
+
+        .afiliado-key { color: #ff0000; font-family: monospace; font-size: 14px; font-weight: bold;}
+        
+        .keys-form-gerar { 
+            display: flex; 
+            gap: 20px; 
+            max-width: 800px; 
+            margin-bottom: 40px; 
+            align-items: flex-end; 
+        }
+
+        .keys-form-gerar > div { flex: 1; }
+        .keys-form-gerar .input-dark { margin-bottom: 0; }
+        .keys-form-gerar .btn-criar { margin-top: 0; padding: 15px 25px; width: auto; }
+        
+        .key-item { display: block; padding: 25px;}
+        
+        .key-item-header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 20px; 
+        }
+
+        .key-code { 
+            display: flex; 
+            align-items: center; 
+            gap: 15px; 
+            font-family: monospace; 
+            font-size: 18px; 
+            color: #ff0000; 
+            font-weight: bold; 
+            text-shadow: 0 2px 5px rgba(0,0,0,0.8);
+        }
+
+        .badge-pc { 
+            background-color: rgba(46, 160, 67, 0.15); 
+            color: #3fb950; 
+            padding: 6px 12px; 
+            border-radius: 12px; 
+            font-size: 11px; 
+            border: 1px solid rgba(46, 160, 67, 0.3); 
+            font-family: 'Segoe UI';
+        }
+
+        .key-actions { display: flex; gap: 10px; }
+        
+        .key-user-details { 
+            display: flex; 
+            gap: 25px; 
+            font-size: 13px; 
+            color: #c9d1d9; 
+            text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+        }
+
+        .lang-buttons { display: flex; gap: 15px; }
+        
+        .lang-btn { 
+            background: rgba(0,0,0,0.2); 
+            border: 1px solid rgba(255,255,255,0.05); 
+            color: #fff; 
+            padding: 15px 30px; 
+            border-radius: 12px; 
+            cursor: pointer; 
+            transition: 0.3s; 
+            font-size: 14px; 
+            display: flex; 
+            align-items: center; 
+            gap: 10px; 
+            font-weight: bold; 
+            text-transform: uppercase; 
+            letter-spacing: 2px;
+        }
+
+        .lang-btn:hover { 
+            background-color: rgba(255,255,255,0.05); 
+            transform: translateY(-2px);
+        }
+
+        .lang-btn.active { 
+            border-color: #ff0000; 
+            background-color: rgba(255,0,0,0.2); 
+            box-shadow: 0 10px 20px rgba(255,0,0,0.2);
+        }
+        
+        #modal-edit-game { 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100vw; 
+            height: 100vh; 
+            background: rgba(0, 0, 0, 0.6); 
+            backdrop-filter: blur(8px); 
+            z-index: 10002; 
+            display: none; 
+            justify-content: center; 
+            align-items: center; 
+        }
+
+        /* ESTILOS DOS PLANOS */
+        .plan-selector { 
+            display: flex; 
+            gap: 20px; 
+            margin-bottom: 25px; 
+        }
+
+        .plan-option { 
+            flex: 1; 
+            background: rgba(0,0,0,0.2); 
+            border: 2px solid rgba(255,255,255,0.1); 
+            border-radius: 12px; 
+            padding: 20px; 
+            cursor: pointer; 
+            text-align: center; 
+            transition: 0.3s;
+        }
+
+        .plan-option:hover { background: rgba(255,255,255,0.05); }
+        .plan-option input { display: none; }
+        
+        .plan-option h3 { 
+            color: #fff; 
+            font-size: 18px; 
+            margin-bottom: 5px; 
+            text-transform: uppercase; 
+            letter-spacing: 2px;
+        }
+
+        .plan-option p { color: #8b949e; font-size: 12px; }
+        .plan-option input:checked + div h3 { color: #ff0000; text-shadow: 0 0 10px rgba(255,0,0,0.5);}
+        .plan-option input:checked + div { transform: scale(1.05); }
+        .plan-option.pro input:checked ~ div { border-color: #ff0000; }
+        
+        .btn-gerar-massa { 
+            padding: 15px 25px; 
+            font-weight: bold; 
+            text-transform: uppercase; 
+            letter-spacing: 1px; 
+            border-radius: 12px; 
+            cursor: pointer; 
+            border: none; 
+            color: #fff; 
+            width: 100%; 
+            transition: 0.3s;
+        }
+
+        .btn-massa-pro { background: #58a6ff; box-shadow: 0 5px 15px rgba(88,166,255,0.3);}
+        .btn-massa-prm { background: #ff0000; box-shadow: 0 5px 15px rgba(255,0,0,0.3);}
+        .btn-gerar-massa:hover { transform: translateY(-3px); filter: brightness(1.2);}
+
+        .badge-plan { 
+            padding: 4px 8px; 
+            border-radius: 8px; 
+            font-size: 10px; 
+            font-weight: bold; 
+            text-transform: uppercase; 
+            margin-left: 10px; 
+        }
+
+        .badge-pro { background: rgba(88,166,255,0.2); color: #58a6ff; border: 1px solid rgba(88,166,255,0.4); }
+        .badge-prm { background: rgba(255,0,0,0.2); color: #ff0000; border: 1px solid rgba(255,0,0,0.4); }
+    </style>
+</head>
+<body>
+
+    <!-- OVERLAYS DE CARREGAMENTO -->
+    <div id="loading-screen">
+        <div class="spinner"></div>
+        <div class="loading-text" id="loading-text-msg">Aguarde...</div>
+    </div>
+    
+    <div id="lang-loading">
+        <div class="spinner"></div>
+        <h2 id="lang-loading-text">Loading language...</h2>
+    </div>
+
+    <!-- MODAL DE GERENCIAMENTO DE JOGOS -->
+    <div id="modal-edit-game">
+        <div class="modal-box" style="background: rgba(0, 0, 0, 0.4); width: 100%; max-width: 480px; padding: 40px; border-radius: 24px; border: 1px solid rgba(255,255,255,0.05); box-shadow: 0 20px 60px rgba(0,0,0,0.8); backdrop-filter: blur(15px); text-align: left;">
+            <h2 style="color: #fff; margin-bottom: 25px; text-align: center; text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 2px 5px rgba(0,0,0,0.8);">⚙️ Gerenciar Jogo</h2>
+            <div style="display: flex; flex-direction: column; gap: 20px;">
+                <div>
+                    <label style="color: #c9d1d9; font-size: 11px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 10px; display: block; text-shadow: 0 2px 4px rgba(0,0,0,0.9);">Capa do Jogo</label>
+                    <div class="image-preview" id="previewEditJogo" style="height: 160px; margin-bottom: 15px; border-radius: 12px; border: 1px dashed rgba(255,255,255,0.2); background: rgba(0,0,0,0.3);">🖼️ Preview</div>
+                    <input type="file" id="inputArquivoImagemEdit" accept="image/png, image/jpeg, image/webp" style="display: none;">
+                    <button type="button" class="btn-upload" onclick="document.getElementById('inputArquivoImagemEdit').click()" style="padding: 15px; font-size: 13px;">↑ Substituir Imagem Manualmente</button>
+                    <input type="hidden" id="urlImagemEdit">
+                </div>
+                <div>
+                    <label style="color: #c9d1d9; font-size: 11px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 10px; display: block;">Título do Jogo</label>
+                    <input type="text" id="tituloEditJogo" class="input-dark" style="margin-bottom: 0; padding: 15px; font-size: 14px;">
+                </div>
+                <div>
+                    <label style="color: #c9d1d9; font-size: 11px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 10px; display: block;">Steam App ID</label>
+                    <input type="text" id="appIdEditJogo" class="input-dark" style="margin-bottom: 0; padding: 15px; font-size: 14px;">
+                </div>
+            </div>
+            <div class="modal-actions" style="margin-top: 30px;">
+                <button class="btn-cancelar" style="background: rgba(255,255,255,0.1); border:none; padding:15px; color:#fff; border-radius:12px; cursor:pointer;" onclick="document.getElementById('modal-edit-game').style.display='none'">Cancelar</button>
+                <button class="btn-enviar-comp" id="btnSalvarEdicaoJogo" style="background: #3fb950; border:none; padding:15px; color:#fff; font-weight:bold; border-radius:12px; cursor:pointer;" onclick="salvarEdicaoJogo()">💾 Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TELA DE LOGIN DO ADMIN -->
+    <div id="custom-titlebar">
+        <div class="titlebar-drag">Rayzer Gamer - Admin Premium</div>
+        <div class="titlebar-controls">
+            <button class="btn-atualizar" onclick="atualizarApp()">↻ Atualizar</button>
+            <button onclick="minimizarApp()">—</button>
+            <button onclick="maximizarApp()" title="Modo Janela / Tela Cheia">🗖</button>
+            <button onclick="fecharApp()">✕</button>
+        </div>
+    </div>
+
+    <div id="login-screen">
+        <div class="login-box">
+            <div class="login-header">
+                <div class="login-header-logo"></div>
+                <div class="login-header-text">
+                    <h1>Rayzer Gamer</h1>
+                    <span id="login-subtitle">ADMINISTRADOR</span>
+                </div>
+            </div>
+            <p class="erro-login" id="msgErroLogin" data-i18n="logErr">Credenciais incorretas.</p>
+            <form id="formLogin">
+                <!-- CAMPOS DO ADMIN -->
+                <div id="campos-admin">
+                    <div class="login-form-group">
+                        <label>E-mail de Acesso</label>
+                        <div class="input-with-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                            <input type="text" id="loginEmail" placeholder="admin@rayzer.com">
+                        </div>
+                    </div>
+                    <div class="login-form-group">
+                        <label>Senha de Segurança</label>
+                        <div class="input-with-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                            <input type="password" id="loginSenha" placeholder="••••••••">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CAMPO DO AFILIADO -->
+                <div id="campos-afiliado" style="display: none;">
+                    <div class="login-form-group">
+                        <label>Chave do Vendedor (Afiliado)</label>
+                        <div class="input-with-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+                            <input type="text" id="loginChaveAfiliado" placeholder="AFF-XXXX-XXXX">
+                        </div>
+                    </div>
+                </div>
+
+                <div style="text-align: right; margin-bottom: 25px; margin-top: -10px;">
+                    <span id="btnAlternarLogin" onclick="alternarModoLogin()" style="color: #ff0000; cursor: pointer; font-size: 12px; font-weight: bold; text-decoration: underline;">Acesso para Afiliados / Vendedores</span>
+                </div>
+
+                <button type="submit" class="btn-login" id="btnAcessarPainel">Acessar Painel</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ESTRUTURA PRINCIPAL DO ADMIN -->
+    <div id="app-wrapper">
+        
+        <aside class="sidebar">
+            <div class="logo-area">
+                <div class="icone"></div>
+                <div class="logo-text">
+                    <h1 id="sidebar-user-name">Rayzer</h1>
+                    <span id="sidebar-user-role">ADMIN</span>
+                </div>
+            </div>
+            <div class="menu">
+                <div class="menu-item active" id="nav-biblioteca" onclick="mudarAba('biblioteca', 'biblioteca')">
+                    <span class="icone-menu">📚</span> <span data-i18n="mnBiblio">Biblioteca</span>
+                </div>
+                
+                <div class="menu-item" id="nav-bypass" onclick="mudarAba('bypass', 'bypass')">
+                    <span class="icone-menu">🛡️</span> <span data-i18n="mnBypass">Bypass</span>
+                </div>
+                <div class="menu-item" id="nav-manifests" onclick="mudarAba('manifests', 'manifests')">
+                    <span class="icone-menu">📄</span> <span data-i18n="mnManif">Manifests</span>
+                </div>
+                <div class="menu-item" id="nav-dependencias" onclick="mudarAba('dependencias', 'dependencias')">
+                    <span class="icone-menu">📦</span> <span data-i18n="mnDep">Dependências</span>
+                </div>
+                <div class="menu-item" id="nav-pedidos" onclick="mudarAba('pedidos', 'pedidos')">
+                    <span class="icone-menu">📥</span> <span data-i18n="mnPed">Pedidos</span>
+                </div>
+                <div class="menu-item" id="nav-keys" onclick="mudarAba('keys', 'keys')">
+                    <span class="icone-menu">🔑</span> <span data-i18n="mnKeys">Keys e Vendas</span>
+                </div>
+                <div class="menu-item" id="nav-configuracoes" onclick="mudarAba('configuracoes', 'configuracoes')">
+                    <span class="icone-menu">⚙️</span> <span data-i18n="mnConf">Configurações</span>
+                </div>
+            </div>
+            <div class="sidebar-footer">
+                <div class="btn-sair" id="btnSairApp" onclick="sairDaConta()">
+                    ↪ <span data-i18n="sideExit">Sair do Painel</span>
+                </div>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <div class="topbar">
+                <h2 class="topbar-center-logo" id="topbar-title">Rayzer Gamer</h2>
+            </div>
+
+            <!-- BIBLIOTECA -->
+            <div id="view-biblioteca" class="view active">
+                <div class="biblioteca-header">
+                    <div>
+                        <h1 class="page-title"><span data-i18n="ttBiblio">Biblioteca</span></h1>
+                        <p class="page-subtitle" id="subtitle-biblioteca">Gerencie os jogos, arquivos, loja e visibilidade.</p>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn-sync" id="btn-limpar-duplicatas" style="background-color: #d2a8ff; border-color: rgba(210,168,255,0.4); color: #000;" onclick="removerJogosDuplicados()">🧹 Limpar Duplicados</button>
+                        <button class="btn-excluir-massa" id="btn-excluir-massa" onclick="excluirJogosSelecionados()">🗑️ Excluir Selecionados</button>
+                        <button class="btn-adicionar-topo" onclick="mudarAba('adicionar', 'adicionar')" data-i18n="btnTopAdd">+ Adicionar Jogo</button>
+                    </div>
+                </div>
+
+                <!-- BARRA DE PESQUISA -->
+                <div style="margin-bottom: 20px;">
+                    <input type="text" id="buscaBibliotecaAdmin" class="barra-busca" placeholder="Pesquisar jogos por nome ou AppID..." onkeyup="filtrarBibliotecaAdmin()" style="margin-bottom: 0;">
+                </div>
+                
+                <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px; padding-left: 20px;">
+                    <input type="checkbox" id="selectAllGames" onchange="toggleSelectAllGames(this)" style="width: 20px; height: 20px; cursor: pointer; accent-color: #ff0000;">
+                    <label for="selectAllGames" style="color: #8b949e; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; text-shadow: 0 1px 3px rgba(0,0,0,0.8);">Selecionar Todos</label>
+                </div>
+
+                <div class="file-list" id="listaJogosBiblioteca">
+                    <div class="pedidos-empty" data-i18n="emptyBiblio">Os jogos adicionados aparecerão aqui.</div>
+                </div>
+            </div>
+
+            <!-- ADICIONAR JOGO EM MASSA E MANUAL -->
+            <div id="view-adicionar" class="view">
+                <div class="btn-voltar" onclick="mudarAba('biblioteca', 'biblioteca')">← <span data-i18n="btnBack">Voltar</span></div>
+                <h1 class="page-title">Injeção Inteligente</h1>
+                <p class="page-subtitle">Cadastre dezenas de jogos de uma só vez. Defina o plano e insira a lista.</p>
+                
+                <!-- SELETOR DE PLANO -->
+                <div class="caixa-padrao" style="max-width: 800px; margin-bottom: 20px;">
+                    <label style="color: #c9d1d9; font-weight: bold; margin-bottom: 10px; display: block; text-transform: uppercase;">1. Escolha o Plano dos Jogos:</label>
+                    <div class="plan-selector">
+                        <label class="plan-option pro">
+                            <input type="radio" name="planoMassa" value="pro" checked>
+                            <div><h3>Pro</h3><p>Plano Padrão (1.000 Jogos)</p></div>
+                        </label>
+                        <label class="plan-option">
+                            <input type="radio" name="planoMassa" value="premium">
+                            <div><h3>Premium</h3><p>Plano Premium (Ilimitado 40k+)</p></div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- CAIXA NOVA: UPLOAD DE SCRIPTS .LUA -->
+                <div class="smart-box" style="background-color: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255,255,255,0.05); border-radius: 20px; padding: 35px; max-width: 800px; backdrop-filter: blur(4px);">
+                    <h3 style="color:#ff0000; margin-bottom: 10px; font-weight: 900; text-transform: uppercase;">2. Envio em Massa de Scripts .Lua</h3>
+                    <p style="color: #8b949e; font-size: 13px; margin-bottom: 15px; line-height: 1.6; text-shadow: 0 1px 3px rgba(0,0,0,0.8);">
+                        Selecione todos os arquivos <b>.lua</b> do seu computador. O sistema irá extrair o AppID de cada arquivo, fazer o upload para o banco de dados, buscar a capa na Steam e registrar o jogo automaticamente no plano escolhido acima.
+                    </p>
+                    
+                    <input type="file" id="bulkLuaInput" multiple accept=".lua" style="display: none;" onchange="uploadEmMassaLuas(event)">
+                    <button class="btn-criar" onclick="document.getElementById('bulkLuaInput').click()">
+                        📁 Selecionar e Injetar Lotes de .lua
+                    </button>
+                </div>
+
+                <!-- ADD MANUAL -->
+                <div style="margin-top: 50px; padding-top: 30px; border-top: 1px dashed rgba(255,255,255,0.1);">
+                    <h2 style="color: #8b949e; font-size: 16px; margin-bottom: 20px; text-transform: uppercase;">Ou cadastre manualmente:</h2>
+                    <form id="formAddJogo">
+                        <div class="form-grid">
+                            <div class="col-left">
+                                <label data-i18n="lblCover">Capa</label>
+                                <div class="image-preview" id="previewContainerJogo">🖼️ Preview</div>
+                                <input type="file" id="inputArquivoImagemJogo" accept="image/png, image/jpeg, image/webp" style="display: none;">
+                                <button type="button" class="btn-upload" onclick="document.getElementById('inputArquivoImagemJogo').click()">↑ <span data-i18n="btnUpImg">Enviar imagem</span></button>
+                                <label data-i18n="lblOrUrl">URL DA IMAGEM (GERADA AUTO)</label>
+                                <input type="text" id="urlImagemJogo" class="input-dark" readonly>
+                            </div>
+                            <div class="col-right">
+                                <label data-i18n="lblTitle">Título do Jogo</label>
+                                <input type="text" id="tituloJogo" class="input-dark" required placeholder="Cole o AppID e o Nome aqui para auto-preencher">
+                                <div class="row">
+                                    <div><label>Steam App ID</label><input type="text" id="appIdJogo" class="input-dark" required></div>
+                                    <div><label data-i18n="lblCat">Categoria</label><input type="text" id="catJogo" class="input-dark" value="Ação"></div>
+                                    <div>
+                                        <label>Plano</label>
+                                        <select id="planoJogoManual" class="input-dark">
+                                            <option value="pro">Pro</option>
+                                            <option value="premium">Premium</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="toggles-area">
+                                    <div class="toggle-box">
+                                        <span>🌐 <span data-i18n="tgPub">Público</span></span>
+                                        <label class="switch"><input type="checkbox" id="checkPublico" checked><span class="slider"></span></label>
+                                    </div>
+                                    <div class="toggle-box">
+                                        <span>🛒 <span data-i18n="tgStore">Vender na Loja</span></span>
+                                        <label class="switch"><input type="checkbox" id="checkLoja" onchange="togglePreco()"><span class="slider"></span></label>
+                                    </div>
+                                </div>
+                                <div id="divPreco" style="display: none; margin-bottom: 25px;">
+                                    <label data-i18n="lblPrice">Valor (R$)</label>
+                                    <input type="number" id="valorJogo" class="input-dark" step="0.01">
+                                </div>
+                                <button type="submit" id="btnSalvarJogo" class="btn-criar">💾 <span data-i18n="btnSaveGame">Criar Jogo</span></button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- BYPASS -->
+            <div id="view-bypass" class="view">
+                <div class="biblioteca-header">
+                    <div>
+                        <h1 class="page-title"><span data-i18n="ttBypass">Bypass</span></h1>
+                        <p class="page-subtitle" data-i18n="subBypass">Gerencie os bypasses disponíveis.</p>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn-sync" id="btnSyncGithub" style="background-color: #58a6ff; border-color: #58a6ff; color: #fff;" onclick="sincronizarBypassesGithub()">📥 Sincronizar todos do GitHub</button>
+                        <button class="btn-adicionar-topo" onclick="mudarAba('adicionar-bypass', 'bypass')" data-i18n="btnTopAddBypass">+ Adicionar Manual</button>
+                    </div>
+                </div>
+                <div class="file-list" id="listaBypasses"></div>
+            </div>
+
+            <!-- ADICIONAR BYPASS MANUAL -->
+            <div id="view-adicionar-bypass" class="view">
+                <div class="btn-voltar" onclick="mudarAba('bypass', 'bypass')">← <span data-i18n="btnBack">Voltar</span></div>
+                <h1 class="page-title" data-i18n="ttAddBypass">Adicionar Novo Bypass</h1>
+                <form id="formAddBypass">
+                    <div class="form-grid">
+                        <div class="col-right" style="max-width: 800px;">
+                            <label data-i18n="lblTitle">Título do Bypass</label>
+                            <input type="text" id="tituloBypass" class="input-dark" required>
+                            
+                            <div class="row">
+                                <div><label>Steam App ID</label><input type="text" id="appIdBypass" class="input-dark" required></div>
+                                <div><label data-i18n="lblCat">Categoria</label><input type="text" id="categoriaBypass" class="input-dark" value="Manual"></div>
+                            </div>
+                            
+                            <label data-i18n="lblBypassUrl">LINK DO ARQUIVO (.ZIP/.RAR)</label>
+                            <input type="text" id="urlZipBypass" class="input-dark" placeholder="https://exemplo.com/arquivo.zip" required>
+                            
+                            <button type="submit" class="btn-criar" id="btnSalvarBypass">💾 <span data-i18n="btnSaveBypass">Criar Bypass</span></button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- MANIFESTS -->
+            <div id="view-manifests" class="view">
+                <h1 class="page-title"><span style="color: #d2a8ff;">📄</span> <span data-i18n="mnManif">Manifests</span></h1>
+                <p class="page-subtitle" data-i18n="subManif">Gerencie os arquivos de manifest salvos no banco de dados.</p>
+                <div class="caixa-padrao purple">
+                    <input type="file" id="inputUploadManifests" multiple style="display: none;">
+                    <button id="btnUploadManifests" class="btn-upload" style="color: #d2a8ff; border-color: rgba(210,168,255,0.4);" onclick="document.getElementById('inputUploadManifests').click()">↑ <span data-i18n="btnUpManif">Enviar Arquivos para o Banco</span></button>
+                </div>
+                <div class="file-list" id="listaManifests"></div>
+            </div>
+
+            <!-- DEPENDÊNCIAS -->
+            <div id="view-dependencias" class="view">
+                <h1 class="page-title"><span style="color: #e2b714;">📦</span> <span data-i18n="mnDep">Dependências</span></h1>
+                <p class="page-subtitle" data-i18n="subDep">Arquivos globais salvos no banco de dados.</p>
+                <div class="caixa-padrao gold">
+                    <input type="file" id="inputUploadDependencias" multiple style="display: none;">
+                    <button id="btnUploadDependencias" class="btn-upload" style="color: #e2b714; border-color: rgba(226,183,20,0.4);" onclick="document.getElementById('inputUploadDependencias').click()">↑ <span data-i18n="btnUpDep">Enviar Arquivos para o Banco</span></button>
+                </div>
+                <div class="file-list" id="listaDependencias"></div>
+            </div>
+
+            <!-- PEDIDOS -->
+            <div id="view-pedidos" class="view">
+                <h1 class="page-title"><span style="color: #ff0000;">📥</span> <span data-i18n="ttPed">Pedidos da Loja</span></h1>
+                <p class="page-subtitle" data-i18n="subPed">Confira o comprovante e libere o jogo para o cliente.</p>
+                <div class="pedidos-filters">
+                    <button class="pedidos-filter active" onclick="filtrarPedidos('pending', this)" data-i18n="fltPend">Pendentes</button>
+                    <button class="pedidos-filter" onclick="filtrarPedidos('approved', this)" data-i18n="fltAppr">Aprovados</button>
+                    <button class="pedidos-filter" onclick="filtrarPedidos('rejected', this)" data-i18n="fltRej">Recusados</button>
+                    <button class="pedidos-filter" onclick="filtrarPedidos('all', this)" data-i18n="fltAll">Todos</button>
+                </div>
+                <div id="listaPedidos"></div>
+            </div>
+
+            <!-- KEYS (GERADOR EM MASSA E MANUAL E LISTA) -->
+            <div id="view-keys" class="view">
+                <h1 class="page-title"><span style="color: #ff0000;">🔑</span> <span data-i18n="ttKeys">Keys de Acesso</span></h1>
+                <p class="page-subtitle" data-i18n="subKeys">Gere keys de uso único (travadas por PC).</p>
+                
+                <!-- CAIXAS DE GERAÇÃO EM MASSA E DASHBOARD -->
+                <div id="area-gerar-massa" style="display: flex; gap: 20px; max-width: 1000px; margin-bottom: 20px;">
+                    
+                    <div class="caixa-padrao" style="flex: 1; text-align: center; margin-bottom: 0;">
+                        <h3 style="color: #58a6ff; margin-bottom: 20px; font-weight: 900; justify-content: center;">Plano PRO</h3>
+                        <p style="color: #8b949e; font-size: 12px; margin-bottom: 20px;">Gera 20 Keys (Prefixo PRO-)</p>
+                        <button class="btn-gerar-massa btn-massa-pro" id="btnGerar20pro" onclick="gerarKeysMassa('pro')">Gerar 20 Keys Pro</button>
+                    </div>
+
+                    <div class="caixa-padrao" style="flex: 1; text-align: center; margin-bottom: 0;">
+                        <h3 style="color: #ff0000; margin-bottom: 20px; font-weight: 900; justify-content: center;">Plano PREMIUM</h3>
+                        <p style="color: #8b949e; font-size: 12px; margin-bottom: 20px;">Gera 20 Keys (Prefixo PRM-)</p>
+                        <button class="btn-gerar-massa btn-massa-prm" id="btnGerar20premium" onclick="gerarKeysMassa('premium')">Gerar 20 Keys Premium</button>
+                    </div>
+
+                    <!-- DASHBOARD KEYS -->
+                    <div class="caixa-padrao" style="flex: 1; text-align: center; margin-bottom: 0; display: flex; flex-direction: column; justify-content: center; border-color: rgba(63, 185, 80, 0.3);">
+                        <h3 style="color: #3fb950; margin-bottom: 15px; font-weight: 900; justify-content: center;">📊 Dashboard Keys</h3>
+                        <div style="display: flex; justify-content: space-around; width: 100%;">
+                            <div>
+                                <span style="display: block; font-size: 24px; font-weight: bold; color: #fff;" id="countKeysDisponiveis">0</span>
+                                <span style="font-size: 10px; color: #8b949e; text-transform: uppercase; letter-spacing: 1px;">Disponíveis</span>
+                            </div>
+                            <div>
+                                <span style="display: block; font-size: 24px; font-weight: bold; color: #f85149;" id="countKeysEmUso">0</span>
+                                <span style="font-size: 10px; color: #8b949e; text-transform: uppercase; letter-spacing: 1px;">Em Uso</span>
+                            </div>
+                        </div>
+                        <div style="margin-top: 15px; font-size: 11px; color: #8b949e;">Total geradas: <b id="countKeysTotal" style="color: #fff;">0</b></div>
+                    </div>
+                </div>
+
+                <!-- AFILIADOS E GERAR MANUAL -->
+                <div id="area-criar-afiliado" class="caixa-padrao" style="max-width: 1000px;">
+                    <h3>👥 <span data-i18n="bxAff">Afiliados</span></h3>
+                    <div class="afiliados-add">
+                        <input type="text" id="inputNomeAfiliado" class="input-dark" data-i18n-ph="phAffName" placeholder="Nome do afiliado" style="margin-bottom: 0; max-width: 300px;">
+                        <button class="btn-afiliado" id="btnCriarAfiliado" data-i18n="btnAddAff" style="background-color: rgba(255,0,0,0.8); color: #fff; border: 1px solid rgba(255,0,0,0.4); padding: 0 25px; border-radius: 12px; font-weight: bold; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; transition: 0.3s;">+ Criar afiliado</button>
+                    </div>
+                    <div class="afiliados-list" id="listaAfiliados"></div>
+                </div>
+                
+                <form id="formGerarKey" class="keys-form-gerar" style="max-width: 1000px; flex-wrap: wrap;">
+                    <div>
+                        <label data-i18n="lblFullName">Nome completo</label>
+                        <input type="text" id="keyInputNome" class="input-dark" style="margin-bottom:0;" required>
+                    </div>
+                    <div>
+                        <label>E-mail</label>
+                        <input type="email" id="keyInputEmail" class="input-dark" style="margin-bottom:0;" required>
+                    </div>
+                    <div>
+                        <label data-i18n="lblPhone">Telefone</label>
+                        <input type="text" id="keyInputTelefone" class="input-dark" style="margin-bottom:0;" required>
+                    </div>
+                    <div style="flex: 0.5;">
+                        <label>Plano</label>
+                        <select id="keyInputPlano" class="input-dark" style="margin-bottom:0;" required>
+                            <option value="pro">Pro</option>
+                            <option value="premium">Premium</option>
+                        </select>
+                    </div>
+                    <button type="submit" id="btnSubmitKey" class="btn-criar" style="margin-top:0; width:auto;" data-i18n="btnGenKey">+ Gerar Key Manual</button>
+                </form>
+
+                <!-- LISTA DE KEYS COM FILTROS E PAGINAÇÃO -->
+                <div class="biblioteca-header" style="max-width: 1000px; margin-top: 40px; margin-bottom: 20px;">
+                    <h3 style="color: #fff; text-transform: uppercase; letter-spacing: 2px;">📋 Lista de Keys Geradas</h3>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 20px; max-width: 1000px;">
+                    
+                    <div style="flex: 1; min-width: 250px;">
+                        <input type="text" id="buscaKeysAdmin" class="barra-busca" placeholder="Pesquisar por Key, Nome, E-mail ou PC..." onkeyup="filtrarKeysAdmin()" style="margin-bottom: 0; width: 100%;">
+                    </div>
+                    
+                    <div class="pedidos-filters">
+                        <button class="pedidos-filter btn-filtro-key active" onclick="aplicarFiltroKeys('all', this)">Todas</button>
+                        <button class="pedidos-filter btn-filtro-key" onclick="aplicarFiltroKeys('disponiveis', this)">Disponíveis</button>
+                        <button class="pedidos-filter btn-filtro-key" onclick="aplicarFiltroKeys('em_uso', this)">Em Uso</button>
+                    </div>
+
+                    <!-- COLE ESTE BLOCO NOVO AQUI: Filtro de Vendedor (SÓ ADMIN) -->
+                    <div id="filtroAfiliadoContainer">
+                        <label style="color: #8b949e; font-size: 11px; font-weight: bold; text-transform: uppercase; margin-right: 10px;">👤 Filtrar por Vendedor:</label>
+                        <select id="selectFiltroAfiliado" class="input-dark" style="width: auto; display: inline-block; padding: 10px; margin-bottom: 0;" onchange="filtrarKeysAdmin()">
+                            <option value="todos">Todos (Visão Geral)</option>
+                            <option value="Admin">Apenas Admin</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="keys-list" id="listaKeysGeradas" style="max-width: 1000px;"></div>
+                
+                <button id="btn-ver-mais-keys" class="btn-ver-mais" onclick="verMaisKeys()" style="display: none; max-width: 1000px; margin-top: 20px;">Ver Mais Keys</button>
+
+            </div>
+
+            <!-- CONFIGURAÇÕES -->
+            <div id="view-configuracoes" class="view">
+                <h1 class="page-title" data-i18n="ttConf">Configurações</h1>
+                
+                <div class="caixa-padrao">
+                    <h3><span style="color: #ff0000;">A</span> <span data-i18n="bxLang">Idioma</span></h3>
+                    <div class="lang-buttons">
+                        <button class="lang-btn active" onclick="mudarIdioma('pt', this)"><span style="font-size: 16px;">🇧🇷</span> BR</button>
+                        <button class="lang-btn" onclick="mudarIdioma('en', this)"><span style="font-size: 16px;">🇺🇸</span> US</button>
+                        <button class="lang-btn" onclick="mudarIdioma('es', this)"><span style="font-size: 16px;">🇪🇸</span> ES</button>
+                    </div>
+                </div>
+                
+                <div class="caixa-padrao">
+                    <h3><span style="color: #ff0000;">QR</span> <span data-i18n="bxPix">Pix da Loja</span></h3>
+                    <form id="formPix">
+                        <div class="row" style="margin-bottom: 20px;">
+                            <div style="flex: 0.4;">
+                                <label data-i18n="lblType">Tipo</label>
+                                <select id="pixTipo" class="input-dark">
+                                    <option value="Aleatória">Aleatória</option>
+                                    <option value="CPF">CPF/CNPJ</option>
+                                    <option value="Celular">Celular</option>
+                                    <option value="Email">E-mail</option>
+                                </select>
+                            </div>
+                            <div style="flex: 1;">
+                                <label data-i18n="lblPixKey">Chave Pix</label>
+                                <input type="text" id="pixChave" class="input-dark" required>
+                            </div>
+                        </div>
+                        <div style="margin-bottom: 25px;">
+                            <label data-i18n="lblPixName">Titular da Conta</label>
+                            <input type="text" id="pixTitular" class="input-dark" required>
+                        </div>
+                        <button type="submit" id="btnSalvarPix" class="btn-criar" style="width: auto;">💾 <span data-i18n="btnSavePix">Salvar Pix</span></button>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- JAVASCRIPT GERAL E SUPABASE -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const { ipcRenderer } = require('electron');
+        
+        function fecharApp() { ipcRenderer.send('fechar-app'); }
+        function minimizarApp() { ipcRenderer.send('minimizar-app'); }
+        function maximizarApp() { ipcRenderer.send('maximizar-app'); }
+        function atualizarApp() { window.location.reload(); }
+
+        const supabaseUrl = 'https://ujebdsehpowamayseitf.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVqZWJkc2VocG93YW1heXNlaXRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyMDkwMTgsImV4cCI6MjEwMzc4NTAxOH0.4-4PnwMU-F-A_FsiB9yhqVEKvpRwx3jAW3s2_uK8-yM'; 
+        const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        let pedidosGlobais = [];
+        let jogoEditandoId = '';
+        let jogosGlobaisAdmin = []; 
+
+        let arquivoImagemEditSelecionada = null;
+        let arquivoImagemAddSelecionada = null;
+
+        // VARIÁVEIS PARA O NOVO SISTEMA DE KEYS E SESSÃO
+        let keysGlobaisAdmin = [];
+        let keysFiltradasAdmin = [];
+        let keysContVisivel = 0;
+        const KEYS_PAGINATION = 20;
+        let filtroKeyAtual = 'all';
+
+        let currentUserRole = 'admin'; // 'admin' ou 'affiliate'
+        let currentUserName = 'Admin'; 
+        let loginMode = 'admin';
+
+        const safeQuery = (query) => query.then(res => res).catch(err => ({ error: err, data: null }));
+
+        // ==========================================
+        // SISTEMA DE LOGIN MISTO E ALTERNAR TELA
+        // ==========================================
+        function alternarModoLogin() {
+            const btnAlternar = document.getElementById('btnAlternarLogin');
+            const camposAdmin = document.getElementById('campos-admin');
+            const camposAfiliado = document.getElementById('campos-afiliado');
+            const subTitle = document.getElementById('login-subtitle');
+
+            if (loginMode === 'admin') {
+                loginMode = 'affiliate';
+                camposAdmin.style.display = 'none';
+                camposAfiliado.style.display = 'block';
+                subTitle.innerText = "PORTAL DO REVENDEDOR";
+                btnAlternar.innerText = "Voltar para Acesso Administrativo";
+            } else {
+                loginMode = 'admin';
+                camposAdmin.style.display = 'block';
+                camposAfiliado.style.display = 'none';
+                subTitle.innerText = "ADMINISTRADOR";
+                btnAlternar.innerText = "Acesso para Afiliados / Vendedores";
+            }
+        }
+
+        document.getElementById('formLogin').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnAcessarPainel');
+            btn.innerText = "Verificando..."; btn.disabled = true;
+            document.getElementById('msgErroLogin').style.display = 'none';
+
+            if (loginMode === 'admin') {
+                const email = document.getElementById('loginEmail').value.trim();
+                const senha = document.getElementById('loginSenha').value.trim();
+                
+                if (email === 'rayzergamer45@gmail.com' && senha === 'adminrayzer1108') {
+                    currentUserRole = 'admin';
+                    currentUserName = 'Admin';
+                    entrarNoSistema();
+                } else {
+                    document.getElementById('msgErroLogin').style.display = 'block';
+                    btn.innerText = "Acessar Painel"; btn.disabled = false;
+                }
+            } else {
+                const chave = document.getElementById('loginChaveAfiliado').value.trim();
+                try {
+                    // Puxa o afiliado do banco
+                    const { data, error } = await supabaseClient.from('affiliates').select('*').eq('key', chave).single();
+                    if (error || !data) throw new Error();
+                    
+                    currentUserRole = 'affiliate';
+                    currentUserName = data.name;
+                    entrarNoSistema();
+                } catch(err) {
+                    document.getElementById('msgErroLogin').innerText = "Chave de vendedor inválida ou inexistente.";
+                    document.getElementById('msgErroLogin').style.display = 'block';
+                    btn.innerText = "Acessar Painel"; btn.disabled = false;
+                }
+            }
+        });
+
+        function entrarNoSistema() {
+            document.getElementById('login-screen').style.display = 'none'; 
+            document.getElementById('app-wrapper').style.display = 'flex'; 
+
+            document.getElementById('sidebar-user-name').innerText = currentUserName;
+            document.getElementById('sidebar-user-role').innerText = currentUserRole === 'admin' ? 'ADMIN' : 'REVENDEDOR';
+
+            if (currentUserRole === 'affiliate') {
+                document.getElementById('nav-biblioteca').style.display = 'none';
+                document.getElementById('nav-bypass').style.display = 'none';
+                document.getElementById('nav-manifests').style.display = 'none';
+                document.getElementById('nav-dependencias').style.display = 'none';
+                document.getElementById('nav-pedidos').style.display = 'none';
+                document.getElementById('nav-configuracoes').style.display = 'none';
+                
+                document.getElementById('area-gerar-massa').style.display = 'none';
+                document.getElementById('area-criar-afiliado').style.display = 'none';
+                document.getElementById('filtroAfiliadoContainer').style.display = 'none';
+
+                mudarAba('keys', 'keys');
+            } else {
+                mudarAba('biblioteca', 'biblioteca');
+            }
+
+            carregarDadosIniciais();
+        }
+
+        // ==========================================
+        // ATUALIZAR DASHBOARD DE KEYS
+        // ==========================================
+        async function atualizarEstatisticasKeys() {
+            try {
+                const { count: totalKeys } = await supabaseClient.from('access_keys').select('*', { count: 'exact', head: true });
+                const { count: disponiveis } = await supabaseClient.from('access_keys').select('*', { count: 'exact', head: true }).eq('hwid', 'EMPTY');
+                
+                if (totalKeys !== null && disponiveis !== null) {
+                    const emUso = totalKeys - disponiveis;
+                    document.getElementById('countKeysTotal').innerText = totalKeys;
+                    document.getElementById('countKeysDisponiveis').innerText = disponiveis;
+                    document.getElementById('countKeysEmUso').innerText = emUso;
+                }
+            } catch (error) {
+                console.error("Erro ao atualizar estatísticas:", error);
+            }
+        }
+
+        setInterval(atualizarEstatisticasKeys, 3600000); 
+
+        // ==========================================
+        // INICIALIZAÇÃO DE DADOS
+        // ==========================================
+        async function carregarDadosIniciais() {
+            try {
+                atualizarEstatisticasKeys();
+
+                const [reqSettings, reqAfiliados, reqKeys, reqJogos, reqBypasses, reqPedidos, reqManifests, reqDeps] = await Promise.all([
+                    safeQuery(supabaseClient.from('app_settings').select('*').eq('id', 1).single()),
+                    safeQuery(supabaseClient.from('affiliates').select('*').order('created_at', { ascending: false })),
+                    safeQuery(supabaseClient.from('access_keys').select('*').order('created_at', { ascending: false }).limit(10000)),
+                    safeQuery(supabaseClient.from('games').select('*', { count: 'exact' }).eq('is_deleted', false).order('created_at', { ascending: false }).limit(1000)),
+                    safeQuery(supabaseClient.from('bypasses').select('*').eq('is_deleted', false).order('created_at', { ascending: false })),
+                    safeQuery(supabaseClient.from('purchase_requests').select('*').order('created_at', { ascending: false })),
+                    safeQuery(supabaseClient.from('manifests').select('*').eq('is_deleted', false)),
+                    safeQuery(supabaseClient.from('dependencies').select('*').eq('is_deleted', false))
+                ]);
+
+                if (reqSettings && reqSettings.data) {
+                    document.getElementById('pixTipo').value = reqSettings.data.pix_type;
+                    document.getElementById('pixChave').value = reqSettings.data.pix_key;
+                    document.getElementById('pixTitular').value = reqSettings.data.pix_holder;
+                }
+
+                if (reqAfiliados && reqAfiliados.data) {
+                    document.getElementById('listaAfiliados').innerHTML = reqAfiliados.data.map(aff => `
+                        <div class="afiliado-item">
+                            <div class="afiliado-info">
+                                <span>👤 <b>${aff.name}</b></span>
+                                <span class="afiliado-key">${aff.key}</span>
+                            </div>
+                            <div>
+                                <button class="btn-icon" onclick="navigator.clipboard.writeText('${aff.key}')">📋 Copiar</button>
+                            </div>
+                        </div>`).join('');
+
+                    // Preenche o Select do Filtro do Admin
+                    const select = document.getElementById('selectFiltroAfiliado');
+                    if (select) {
+                        select.innerHTML = '<option value="todos">Todos (Visão Geral)</option><option value="Admin">Apenas Admin</option>';
+                        reqAfiliados.data.forEach(a => { select.innerHTML += `<option value="${a.name}">Afiliado: ${a.name}</option>`; });
+                    }
+                }
+
+                // ==========================================
+                // LÓGICA DAS KEYS (ORDENAÇÃO E FILTRO INICIAL)
+                // ==========================================
+                if (reqKeys && reqKeys.data) {
+                    keysGlobaisAdmin = reqKeys.data;
+                    
+                    keysGlobaisAdmin.sort((a, b) => {
+                        const aUsed = (a.hwid && a.hwid !== 'EMPTY');
+                        const bUsed = (b.hwid && b.hwid !== 'EMPTY');
+                        
+                        if (aUsed && !bUsed) return -1;
+                        if (!aUsed && bUsed) return 1;
+                        return new Date(b.created_at) - new Date(a.created_at);
+                    });
+
+                    aplicarFiltroKeys(filtroKeyAtual, document.querySelector('.btn-filtro-key.active'));
+                }
+
+                if (reqJogos && reqJogos.data && reqJogos.data.length > 0) {
+                    jogosGlobaisAdmin = reqJogos.data;
+                    const totalBanco = reqJogos.count || jogosGlobaisAdmin.length;
+                    document.getElementById('subtitle-biblioteca').innerHTML = `Total no banco: <b style="color:#ff0000;">${totalBanco} jogos</b> (Mostrando os 1.000 mais recentes). Use a barra de pesquisa para achar jogos antigos.`;
+                    renderizarBibliotecaAdmin(jogosGlobaisAdmin);
+                } else {
+                    jogosGlobaisAdmin = [];
+                    document.getElementById('subtitle-biblioteca').innerHTML = `Nenhum jogo cadastrado.`;
+                    document.getElementById('listaJogosBiblioteca').innerHTML = `<div class="pedidos-empty" data-i18n="emptyBiblio">Os jogos adicionados aparecerão aqui.</div>`;
+                }
+
+                if (reqBypasses && reqBypasses.data && reqBypasses.data.length > 0) {
+                    document.getElementById('listaBypasses').innerHTML = reqBypasses.data.map(b => `
+                        <div class="file-item">
+                            <div class="file-info">
+                                <div style="font-size:24px;">🛡️</div>
+                                <div class="file-details">
+                                    <h4>${b.title}</h4>
+                                    <span>APPID: ${b.app_id} | <a href="${b.cover_url}" target="_blank" style="color:#58a6ff;">Ver Arquivo</a></span>
+                                </div>
+                            </div>
+                            <button class="btn-icon delete" onclick="apagarArquivo('bypasses', '${b.id}')">🗑️ Excluir</button>
+                        </div>`).join('');
+                } else {
+                    document.getElementById('listaBypasses').innerHTML = `<div class="pedidos-empty">Nenhum bypass cadastrado. Use a sincronização do GitHub.</div>`;
+                }
+
+                if (reqPedidos && reqPedidos.data) {
+                    pedidosGlobais = reqPedidos.data;
+                    filtrarPedidos('pending', document.querySelector('.pedidos-filter.active'));
+                }
+
+                if (reqManifests && reqManifests.data && reqManifests.data.length > 0) {
+                    document.getElementById('listaManifests').innerHTML = reqManifests.data.map(m => `
+                        <div class="file-item">
+                            <div class="file-info">
+                                <div style="font-size: 24px;">📄</div>
+                                <div class="file-details">
+                                    <h4>${m.filename}</h4>
+                                    <span>${(m.size/1024).toFixed(1)} KB</span>
+                                </div>
+                            </div>
+                            <button class="btn-icon delete" onclick="apagarArquivo('manifests', '${m.id}')">🗑️ Excluir</button>
+                        </div>`).join('');
+                }
+
+                if (reqDeps && reqDeps.data && reqDeps.data.length > 0) {
+                    document.getElementById('listaDependencias').innerHTML = reqDeps.data.map(d => `
+                        <div class="file-item">
+                            <div class="file-info">
+                                <div style="font-size: 24px;">📦</div>
+                                <div class="file-details">
+                                    <h4>${d.filename}</h4>
+                                    <span>${(d.size/1024).toFixed(1)} KB</span>
+                                </div>
+                            </div>
+                            <button class="btn-icon delete" onclick="apagarArquivo('dependencies', '${d.id}')">🗑️ Excluir</button>
+                        </div>`).join('');
+                }
+
+                document.getElementById('selectAllGames').checked = false;
+                verificarSelecaoMassa();
+
+            } catch (err) { 
+                console.error("Erro no carregamento:", err); 
+            }
+        }
+
+       // ==========================================
+        // UPLOAD EM MASSA (.LUA) COM STEAMSPY API (LEVE E SEM BLOQUEIOS)
+        // ==========================================
+        async function uploadEmMassaLuas(event) {
+            const files = event.target.files;
+            if (!files || files.length === 0) return;
+
+            const totalFiles = files.length;
+            const planoSelecionado = document.querySelector('input[name="planoMassa"]:checked').value;
+
+            const loadingScreen = document.getElementById('loading-screen');
+            const loadingText = document.getElementById('loading-text-msg');
+            loadingScreen.style.display = 'flex';
+
+            let enviados = 0;
+            let atualizados = 0;
+            let ignorados = 0;
+            let erros = 0;
+
+            for (let i = 0; i < totalFiles; i++) {
+                const file = files[i];
+                const fileName = file.name; 
+                
+                if (!fileName.endsWith('.lua')) continue;
+
+                // Extrai apenas o número do AppID
+                const appIdStr = fileName.replace('.lua', '').trim();
+                
+                loadingText.innerText = `A procurar nome do AppID ${appIdStr}...\n(${i+1} de ${totalFiles})`;
+
+                let nomeOficialDoJogo = `AppID ${appIdStr}`;
+
+                // 1. Usa a API do SteamSpy para buscar o nome exato
+                try {
+                    const resSpy = await fetch(`https://steamspy.com/api.php?request=appdetails&appid=${appIdStr}`);
+                    if (resSpy.ok) {
+                        const dataSpy = await resSpy.json();
+                        if (dataSpy && dataSpy.name) {
+                            nomeOficialDoJogo = dataSpy.name;
+                        }
+                    }
+                } catch (e) {
+                    console.error("SteamSpy falhou para", appIdStr, e);
+                }
+
+                loadingText.innerText = `A Injetar: ${nomeOficialDoJogo}\n(${i+1} de ${totalFiles})`;
+
+                try {
+                    const { data: existingGame } = await supabaseClient
+                        .from('games')
+                        .select('id, title')
+                        .eq('app_id', appIdStr)
+                        .maybeSingle();
+
+                    if (existingGame) {
+                        if (existingGame.title.toLowerCase().includes('appid') && !nomeOficialDoJogo.toLowerCase().includes('appid')) {
+                            await supabaseClient.from('games').update({ title: nomeOficialDoJogo }).eq('id', existingGame.id);
+                            atualizados++;
+                        } else {
+                            ignorados++;
+                        }
+                        
+                        await new Promise(r => setTimeout(r, 300));
+                        continue; 
+                    }
+
+                    const storagePath = `luas/${fileName}`;
+                    const { error: uploadError } = await supabaseClient.storage
+                        .from('arquivos')
+                        .upload(storagePath, file, { upsert: false });
+
+                    if (uploadError && !uploadError.message.includes('already exists')) {
+                        throw uploadError;
+                    }
+
+                    const coverUrl = `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${appIdStr}/header.jpg`;
+
+                    const { error: insertError } = await supabaseClient
+                        .from('games')
+                        .insert([{
+                            app_id: appIdStr,
+                            title: nomeOficialDoJogo, 
+                            category: 'Injeção Automática',
+                            price: 0,
+                            plan: planoSelecionado,
+                            in_store: false,
+                            is_deleted: false,
+                            cover_url: coverUrl 
+                        }]);
+
+                    if (insertError) {
+                        console.error(`Erro ao registar ${appIdStr}:`, insertError.message);
+                        erros++;
+                    } else {
+                        enviados++;
+                    }
+                } catch (err) {
+                    console.error(`Erro ao processar o ficheiro ${fileName}:`, err);
+                    erros++;
+                }
+
+                await new Promise(r => setTimeout(r, 300));
+            }
+
+            event.target.value = ''; 
+            loadingScreen.style.display = 'none';
+
+            alert(`✅ Injeção em Massa Concluída!\n\n` +
+                  `🚀 Novos jogos cadastrados: ${enviados}\n` +
+                  `🔄 Nomes antigos consertados: ${atualizados}\n` +
+                  `⏩ Ignorados (já estavam 100% corretos): ${ignorados}\n` +
+                  `❌ Erros no envio: ${erros}`);
+
+            carregarDadosIniciais(); 
+        }
+
+        // ==========================================
+        // FILTROS E PAGINAÇÃO DAS KEYS 
+        // ==========================================
+        function aplicarFiltroKeys(filtro, btn) {
+            filtroKeyAtual = filtro;
+            if(btn) {
+                document.querySelectorAll('#view-keys .btn-filtro-key').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            }
+            filtrarKeysAdmin();
+        }
+
+        function filtrarKeysAdmin() {
+            const termo = document.getElementById('buscaKeysAdmin').value.toLowerCase();
+            const selectFiltro = document.getElementById('selectFiltroAfiliado');
+            const filtroDropdownAdmin = selectFiltro ? selectFiltro.value : 'todos';
+
+            keysFiltradasAdmin = keysGlobaisAdmin.filter(k => {
+                
+                // REGRA DO AFILIADO VS ADMIN
+                if (currentUserRole === 'affiliate') {
+                    if (k.affiliate_name !== currentUserName) return false;
+                } else {
+                    if (filtroDropdownAdmin !== 'todos' && (k.affiliate_name || 'Admin') !== filtroDropdownAdmin) return false;
+                }
+
+                if (filtroKeyAtual === 'disponiveis' && k.hwid !== 'EMPTY') return false;
+                if (filtroKeyAtual === 'em_uso' && (!k.hwid || k.hwid === 'EMPTY')) return false;
+                if (filtroKeyAtual === 'pro' && k.plan !== 'pro') return false;
+                if (filtroKeyAtual === 'premium' && k.plan !== 'premium') return false;
+
+                if (termo) {
+                    const matchKey = k.key && k.key.toLowerCase().includes(termo);
+                    const matchName = k.full_name && k.full_name.toLowerCase().includes(termo);
+                    const matchEmail = k.email && k.email.toLowerCase().includes(termo);
+                    const matchHwid = k.hwid && k.hwid.toLowerCase().includes(termo);
+
+                    if (!matchKey && !matchName && !matchEmail && !matchHwid) return false;
+                }
+
+                return true;
+            });
+
+            keysContVisivel = 0;
+            document.getElementById('listaKeysGeradas').innerHTML = '';
+            verMaisKeys();
+        }
+
+        function verMaisKeys() {
+            const container = document.getElementById('listaKeysGeradas');
+            const btnVerMais = document.getElementById('btn-ver-mais-keys');
+            
+            let html = '';
+            const limit = Math.min(keysContVisivel + KEYS_PAGINATION, keysFiltradasAdmin.length);
+            
+            if (keysFiltradasAdmin.length === 0) {
+                container.innerHTML = `<div class="pedidos-empty">Nenhuma Key encontrada para o filtro atual.</div>`;
+                btnVerMais.style.display = 'none';
+                return;
+            }
+
+            for(let i = keysContVisivel; i < limit; i++) {
+                const k = keysFiltradasAdmin[i];
+                const badgePlan = k.plan === 'premium' ? '<span class="badge-plan badge-prm">Premium</span>' : '<span class="badge-plan badge-pro">Pro</span>';
+                const isUsed = k.hwid && k.hwid !== 'EMPTY';
+                const autor = k.affiliate_name || 'Admin';
+                
+                const borderStyle = isUsed ? 'border-color: rgba(248, 81, 73, 0.4); background: rgba(248, 81, 73, 0.05);' : '';
+                
+                // 1. FORMATA A DATA PARA O PADRÃO BRASILEIRO (DD/MM/YYYY às HH:MM)
+                let dataFormatada = 'Data não registrada';
+                if (k.created_at) {
+                    const dataObj = new Date(k.created_at);
+                    const dataSt = dataObj.toLocaleDateString('pt-BR');
+                    const horaSt = dataObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                    dataFormatada = `${dataSt} às ${horaSt}`;
+                }
+                
+                // 2. INJETA A DATA NA LINHA DE DETALHES COM O ÍCONE DE CALENDÁRIO
+                html += `
+                <div class="key-item" style="${borderStyle}">
+                    <div class="key-item-header">
+                        <div class="key-code">
+                            🔑 ${k.key} ${badgePlan} 
+                            ${isUsed ? `<span class="badge-pc">⚙️ PC-${k.hwid}</span>` : '<span class="badge-plan" style="background: rgba(63,185,80,0.2); color: #3fb950; border: 1px solid rgba(63,185,80,0.4); margin-left: 15px;">DISPONÍVEL</span>'}
+                        </div>
+                        <div class="key-actions">
+                            <button class="btn-icon" onclick="navigator.clipboard.writeText('${k.key}')" title="Copiar Key">📋 Copiar</button>
+                            <button class="btn-icon" style="color:#e2b714;" onclick="resetarHWID('${k.id}')" title="Limpar PC Vinculado">🔄 Resetar</button>
+                            <button class="btn-icon delete" onclick="apagarArquivo('access_keys', '${k.id}')" title="Deletar Key">🗑️ Excluir</button>
+                        </div>
+                    </div>
+                    <div class="key-user-details" style="flex-wrap: wrap; gap: 15px; margin-top: 5px;">
+                        <span>👤 Cliente: ${k.full_name || 'Desconhecido'}</span>
+                        <span>✉️ ${k.email || 'N/A'}</span>
+                        <span>🏷️ Gerado por: <b style="color:#58a6ff;">${autor}</b></span>
+                        <span>📅 Data: <b style="color:#c9d1d9;">${dataFormatada}</b></span>
+                    </div>
+                </div>`;
+            }
+            
+            container.insertAdjacentHTML('beforeend', html);
+            keysContVisivel = limit;
+
+            if (keysContVisivel >= keysFiltradasAdmin.length) {
+                btnVerMais.style.display = 'none';
+            } else {
+                btnVerMais.style.display = 'block';
+            }
+        }
+
+        // ==========================================
+        // RENDERIZAÇÃO DA BIBLIOTECA ADMIN
+        // ==========================================
+        function renderizarBibliotecaAdmin(lista) {
+            if(lista.length === 0) {
+                document.getElementById('listaJogosBiblioteca').innerHTML = `<div class="pedidos-empty">Nenhum jogo encontrado.</div>`;
+                return;
+            }
+            
+            document.getElementById('listaJogosBiblioteca').innerHTML = lista.map(j => {
+                const capa = j.cover_url ? `url('${j.cover_url}')` : 'none';
+                const nomeLimpo = j.title.replace(/^\d+[\s\-|_]+/, '');
+                const titleSafe = nomeLimpo.replace(/'/g, "\\'"); 
+                const badgePlan = j.plan === 'premium' ? '<span class="badge-plan badge-prm" style="margin-left: 10px;">Premium</span>' : '<span class="badge-plan badge-pro" style="margin-left: 10px;">Pro</span>';
+                return `
+                <div class="file-item">
+                    <div class="file-info">
+                        <input type="checkbox" class="game-checkbox" value="${j.id}" onchange="verificarSelecaoMassa()">
+                        <div class="game-thumb" style="background-image: ${capa};"></div>
+                        <div class="file-details">
+                            <h4 style="display: flex; align-items: center;">${nomeLimpo} ${badgePlan}</h4>
+                            <span>APPID: ${j.app_id} | ${j.in_store ? 'Venda na Loja (R$'+j.price+')' : 'Direto na Biblioteca'}</span>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn-icon" style="color:#58a6ff; border-color: rgba(88,166,255,0.4);" onclick="abrirModalEditarJogo('${j.id}', '${titleSafe}', '${j.app_id}', '${j.cover_url}')">⚙️ Gerenciar</button>
+                        <button class="btn-icon delete" onclick="apagarArquivo('games', '${j.id}')">🗑️ Excluir</button>
+                    </div>
+                </div>`
+            }).join('');
+            
+            verificarSelecaoMassa();
+        }
+
+        // ==========================================
+        // FILTRAR JOGOS
+        // ==========================================
+        let timerBuscaAdmin = null;
+        async function filtrarBibliotecaAdmin() {
+            const termo = document.getElementById('buscaBibliotecaAdmin').value.trim().toLowerCase();
+            const btnBuscando = document.getElementById('buscaBibliotecaAdmin');
+            
+            clearTimeout(timerBuscaAdmin);
+            
+            if (!termo) {
+                renderizarBibliotecaAdmin(jogosGlobaisAdmin);
+                return;
+            }
+
+            timerBuscaAdmin = setTimeout(async () => {
+                btnBuscando.style.borderColor = "#ff0000";
+                
+                const { data: resultados, error } = await supabaseClient
+                    .from('games')
+                    .select('*')
+                    .eq('is_deleted', false)
+                    .or(`title.ilike.%${termo}%,app_id.ilike.%${termo}%`)
+                    .limit(100);
+
+                if(!error) {
+                    renderizarBibliotecaAdmin(resultados || []);
+                }
+                
+                btnBuscando.style.borderColor = "rgba(255,255,255,0.08)";
+            }, 400); 
+        }
+
+        // ==========================================
+        // FUNÇÃO DE LIMPAR JOGOS DUPLICADOS
+        // ==========================================
+        async function removerJogosDuplicados() {
+            const btn = document.getElementById('btn-limpar-duplicatas');
+            const txtOriginal = btn.innerHTML;
+            btn.innerHTML = "⏳ Varrendo..."; 
+            btn.disabled = true;
+
+            try {
+                const { data: todosJogos, error } = await supabaseClient.from('games').select('id, app_id').eq('is_deleted', false);
+                if (error) throw error;
+
+                const appIdsVistos = new Set();
+                const idsParaRemover = [];
+
+                for (const jogo of todosJogos) {
+                    if (appIdsVistos.has(jogo.app_id)) {
+                        idsParaRemover.push(jogo.id);
+                    } else {
+                        appIdsVistos.add(jogo.app_id);
+                    }
+                }
+
+                if (idsParaRemover.length > 0) {
+                    const { error: delErr } = await supabaseClient.from('games').delete().in('id', idsParaRemover);
+                    if (delErr) throw delErr;
+
+                    alert(`✅ Varredura concluída!\n\n🗑️ ${idsParaRemover.length} jogos duplicados foram encontrados e removidos.`);
+                    carregarDadosIniciais(); 
+                } else {
+                    alert("👍 A biblioteca já está limpa! Nenhum jogo duplicado foi encontrado.");
+                }
+            } catch (err) {
+                alert("Erro ao limpar duplicatas: " + err.message);
+            }
+
+            btn.innerHTML = txtOriginal; 
+            btn.disabled = false;
+        }
+
+        // ==========================================
+        // FUNÇÃO DE GERAR 20 KEYS EM MASSA
+        // ==========================================
+        async function gerarKeysMassa(plano) {
+            const btn = document.getElementById(`btnGerar20${plano}`);
+            btn.innerHTML = "⏳ Gerando..."; btn.disabled = true;
+            
+            const prefixo = plano === 'premium' ? 'PRM' : 'PRO';
+            const novasKeys = [];
+            
+            for(let i=0; i<20; i++) {
+                const rand = () => Math.random().toString(36).substring(2, 6).toUpperCase();
+                const keyString = `${prefixo}-${rand()}-${rand()}-${rand()}`;
+                
+                novasKeys.push({
+                    key: keyString,
+                    status: 'active',
+                    hwid: 'EMPTY',
+                    label: 'EMPTY',
+                    plan: plano, 
+                    full_name: `Key em Massa (${plano.toUpperCase()})`,
+                    affiliate_name: currentUserName
+                });
+            }
+
+            const { error } = await supabaseClient.from('access_keys').insert(novasKeys);
+            if(error) alert("Erro ao gerar keys.");
+            else {
+                alert(`✅ 20 Keys do plano ${plano.toUpperCase()} geradas com sucesso!`);
+                carregarDadosIniciais(); 
+            }
+            
+            btn.innerHTML = `Gerar 20 Keys ${plano.charAt(0).toUpperCase() + plano.slice(1)}`; 
+            btn.disabled = false;
+        }
+
+        // ==========================================
+        // GITHUB SYNC (SÓ NO ADMIN)
+        // ==========================================
+        async function sincronizarBypassesGithub() {
+            const btn = document.getElementById('btnSyncGithub');
+            btn.innerHTML = "⏳ Sincronizando..."; 
+            btn.disabled = true;
+            
+            try {
+                const axios = require('axios');
+                // Usa Axios para burlar bloqueios de API do GitHub
+                const res = await axios.get('https://api.github.com/repos/SOLOLEVELING1108/RayzerStark/releases/tags/bypasses', {
+                    headers: { 'User-Agent': 'Mozilla/5.0' }
+                });
+                
+                const assets = res.data.assets || [];
+
+                if(assets.length === 0) {
+                    alert("Nenhum arquivo encontrado na Release do GitHub.");
+                    btn.innerHTML = "📥 Sincronizar todos do GitHub"; 
+                    btn.disabled = false;
+                    return;
+                }
+
+                // Puxa bypasses já salvos para não duplicar
+                const { data: dbBypasses } = await supabaseClient.from('bypasses').select('app_id');
+                const dbIds = dbBypasses ? dbBypasses.map(b => b.app_id) : [];
+
+                // Puxa jogos da biblioteca para tentar dar o nome bonito ao bypass
+                const { data: dbGames } = await supabaseClient.from('games').select('app_id, title');
+
+                let novos = [];
+                let ignorados = 0; 
+
+                assets.forEach(asset => {
+                    const appIdMatch = asset.name.match(/\d+/);
+                    if(appIdMatch) {
+                        const appId = appIdMatch[0];
+                        if(!dbIds.includes(appId)) {
+                            // Tenta achar o nome oficial do jogo
+                            const jogoSalvo = dbGames && dbGames.find(g => g.app_id === appId);
+                            const tituloBypass = jogoSalvo ? `Bypass - ${jogoSalvo.title}` : `Bypass AppID ${appId}`;
+
+                            novos.push({
+                                title: tituloBypass,
+                                app_id: appId,
+                                category: 'Sincronizado do GitHub',
+                                cover_url: asset.browser_download_url, // SALVA O LINK DE DOWNLOAD OFICIAL E PERFEITO
+                                is_deleted: false
+                            });
+                        } else {
+                            ignorados++;
+                        }
+                    }
+                });
+
+                if(novos.length > 0) {
+                    const { error } = await supabaseClient.from('bypasses').insert(novos);
+                    if(error) throw error;
+                    alert(`✅ Sincronização concluída!\n\n🚀 ${novos.length} novos bypasses foram adicionados à sua vitrine!\n⏭️ ${ignorados} bypasses foram ignorados porque já estavam no banco.`);
+                    carregarDadosIniciais();
+                } else {
+                    alert(`👍 Sincronização concluída!\n\nSua vitrine já está 100% atualizada com o GitHub.\n⏭️ ${ignorados} bypasses analisados e mantidos.`);
+                }
+
+            } catch(e) {
+                alert("Erro ao sincronizar com GitHub: " + (e.message || "Erro de conexão."));
+            }
+            
+            btn.innerHTML = "📥 Sincronizar todos do GitHub"; 
+            btn.disabled = false;
+        }
+
+        // ==========================================
+        // FUNÇÕES GERAIS DE ADMIN
+        // ==========================================
+        async function resetarHWID(id) {
+            if(confirm("Deseja RESETAR O HWID desta Key? O cliente poderá utilizá-la em um novo computador livremente.")) {
+                await supabaseClient.from('access_keys').update({ hwid: 'EMPTY', label: 'EMPTY' }).eq('id', id);
+                carregarDadosIniciais();
+            }
+        }
+        
+        async function excluirKey(id) {
+            if(confirm("Deseja EXCLUIR esta Key permanentemente? O cliente perderá acesso na mesma hora.")) {
+                await supabaseClient.from('access_keys').delete().eq('id', id);
+                carregarDadosIniciais();
+            }
+        }
+
+        function toggleSelectAllGames(checkbox) {
+            const checkboxes = document.querySelectorAll('.game-checkbox');
+            checkboxes.forEach(cb => cb.checked = checkbox.checked);
+            verificarSelecaoMassa();
+        }
+
+        function verificarSelecaoMassa() {
+            const checkboxes = document.querySelectorAll('.game-checkbox:checked');
+            const btnExcluir = document.getElementById('btn-excluir-massa');
+            if(checkboxes.length > 0) {
+                btnExcluir.style.display = 'block';
+                btnExcluir.innerHTML = `🗑️ Excluir Selecionados (${checkboxes.length})`;
+            } else {
+                btnExcluir.style.display = 'none';
+            }
+        }
+
+        async function excluirJogosSelecionados() {
+            const checkboxes = document.querySelectorAll('.game-checkbox:checked');
+            const ids = Array.from(checkboxes).map(cb => cb.value).filter(id => id !== 'on' && id !== '');
+            if(ids.length === 0) return;
+            
+            if(confirm(`Tem certeza que deseja EXCLUIR ${ids.length} jogos permanentemente? Isso removerá o acesso dos clientes a esses jogos.`)) {
+                const btnExcluir = document.getElementById('btn-excluir-massa');
+                btnExcluir.innerHTML = "⏳ Excluindo..."; 
+                btnExcluir.disabled = true;
+
+                const { error } = await supabaseClient.from('games').delete().in('id', ids);
+                
+                if (!error) {
+                    document.getElementById('selectAllGames').checked = false;
+                    btnExcluir.style.display = 'none'; 
+                    btnExcluir.disabled = false;
+                    carregarDadosIniciais();
+                }
+            }
+        }
+
+       function mudarAba(idView, idNav) {
+            document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
+            
+            const viewEl = document.getElementById('view-' + idView);
+            if (viewEl) viewEl.classList.add('active');
+            
+            if (idNav) {
+                const navEl = document.getElementById('nav-' + idNav);
+                if (navEl) navEl.classList.add('active');
+            }
+            
+            carregarDadosIniciais();
+        }
+
+        function filtrarPedidos(status, btn) {
+            if(btn) { 
+                document.querySelectorAll('.pedidos-filter').forEach(b => b.classList.remove('active')); 
+                btn.classList.add('active'); 
+            }
+            let filtrados = status === 'all' ? pedidosGlobais : pedidosGlobais.filter(p => p.status === status);
+            const container = document.getElementById('listaPedidos');
+            if (filtrados.length === 0) {
+                container.innerHTML = `<div class="pedidos-empty"><div style="font-size:40px;">📥</div><div>Nenhum pedido encontrado.</div></div>`;
+                return;
+            }
+            container.innerHTML = filtrados.map(p => {
+                let badgeClass = p.status === 'pending' ? 'status-pending' : (p.status === 'approved' ? 'status-approved' : 'status-rejected');
+                let botoes = p.status === 'pending' ? `<div class="pedido-actions"><button class="btn-aprovar" onclick="atualizarStatusPedido('${p.id}', 'approved')">✓ Aprovar e Liberar Jogo</button><button class="btn-recusar" onclick="atualizarStatusPedido('${p.id}', 'rejected')">✗ Recusar Comprovante</button></div>` : '';
+                let imgHtml = p.receipt_image ? `<img src="${p.receipt_image}" class="comprovante-img" alt="Comprovante">` : `<div style="color:#ff7b72; font-size:12px; margin-top:5px;">Sem imagem de comprovante.</div>`;
+                
+                return `<div class="pedido-item">
+                            <div class="pedido-header">
+                                <div class="pedido-info"><span>Key do Cliente:</span><b>${p.key || 'Desconhecido'}</b></div>
+                                <div><span class="badge-status ${badgeClass}">${p.status}</span></div>
+                            </div>
+                            <div class="row">
+                                <div class="pedido-info"><span>Jogo Solicitado (ID):</span><b>${p.game_id || 'ID não registrado'}</b></div>
+                                <div class="pedido-info"><span>Comprovante:</span>${imgHtml}</div>
+                            </div>
+                            ${botoes}
+                        </div>`;
+            }).join('');
+        }
+
+        async function atualizarStatusPedido(id, novoStatus) {
+            await supabaseClient.from('purchase_requests').update({ status: novoStatus }).eq('id', id);
+            carregarDadosIniciais();
+        }
+
+        function sairDaConta() {
+            if(confirm("Deseja fechar o painel e voltar para o Login?")) {
+                document.getElementById('app-wrapper').style.display = 'none';
+                document.getElementById('login-screen').style.display = 'flex';
+                document.getElementById('loginSenha').value = '';
+            }
+        }
+
+        // ==========================================
+        // LOGIN (COM FUNÇÃO DE MEMORIZAR)
+        // ==========================================
+        setTimeout(() => {
+            const savedEmail = localStorage.getItem('rayzerAdminEmail');
+            const savedPass = localStorage.getItem('rayzerAdminPass');
+            
+            if (savedEmail && savedPass) {
+                const elEmail = document.getElementById('loginEmail');
+                const elPass = document.getElementById('loginSenha');
+                const elCheck = document.getElementById('lembrarLogin');
+                
+                if(elEmail) elEmail.value = savedEmail;
+                if(elPass) elPass.value = savedPass;
+                if(elCheck) elCheck.checked = true;
+            }
+        }, 300);
+
+        // ============================================================
+        // MOTOR DE UPLOAD PARA O SUPABASE (IMAGENS, MANIFESTS E DEP)
+        // ============================================================
+        async function uploadFileSupabase(file, bucket) {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+            const { error: uploadError } = await supabaseClient.storage.from(bucket).upload(fileName, file);
+            if (uploadError) throw uploadError;
+            return fileName;
+        }
+
+        // ============================================================
+        // EDIÇÃO DE JOGOS (MODAL GERENCIAR)
+        // ============================================================
+        document.getElementById('inputArquivoImagemEdit').addEventListener('change', function(ev) {
+            if (ev.target.files && ev.target.files[0]) {
+                arquivoImagemEditSelecionada = ev.target.files[0];
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const preview = document.getElementById('previewEditJogo');
+                    preview.style.backgroundImage = `url('${e.target.result}')`;
+                    preview.innerHTML = '';
+                };
+                reader.readAsDataURL(arquivoImagemEditSelecionada);
+            }
+        });
+
+        function abrirModalEditarJogo(id, title, app_id, cover_url) {
+            jogoEditandoId = id;
+            arquivoImagemEditSelecionada = null; 
+            document.getElementById('inputArquivoImagemEdit').value = ''; 
+            
+            document.getElementById('tituloEditJogo').value = title;
+            document.getElementById('appIdEditJogo').value = app_id;
+            document.getElementById('urlImagemEdit').value = cover_url;
+            
+            const preview = document.getElementById('previewEditJogo');
+            if (cover_url) { 
+                preview.style.backgroundImage = `url('${cover_url}')`; 
+                preview.innerHTML = ''; 
+            } else { 
+                preview.style.backgroundImage = 'none'; 
+                preview.innerHTML = '🖼️ Preview'; 
+            }
+            
+            document.getElementById('modal-edit-game').style.display = 'flex';
+        }
+
+        async function salvarEdicaoJogo() {
+            const btn = document.getElementById('btnSalvarEdicaoJogo'); 
+            btn.innerHTML = "⏳ Salvando..."; 
+            btn.disabled = true;
+            
+            let coverFinalUrl = document.getElementById('urlImagemEdit').value;
+            
+            try {
+                if (arquivoImagemEditSelecionada) {
+                    const caminhoUpload = await uploadFileSupabase(arquivoImagemEditSelecionada, 'arquivos');
+                    const { data: publicUrlData } = supabaseClient.storage.from('arquivos').getPublicUrl(caminhoUpload);
+                    coverFinalUrl = publicUrlData.publicUrl;
+                }
+
+                const dadosEditados = { 
+                    title: document.getElementById('tituloEditJogo').value, 
+                    app_id: document.getElementById('appIdEditJogo').value, 
+                    cover_url: coverFinalUrl 
+                };
+                
+                const { error } = await supabaseClient.from('games').update(dadosEditados).eq('id', jogoEditandoId);
+                if(error) throw error;
+                
+                document.getElementById('modal-edit-game').style.display = 'none'; 
+                carregarDadosIniciais(); 
+            } catch(err) {
+                alert("Erro ao editar jogo: " + err.message);
+            }
+            
+            btn.innerHTML = "💾 Salvar"; 
+            btn.disabled = false;
+        }
+
+        // ============================================================
+        // ADIÇÃO MANUAL DE JOGO E UPLOAD DE IMAGEM
+        // ============================================================
+        document.getElementById('inputArquivoImagemJogo').addEventListener('change', function(ev) {
+            if (ev.target.files && ev.target.files[0]) {
+                arquivoImagemAddSelecionada = ev.target.files[0];
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const preview = document.getElementById('previewContainerJogo');
+                    preview.style.backgroundImage = `url('${e.target.result}')`;
+                    preview.innerHTML = '';
+                    document.getElementById('urlImagemJogo').value = "Imagem nova anexada com sucesso!"; 
+                };
+                reader.readAsDataURL(arquivoImagemAddSelecionada);
+            }
+        });
+
+        document.getElementById('formAddJogo').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnSalvarJogo'); 
+            btn.innerHTML = "⏳ Salvando..."; 
+            btn.disabled = true;
+            
+            let coverFinalUrl = document.getElementById('urlImagemJogo').value;
+            
+            try {
+                if (arquivoImagemAddSelecionada) {
+                    const caminhoUpload = await uploadFileSupabase(arquivoImagemAddSelecionada, 'arquivos');
+                    const { data: publicUrlData } = supabaseClient.storage.from('arquivos').getPublicUrl(caminhoUpload);
+                    coverFinalUrl = publicUrlData.publicUrl;
+                }
+
+                const planoManualSelecionado = document.getElementById('planoJogoManual').value;
+
+                const dados = { 
+                    title: document.getElementById('tituloJogo').value, 
+                    app_id: document.getElementById('appIdJogo').value, 
+                    cover_url: coverFinalUrl, 
+                    category: document.getElementById('catJogo').value, 
+                    in_store: document.getElementById('checkLoja').checked, 
+                    price: parseFloat(document.getElementById('valorJogo').value || 0), 
+                    is_deleted: false,
+                    plan: planoManualSelecionado
+                };
+                
+                await supabaseClient.from('games').insert([dados]);
+                
+                this.reset(); 
+                document.getElementById('previewContainerJogo').innerHTML = '🖼️ Preview'; 
+                document.getElementById('previewContainerJogo').style.backgroundImage = 'none';
+                arquivoImagemAddSelecionada = null; 
+
+                carregarDadosIniciais(); 
+                mudarAba('biblioteca', 'biblioteca');
+            } catch(err) {
+                alert("Erro ao adicionar jogo: " + err.message);
+            }
+
+            btn.innerHTML = "💾 Criar Jogo"; 
+            btn.disabled = false;
+        });
+
+        function togglePreco() {
+            const check = document.getElementById('checkLoja').checked;
+            document.getElementById('divPreco').style.display = check ? 'block' : 'none';
+        }
+
+        // ============================================================
+        // UPLOADS E MANIFESTS / DEPENDÊNCIAS
+        // ============================================================
+        document.getElementById('inputUploadManifests').addEventListener('change', async function() {
+            const btn = document.getElementById('btnUploadManifests'); 
+            btn.innerHTML = "⏳ Fazendo upload..."; 
+            btn.disabled = true;
+            
+            try {
+                for (let file of this.files) {
+                    const filePath = await uploadFileSupabase(file, 'arquivos');
+                    await supabaseClient.from('manifests').insert([{ filename: file.name, path: filePath, size: file.size, is_deleted: false }]);
+                }
+                alert("Manifests enviados com sucesso!"); 
+                carregarDadosIniciais();
+            } catch (error) { 
+                alert("Erro ao enviar arquivos.\n\n" + (error.message || JSON.stringify(error))); 
+            }
+            btn.innerHTML = "↑ Enviar Arquivos para o Banco"; 
+            btn.disabled = false;
+        });
+
+        document.getElementById('inputUploadDependencias').addEventListener('change', async function() {
+            const btn = document.getElementById('btnUploadDependencias'); 
+            btn.innerHTML = "⏳ Fazendo upload..."; 
+            btn.disabled = true;
+            
+            try {
+                for (let file of this.files) {
+                    const filePath = await uploadFileSupabase(file, 'arquivos');
+                    await supabaseClient.from('dependencies').insert([{ filename: file.name, path: filePath, size: file.size, is_deleted: false }]);
+                }
+                alert("Dependências enviadas com sucesso!"); 
+                carregarDadosIniciais();
+            } catch (error) { 
+                alert("Erro ao enviar arquivo.\n\n" + (error.message || JSON.stringify(error))); 
+            }
+            btn.innerHTML = "↑ Enviar Arquivos para o Banco"; 
+            btn.disabled = false;
+        });
+
+        // ============================================================
+        // CONFIGURAÇÕES, PIX, BYPASS E CHAVES
+        // ============================================================
+        document.getElementById('formPix').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnSalvarPix'); 
+            btn.innerHTML = "⏳ Salvando..."; 
+            btn.disabled = true;
+            const dados = { pix_type: document.getElementById('pixTipo').value, pix_key: document.getElementById('pixChave').value, pix_holder: document.getElementById('pixTitular').value };
+            await supabaseClient.from('app_settings').upsert({ id: 1, ...dados });
+            alert("Configurações Pix salvas!"); 
+            btn.innerHTML = "💾 Salvar Pix"; 
+            btn.disabled = false;
+        });
+
+        document.getElementById('formAddBypass').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnSalvarBypass'); 
+            btn.innerHTML = "⏳ Salvando..."; 
+            btn.disabled = true;
+            
+            const dados = { 
+                title: document.getElementById('tituloBypass').value, 
+                app_id: document.getElementById('appIdBypass').value, 
+                category: document.getElementById('categoriaBypass').value || 'Manual', 
+                cover_url: document.getElementById('urlZipBypass').value || '', 
+                is_deleted: false 
+            };
+            
+            await supabaseClient.from('bypasses').insert([dados]);
+            this.reset(); 
+            carregarDadosIniciais(); 
+            mudarAba('bypass', 'bypass');
+            
+            btn.innerHTML = "💾 Criar Bypass"; 
+            btn.disabled = false;
+        });
+
+        async function apagarArquivo(tabela, id) { 
+            if(confirm("Tem certeza que deseja EXCLUIR permanentemente?")){
+                await supabaseClient.from(tabela).delete().eq('id', id); 
+                carregarDadosIniciais(); 
+            }
+        }
+
+        document.getElementById('formGerarKey').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnSubmitKey'); 
+            btn.innerHTML = "⏳ Gerando..."; 
+            btn.disabled = true;
+            
+            const rand = () => Math.random().toString(36).substring(2, 6).toUpperCase();
+            
+            const planoSelecionado = document.getElementById('keyInputPlano').value;
+            const prefixo = planoSelecionado === 'premium' ? 'PRM' : 'PRO';
+            const keyString = `${prefixo}-MANUAL-${rand()}-${rand()}`;
+            
+            const dados = { 
+                key: keyString, 
+                status: 'active', 
+                hwid: 'EMPTY', 
+                label: 'EMPTY', 
+                full_name: document.getElementById('keyInputNome').value, 
+                email: document.getElementById('keyInputEmail').value, 
+                phone: document.getElementById('keyInputTelefone').value,
+                plan: planoSelecionado,
+                affiliate_name: currentUserName
+            };
+            
+            await supabaseClient.from('access_keys').insert([dados]);
+            this.reset(); 
+            carregarDadosIniciais();
+            
+            btn.innerHTML = "+ Gerar Key Manual"; 
+            btn.disabled = false;
+        });
+
+        document.getElementById('btnCriarAfiliado').addEventListener('click', async function() {
+            const nome = document.getElementById('inputNomeAfiliado').value.trim();
+            if(!nome) return alert("Digite um nome!");
+            const btn = this; 
+            btn.innerHTML = "⏳ ..."; 
+            btn.disabled = true;
+            
+            const keyString = `AFL-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+            await supabaseClient.from('affiliates').insert([{ name: nome, key: keyString }]);
+            document.getElementById('inputNomeAfiliado').value = '';
+            carregarDadosIniciais();
+            
+            btn.innerHTML = "+ Criar afiliado"; 
+            btn.disabled = false;
+        });
+    </script>
+</body>
+</html>
